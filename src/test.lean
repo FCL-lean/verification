@@ -1,5 +1,6 @@
 import data.nat.prime
 import data.int.basic
+import data.int.modeq
 def pf (p : ℕ) [nat.prime p] := { e: ℤ // 0 ≤ e ∧ e < p }
 
 section PF
@@ -83,6 +84,36 @@ def pf_add (a b: @pf p prime_p) : @pf p prime_p :=
                          apply nat.prime.pos,
                          assumption
                        end⟩
+def pf_sub (a b: @pf p prime_p) : @pf p prime_p := 
+   ⟨((a.1 - b.1) % p), begin 
+                         apply mod_in_range p (a.val - b.val) _,
+                         apply nat.prime.pos,
+                         assumption
+                       end⟩
+def pf_mul (a b: @pf p prime_p) : @pf p prime_p := 
+   ⟨((a.1 * b.1) % p), begin 
+                         apply mod_in_range p (a.val * b.val) _,
+                         apply nat.prime.pos,
+                         assumption
+                       end⟩
+def pf_one : @pf p prime_p := ⟨1, begin apply and.intro, trivial, apply (int.coe_nat_lt_coe_nat_iff 1 p).elim_right, exact nat.prime.ge_two prime_p end⟩
+
+def pf_to_nat (a : @pf p prime_p) : ℕ := 
+begin
+  let r := a.val % p,
+  exact int.to_nat r
+end
+
+def pf_inv_ex (a : @pf p prime_p) : ∃ (y: @pf p prime_p), @pf_mul p prime_p a y = @pf_one p prime_p :=
+begin
+  let h: nat.coprime (@pf_to_nat p prime_p a) p,
+  swap,
+  apply exists.intro,
+  swap,
+  let m := int.modeq.mod_coprime h,
+  cases m,
+end
+
 end PF
 instance pf_field {prime : ℕ} [pr : nat.prime prime]: field (@pf prime pr) := 
    field.mk (@pf_add prime pr)
