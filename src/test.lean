@@ -6,20 +6,11 @@ section PF
 variable p : ℕ
 variable [prime_p : nat.prime p]
 
-def sub_a_a_eq_zero (a : ℕ): a - a = 0:=
-begin
-  induction a,
-  begin trivial end,
-  begin 
-    simp,
-    assumption
-  end
-end
 
 def ge_sub_zero: Π (a b : ℕ), a ≥ b → b - a = 0 :=
   λ a b p, match a, b, p with
            | nat.zero, nat.zero, (nat.less_than_or_equal.refl nat.zero) := by trivial
-           | nat.succ a1, nat.succ a2, (nat.less_than_or_equal.refl _) := begin simp, exact sub_a_a_eq_zero a2 end
+           | nat.succ a1, nat.succ a2, (nat.less_than_or_equal.refl _) := begin simp, apply nat.sub_self end
            | nat.succ a1, nat.zero, (nat.less_than_or_equal.step m1) := begin simp end
            | nat.succ a1, nat.succ a2, (nat.less_than_or_equal.step m1) := 
               begin
@@ -31,7 +22,6 @@ def ge_sub_zero: Π (a b : ℕ), a ≥ b → b - a = 0 :=
                 assumption
               end
            end
-
 
 def sub_nat_nat_ge_zero : Π (a b : ℕ), a ≥ b → int.sub_nat_nat a b ≥ 0
 | nat.zero nat.zero p := by trivial
@@ -63,36 +53,36 @@ begin
   cases h
 end
 
+def mod_in_range: Π (a : ℤ), (p > 0) → ((a % p) ≥ 0) ∧ (a % p < p) :=
+begin
+  intros a prove,
+  unfold has_mod.mod,
+  apply and.intro,
+  begin
+    cases a,
+    by trivial,
+    begin
+      unfold int.mod,
+      eapply sub_nat_nat_ge_zero,
+      apply nat.mod_lt, 
+      rw [int.nat_abs_of_nat],
+      assumption
+    end
+  end,
+  begin
+    apply int.mod_lt_of_pos,
+    apply (int.coe_nat_lt_coe_nat_iff 0 p).elim_right,
+    assumption
+  end
+end
 
 -- instance from ℤ
-def pf_add (a b: @pf p prime_p) : @pf p prime_p := ⟨((a.1 + b.1) % p), 
-                begin apply and.intro, 
-                begin
-                  unfold has_mod.mod,
-                  cases a.val + b.val,
-                  trivial,
-                  unfold int.mod,
-                  eapply sub_nat_nat_ge_zero,
-                  show int.nat_abs p > a_1 % int.nat_abs p, 
-                           by { apply nat.mod_lt, 
-                                unfold nat.prime at prime_p, 
-                                cases prime_p,
-                                rw [int.nat_abs_of_nat],
-                                eapply (@lt.trans _ _ 0 1),
-                                constructor,
-                                assumption
-                              },
-
-                end,
-                begin
-                  apply int.mod_lt_of_pos,
-                  cases prime_p,
-                  apply (int.coe_nat_lt_coe_nat_iff 0 p).elim_right,
-                  eapply (@lt.trans _ _ 0 1),
-                  constructor,
-                  assumption
-               end   
-               end⟩
-
-
+def pf_add (a b: @pf p prime_p) : @pf p prime_p := 
+   ⟨((a.1 + b.1) % p), begin 
+                         apply mod_in_range p (a.val + b.val) _,
+                         apply nat.prime.pos,
+                         assumption
+                       end⟩
 end PF
+instance pf_field {prime : ℕ} [pr : nat.prime prime]: field (@pf prime pr) := 
+   field.mk (@pf_add prime pr)
