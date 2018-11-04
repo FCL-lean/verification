@@ -8,6 +8,8 @@ variable p : ℕ
 variable [prime_p : nat.prime p]
 
 
+
+
 def ge_sub_zero: Π (a b : ℕ), a ≥ b → b - a = 0 :=
   λ a b p, match a, b, p with
            | nat.zero, nat.zero, (nat.less_than_or_equal.refl nat.zero) := by trivial
@@ -104,14 +106,48 @@ begin
   exact int.to_nat r
 end
 
+
+def pf_inv_lem (a b : ℤ) (p : ℕ) : (gt p 0) → (a * (b % p)) % p = (a * b) % p :=
+begin 
+  intros,
+  apply int.modeq.modeq_mul_left,
+  apply int.modeq.mod_modeq,
+end
+
+def pf_inv_lem2 (a b : ℤ) (p : ℕ) : (gt p 0) → (a % p * b) % p = (a * b) % p :=
+begin
+  intros,
+  apply int.modeq.modeq_mul_right,
+  apply int.modeq.mod_modeq,
+end
 def pf_inv_ex (a : @pf p prime_p) : ∃ (y: @pf p prime_p), @pf_mul p prime_p a y = @pf_one p prime_p :=
 begin
   let h: nat.coprime (@pf_to_nat p prime_p a) p,
   swap,
+  let m := int.modeq.mod_coprime h,
+  apply (exists.elim m),
+  intros a1 a2,
   apply exists.intro,
   swap,
-  let m := int.modeq.mod_coprime h,
-  cases m,
+  exact ⟨(a1 % p), begin exact mod_in_range p a1 (begin apply nat.prime.pos, assumption end) end⟩,
+  unfold pf_mul,
+  unfold pf_one,
+  simp,
+  unfold pf_to_nat at a2,
+  simp at a2,
+  rw pf_inv_lem,
+  rw int.to_nat_of_nonneg at a2,
+  unfold int.modeq at a2,
+  rw (pf_inv_lem2 a.val a1 p _) at a2,
+  rw (@int.mod_eq_of_lt 1) at a2,
+  assumption,
+  trivial,
+  apply int.coe_nat_lt.elim_right,
+  exact nat.prime.gt_one prime_p,
+  exact nat.prime.pos prime_p,
+  exact (mod_in_range p a.val (nat.prime.pos prime_p)).left,
+  exact nat.prime.pos prime_p,
+  
 end
 
 end PF
