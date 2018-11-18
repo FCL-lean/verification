@@ -2,12 +2,13 @@ import data.finsupp
 import linear_algebra.multivariate_polynomial
 import ring_theory.ideals
 import data.zmod.basic
+import linear_algebra.basic
 variables {α : Type*} {β : Type*} {γ : Type*} {δ : Type*} {ι : Type*}
 variables {σ : Type*}
 variables [comm_ring α]
 variables [decidable_eq σ] [decidable_eq α]
 open mv_polynomial
-
+#print submodule.lattice.has_Inf
 def coeff_add : list α → list α → list α
 | [] x := x
 | x  [] := x
@@ -29,11 +30,13 @@ begin
     exact a_ih' a,
 end
 
-def prod' : Π (x: list α) (y: list (mv_polynomial σ α)), (x.length = y.length) → mv_polynomial σ α
+def prod' : Π (x: list α) (y: list (mv_polynomial σ α)), (x.length = y.length) 
+                                → mv_polynomial σ α
 | [] [] rfl := 0
 | (x :: xs) (y :: ys) p := C x * y + prod' xs ys (by simp at p; assumption)
 def fin_gen (S: list (mv_polynomial σ α)) := 
-      { x : mv_polynomial σ α | ∃ (coeff : list α) (h: coeff.length = S.length), prod' coeff S h = x }
+      { x : mv_polynomial σ α | ∃ (coeff : list α) 
+                    (h: coeff.length = S.length), prod' coeff S h = x }
 -- is_ideal (fin_gen S) = is_submodule (fin_gen S : set (mv_poly σ α))
 
 -- class is_submodule {α : Type u} {β : Type v} [ring α] [module α β] (p : set β) : Prop
@@ -41,7 +44,27 @@ def fin_gen (S: list (mv_polynomial σ α)) :=
 
 -- module α (mv_polynomial σ α)
 -- is_submodule S
-set_option trace.simplify.rewrite true
+open lattice
+-- set_option trace.class_instances true
+-- #print total_degree
+def span' (s : set (mv_polynomial σ α)) : submodule α (mv_polynomial σ α) 
+            := Inf (λ p, s ⊆ p) -- {p | s ⊆ p}
+-- set of submodules, 
+constant t : set (mv_polynomial σ α)
+constant t2 : submodule α (mv_polynomial σ α)
+def test : true :=
+begin
+    let m : submodule.span t = t2, swap,
+    unfold submodule.span at m,
+    unfold submodule.span,
+    unfold Inf, unfold has_Inf.Inf,
+    unfold set.Inter, unfold infi, unfold Inf, unfold has_Inf.Inf,
+    unfold complete_lattice.Inf, unfold set.range, unfold set_of,
+    unfold has_mem.mem, unfold set.mem, simp, 
+end
+
+
+-- set_option trace.simplify.rewrite true
 instance (S: list (mv_polynomial σ α)) : add_comm_semigroup (fin_gen S) := 
 { add_assoc := sorry,
   add_comm := sorry,
@@ -56,9 +79,12 @@ instance (S: list (mv_polynomial σ α)) : add_comm_semigroup (fin_gen S) :=
         unfold coeff_add,
         apply exists.intro, swap,
         symmetry,
-        apply coeff_add_is_length_preserving,
+        rw [←h_w] at *,
+        apply coeff_add_is_length_preserving w w_1,
+        symmetry, assumption,
+        rw [←h_1_h, ← h_h],
     end⟩ }
 
-instance (S: list (mv_polynomial σ α)) : comm_ring (fin_gen S) := 
+instance (S: list (mv_polynomial σ α)) : comm_ring (fin_gen S) := sorry
 
 def ideal_mv_poly (S: list (mv_polynomial σ α)) : ideal (fin_gen S) := sorry
