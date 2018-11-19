@@ -22,8 +22,8 @@ section -- N-σ
 -- set_option trace.class_instances true
 def ℕ_le_aux : (ℕ →₀ ℕ) → (ℕ →₀ ℕ) → ℕ → Prop
 | a b 0 := a 0 ≤ b 0
-| a b (nat.succ n) := a (nat.succ n) ≤ b (nat.succ n) 
-                 ∨ ((¬ a (nat.succ n) ≤ b (nat.succ n)) ∧ ℕ_le_aux a b n)
+| a b (nat.succ n) := a (nat.succ n) < b (nat.succ n) 
+                 ∨ ((¬ a (nat.succ n) < b (nat.succ n)) ∧ ℕ_le_aux a b n)
 
 instance ℕ_max_comm : is_commutative ℕ (λ (m n : ℕ), ite (m < n) n m) 
   := ⟨begin 
