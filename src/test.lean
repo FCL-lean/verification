@@ -121,12 +121,9 @@ begin
     unfold max_ab,
     have prf := λ (a b : ℕ →₀ ℕ), finset.subset.antisymm (union_support_contain a b) finsupp.support_add,
     repeat {rw [←prf] },
-    rw finset.union_assoc,
-    rw finset.union_comm b.support w.support,
-    rw [←finset.union_assoc w.support],
-    rw finset.union_idempotent,
-    rw finset.union_comm w.support,
-    rw [←finset.union_assoc],
+    rw [ finset.union_assoc, finset.union_comm b.support w.support ],
+    rw [←finset.union_assoc w.support, finset.union_idempotent, 
+         finset.union_comm w.support, ←finset.union_assoc],
     apply finset_max_le,
 end
 
@@ -204,5 +201,8 @@ def leading_coeff (p : mv_polynomial ℕ α) : α :=
         (λ nprf, let g := list.last (p.support.sort finsupp.le) nprf 
                  in p.to_fun g)
 
+def lcm (p q : mv_polynomial ℕ α) : mv_polynomial ℕ α := sorry
+
+def s_poly (p q : mv_polynomial ℕ α) : mv_polynomial ℕ α := sorry
 
 def buchberger {s : set (mv_polynomial ℕ α)} : set (mv_polynomial ℕ α) := sorry
