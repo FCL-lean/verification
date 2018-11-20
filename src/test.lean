@@ -17,7 +17,6 @@ namespace finsupp
 lemma in_not (a : ℕ →₀ ℕ) : ∀ x : ℕ, x ∈ a.support ∨ x ∉ a.support := 
     by intro; apply classical.or_not
 
-
 def le_aux : (ℕ →₀ ℕ) → (ℕ →₀ ℕ) → ℕ → Prop
 | a b 0 := a 0 ≤ b 0
 | a b (nat.succ m) := (a (nat.succ m) < b (nat.succ m)) ∨ 
@@ -28,6 +27,18 @@ def max_ab (a b : ℕ →₀ ℕ) : ℕ := (a.support ∪ b.support).sup id
 protected def le : (ℕ →₀ ℕ) → (ℕ →₀ ℕ) → Prop := λ a b, le_aux a b $ max_ab a b
 
 instance : has_le (ℕ →₀ ℕ) := ⟨finsupp.le⟩ 
+
+lemma add_gt (a b : ℕ →₀ ℕ) : a ≤ (a + b) := 
+begin
+    unfold has_le.le finsupp.le,
+    induction (max_ab a (a + b)),
+    all_goals {unfold le_aux},
+    all_goals {simp},
+    by_cases (b (nat.succ n) > 0), left, assumption,
+    right,
+    let h' := nat.le_zero_iff.elim_left (le_of_not_gt h),
+    rw h', simp, assumption
+end
 
 lemma gt_max_not_in : ∀ (a : ℕ →₀ ℕ) (x : ℕ), (x > max a) → x ∉ a.support :=
 begin
@@ -65,15 +76,40 @@ lemma gt_max_ab_not_in : ∀ (a b : ℕ →₀ ℕ) (x : ℕ), (x > max_ab a b) 
 begin
     intros a b x h₁,
     unfold max_ab at *, 
-    let h₃ : finset.sup (a.support ∪ b.support) id = finset.sup (a.support) id ⊔ finset.sup (b.support) id :=
-  finset.sup_union,
-    rw h₃ at *,
+    rw finset.sup_union at *,
     have h₄ : finset.sup (a.support) id < x := lt_of_le_of_lt lattice.le_sup_left h₁,
     have h₅ : finset.sup (b.support) id < x := lt_of_le_of_lt lattice.le_sup_right h₁,
     apply and.intro, 
     all_goals {intro h₂},
     apply (gt_max_not_in a x h₄ h₂),
     apply (gt_max_not_in b x h₅ h₂),
+end
+
+lemma support_contain_a (a b : ℕ →₀ ℕ) : a.support ⊆ (a + b).support :=
+begin
+    unfold has_subset.subset,
+    intros a_1 h,
+    let ha := (a.mem_support_to_fun a_1).elim_left h,
+    have hab : (a + b).to_fun a_1 ≠ 0,
+    have r : ∀ x : (ℕ →₀ ℕ), x.to_fun = ⇑x, by intro; refl,
+    rw r at *, simp, intro ha',
+    apply (absurd ha' ha),
+    apply ((a + b).mem_support_to_fun a_1).elim_right hab,
+end
+
+lemma support_contain_b (a b : ℕ →₀ ℕ) : b.support ⊆ (a + b).support := by rw add_comm; apply support_contain_a
+
+lemma union_support_contain (a b : ℕ →₀ ℕ) : a.support ∪ b.support ⊆ (a + b).support :=
+begin
+    have ha := support_contain_a a b,
+    have hb := support_contain_b a b,
+
+    
+end
+
+lemma max_ab_lt_add (a b w : ℕ →₀ ℕ) : max_ab a b ≤ max_ab (a + w) (b + w) :=
+begin
+    unfold max_ab,
 end
 
 lemma le_of_succ_eq (a b : ℕ →₀ ℕ) (i  : ℕ) (hlei : le_aux a b i) 
@@ -103,6 +139,7 @@ begin
         assumption, refl,
     end,
 end
+
 lemma le_add (a b w : ℕ →₀ ℕ) (i : ℕ) (hab : le_aux a b i) : le_aux (a + w) (b + w) i :=
 begin
     induction i,
