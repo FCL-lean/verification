@@ -22,10 +22,12 @@ structure monomial_order (le : rel (σ →₀ ℕ)) : Prop :=
 
 -- set_option trace.class_instances true
 
-
+constant const_a : ℕ →₀ ℕ
 section -- N-σ
-#check (by apply_instance : lattice.distrib_lattice ℕ)
 
+
+#check (by apply_instance : lattice.distrib_lattice ℕ)
+#check const_a.support.val
 
 def truncate : (ℕ →₀ ℕ) → ℕ → (ℕ →₀ ℕ) := λ a n,
 
@@ -74,7 +76,7 @@ def smax (a b : ℕ →₀ ℕ) : ℕ := (a.support ∪ b.support).sup id
 def ℕ_lt : rel (ℕ →₀ ℕ) := 
    λ a b, 
         ℕ_lt_aux a b (smax a b)
-constant truncation: ∀ (a : ℕ →₀ ℕ)
+
 lemma lt_to_alt_aux: ∀ (a b : ℕ →₀ ℕ)  (n : ℕ), 
     ℕ_lt_aux a b n → ℕ_lt_alt a b n complete :=
 begin
