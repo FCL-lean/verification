@@ -99,17 +99,37 @@ end
 
 lemma support_contain_b (a b : ℕ →₀ ℕ) : b.support ⊆ (a + b).support := by rw add_comm; apply support_contain_a
 
+
 lemma union_support_contain (a b : ℕ →₀ ℕ) : a.support ∪ b.support ⊆ (a + b).support :=
 begin
     have ha := support_contain_a a b,
     have hb := support_contain_b a b,
-
-    
+    intros elem p,
+    have m := support_contain_b a b,
+    have m' := support_contain_a a b,
+    have lem := finset.mem_union.elim_left p,
+    cases lem,
+    exact m' lem,
+    exact m lem,
 end
 
+lemma finset_max_le (a b : finset ℕ) : finset.sup a id ≤ finset.sup (a ∪ b) id :=
+begin
+    rw finset.sup_union,
+    apply lattice.le_sup_left,
+end
 lemma max_ab_lt_add (a b w : ℕ →₀ ℕ) : max_ab a b ≤ max_ab (a + w) (b + w) :=
 begin
     unfold max_ab,
+    have prf := λ (a b : ℕ →₀ ℕ), finset.subset.antisymm (union_support_contain a b) finsupp.support_add,
+    repeat {rw [←prf] },
+    rw finset.union_assoc,
+    rw finset.union_comm b.support w.support,
+    rw [←finset.union_assoc w.support],
+    rw finset.union_idempotent,
+    rw finset.union_comm w.support,
+    rw [←finset.union_assoc],
+    apply finset_max_le,
 end
 
 lemma le_of_succ_eq (a b : ℕ →₀ ℕ) (i  : ℕ) (hlei : le_aux a b i) 
@@ -164,7 +184,7 @@ begin
     apply nat.lt_of_le_of_lt h' a_1,
     have h' := max_ab_ge_max_a a b,
     apply nat.lt_of_le_of_lt h' a_1,
-        
+    apply max_ab_lt_add,
 end
 
 instance : is_monomial_order (ℕ →₀ ℕ) finsupp.le := sorry
