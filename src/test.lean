@@ -159,19 +159,32 @@ begin
     rw nat.add_sub_of_le at h, assumption,
     swap,
     intros,
-    rw nat.add_sub_of_le at a_2,
     rw [gt_sup_eq_zero a k, gt_sup_eq_zero b k],
     have h' := max_ab_ge_max_b a b,
     apply nat.lt_of_le_of_lt h' a_1,
     have h' := max_ab_ge_max_a a b,
     apply nat.lt_of_le_of_lt h' a_1,
+        
 end
 
 instance : is_monomial_order (ℕ →₀ ℕ) finsupp.le := sorry
-
+instance : decidable_rel finsupp.le := sorry
 end finsupp
 
 
-def leading_term (p : mv_polynomial ℕ α) : mv_polynomial ℕ α := sorry
+
+
+def leading_term (p : mv_polynomial ℕ α) : mv_polynomial ℕ α := 
+   dite (p.support.sort finsupp.le = list.nil) 
+        (λ prf, mv_polynomial.C (p.to_fun 0))
+        (λ nprf, let g := list.last (p.support.sort finsupp.le) nprf 
+                 in finsupp.single g (p.to_fun g))
+
+def leading_coeff (p : mv_polynomial ℕ α) : α := 
+   dite (p.support.sort finsupp.le = list.nil) 
+        (λ prf, p.to_fun 0)
+        (λ nprf, let g := list.last (p.support.sort finsupp.le) nprf 
+                 in p.to_fun g)
+
 
 def buchberger {s : set (mv_polynomial ℕ α)} : set (mv_polynomial ℕ α) := sorry
