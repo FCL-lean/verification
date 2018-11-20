@@ -25,15 +25,6 @@ def max (a : ℕ →₀ ℕ) : ℕ := a.support.sup id
 def max_ab (a b : ℕ →₀ ℕ) : ℕ := (a.support ∪ b.support).sup id
 protected def le : (ℕ →₀ ℕ) → (ℕ →₀ ℕ) → Prop := λ a b, le_aux a b $ max_ab a b
 
-/-
-inductive less_than_or_equal (a b : ℕ →₀ ℕ) : ℕ → Prop
-| zero : a 0 ≤ b 0 → less_than_or_equal 0
-| succ_le : ∀ m : ℕ, a (nat.succ m) < b (nat.succ m) → less_than_or_equal (nat.succ m)
-| succ_eq : ∀ m : ℕ, a (nat.succ m) = b (nat.succ m) → less_than_or_equal m → less_than_or_equal (nat.succ m)
-
-protected def le (a b : ℕ →₀ ℕ) := finsupp.less_than_or_equal a b $ max a b
--/
-
 instance : has_le (ℕ →₀ ℕ) := ⟨finsupp.le⟩ 
 
 lemma gt_max_not_in : ∀ (a : ℕ →₀ ℕ) (x : ℕ), (x > max a) → x ∉ a.support :=
@@ -64,8 +55,7 @@ lemma le_of_succ_eq (a b : ℕ →₀ ℕ) (i  : ℕ) (hlei : le_aux a b i) (hi_
 begin
     unfold le_aux,
     apply or.inr, apply and.intro,
-    apply (not_lt_of_ge (le_of_eq hi_succ)),
-    assumption,
+    repeat {assumption},
 end
 
 lemma le_of_succ_eqs (a b : ℕ →₀ ℕ) (i j : ℕ) (hlei : le_aux a b i) (hk : ∀ k : ℕ, i < k → k ≤ (i + j) → a k = b k) : le_aux a b (i + j) :=
@@ -96,7 +86,6 @@ begin
     cases hab, apply or.inr, apply and.intro, assumption,
     apply (i_ih hab_right),
 end
-
 
 lemma mono_order_lem : ∀ (a b w : ℕ →₀ ℕ), (a ≤ b) → ((a + w) ≤ (b + w)) := 
 begin 
