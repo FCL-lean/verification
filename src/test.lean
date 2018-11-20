@@ -105,12 +105,10 @@ begin
     have ha := support_contain_a a b,
     have hb := support_contain_b a b,
     intros elem p,
-    have m := support_contain_b a b,
-    have m' := support_contain_a a b,
     have lem := finset.mem_union.elim_left p,
     cases lem,
-    exact m' lem,
-    exact m lem,
+    exact ha lem,
+    exact hb lem,
 end
 
 lemma finset_max_le (a b : finset ℕ) : finset.sup a id ≤ finset.sup (a ∪ b) id :=
