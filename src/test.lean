@@ -7,8 +7,6 @@ variables [comm_semiring α]
 variables [decidable_eq α]
 variables [comm_ring (mv_polynomial ℕ α)]
 
-variable (ss : set (mv_polynomial ℕ α))
-
 class is_monomial_order (α : Type*) (r : α → α → Prop) extends has_add α, is_linear_order α r :=
     (mono_order : ∀ a b w : α, (r a b) → r (a + w) (b + w) )
 
@@ -24,9 +22,12 @@ def le_aux : (ℕ →₀ ℕ) → (ℕ →₀ ℕ) → ℕ → Prop
     
 def max (a : ℕ →₀ ℕ) : ℕ := a.support.sup id
 def max_ab (a b : ℕ →₀ ℕ) : ℕ := (a.support ∪ b.support).sup id
-protected def le : (ℕ →₀ ℕ) → (ℕ →₀ ℕ) → Prop := λ a b, le_aux a b $ max_ab a b
 
+protected def le : (ℕ →₀ ℕ) → (ℕ →₀ ℕ) → Prop := λ a b, le_aux a b $ max_ab a b
 instance : has_le (ℕ →₀ ℕ) := ⟨finsupp.le⟩ 
+
+protected def lt : (ℕ →₀ ℕ) → (ℕ →₀ ℕ) → Prop := λ a b, a ≤ b ∧ a ≠ b
+instance : has_lt (ℕ →₀ ℕ) := ⟨finsupp.lt⟩
 
 lemma add_gt (a b : ℕ →₀ ℕ) : a ≤ (a + b) := 
 begin
@@ -216,10 +217,11 @@ begin
     exact is_false m,
     exact is_true (or.inr (and.intro m ih)),
 end
+
 end finsupp
 
 
-
+namespace mv_polynomial
 
 def leading_term (p : mv_polynomial ℕ α) : mv_polynomial ℕ α := 
    dite (p.support.sort finsupp.le = list.nil) 
@@ -227,14 +229,29 @@ def leading_term (p : mv_polynomial ℕ α) : mv_polynomial ℕ α :=
         (λ nprf, let g := list.last (p.support.sort finsupp.le) nprf 
                  in finsupp.single g (p.to_fun g))
 
+def leading_term' (p : mv_polynomial ℕ α) : ℕ →₀ ℕ := 
+   dite (p.support.sort finsupp.le = list.nil) 
+        (λ prf, 0)
+        (λ nprf, list.last (p.support.sort finsupp.le) nprf)
+
 def leading_coeff (p : mv_polynomial ℕ α) : α := 
    dite (p.support.sort finsupp.le = list.nil) 
         (λ prf, p.to_fun 0)
         (λ nprf, let g := list.last (p.support.sort finsupp.le) nprf 
                  in p.to_fun g)
 
+protected def lt (a b : mv_polynomial ℕ α) : Prop := a.leading_term' < b.leading_term'
+instance : has_lt (mv_polynomial ℕ α) := ⟨mv_polynomial.lt⟩ 
+
 def lcm (p q : mv_polynomial ℕ α) : mv_polynomial ℕ α := sorry
+
+def div (a b : mv_polynomial ℕ α) : Σ'q r, r < b ∧ a = b * q + r := 
+begin
+
+end
 
 def s_poly (p q : mv_polynomial ℕ α) : mv_polynomial ℕ α := sorry
 
 def buchberger {s : set (mv_polynomial ℕ α)} : set (mv_polynomial ℕ α) := sorry
+
+end mv_polynomial
