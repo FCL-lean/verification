@@ -181,9 +181,41 @@ begin
     apply nat.lt_of_le_of_lt h' a_1,
     apply max_ab_lt_add,
 end
+lemma not_le_not_ge_eq (a b : ℕ) : ¬ a < b → ¬ b < a → a = b :=
+begin
+    intros,
+    have h := lt_trichotomy a b,
+    cases h, exact absurd h a_1,
+    cases h, assumption, exact absurd h a_2,
+end
 
 instance : is_monomial_order (ℕ →₀ ℕ) finsupp.le := sorry
-instance : decidable_rel finsupp.le := sorry
+instance : decidable_rel finsupp.le := λ a b, 
+begin 
+    unfold finsupp.le,
+    induction max_ab a b,
+    unfold le_aux, apply_instance,
+    unfold le_aux,
+    by_cases (a (nat.succ n) < b (nat.succ n)),
+    exact is_true (or.inl h),
+    by_cases (a (nat.succ n) > b (nat.succ n)),
+    let m : ¬ (a (nat.succ n) < b (nat.succ n) ∨ a (nat.succ n) = 
+          b (nat.succ n) ∧ le_aux a b n),
+    intro t, cases t with t'; dedup,
+    exact h t',
+    cases t, rw t_left at *, exact h h_1,
+    exact is_false m,
+    dedup, have m := not_le_not_ge_eq _ _ h h_1,
+    cases ih,
+    have m : ¬ (a (nat.succ n) < b (nat.succ n) ∨ a (nat.succ n) = 
+          b (nat.succ n) ∧ le_aux a b n),
+    intro, cases a_1,
+    exact absurd a_1 h,
+    cases a_1,
+    exact absurd a_1_right ih,
+    exact is_false m,
+    exact is_true (or.inr (and.intro m ih)),
+end
 end finsupp
 
 
