@@ -4,8 +4,9 @@ import ring_theory.ideals
 import tactic.find
 variables {α : Type*} {β : Type*} {γ : Type*} {δ : Type*} {ι : Type*}
 variables [comm_semiring α]
-variables [decidable_eq α]
+variables [decidable_eq α] [decidable_linear_order α]
 variables [comm_ring (mv_polynomial ℕ α)]
+
 
 class is_monomial_order (α : Type*) (r : α → α → Prop) extends has_add α, is_linear_order α r :=
     (mono_order : ∀ a b w : α, (r a b) → r (a + w) (b + w) )
@@ -243,7 +244,117 @@ def leading_coeff (p : mv_polynomial ℕ α) : α :=
 protected def lt (a b : mv_polynomial ℕ α) : Prop := a.leading_term' < b.leading_term'
 instance : has_lt (mv_polynomial ℕ α) := ⟨mv_polynomial.lt⟩ 
 
-def lcm (p q : mv_polynomial ℕ α) : mv_polynomial ℕ α := sorry
+/-
+lemma constant_poly_or_not (p : mv_polynomial ℕ α) : decidable (∃ a : α, p = mv_polynomial.C a) := 
+    if h₀ : p.support = ∅ 
+        then is_true 
+            begin 
+                unfold C monomial finsupp.single,
+                apply (exists.intro (0 : α)),
+                simp,
+                apply finsupp.ext, intro,
+                rw iff.elim_left finsupp.support_eq_empty h₀,
+                refl,
+            end
+    else    if h₁ : p.support = {0} 
+                then  is_true
+                    begin
+                        unfold C monomial,
+                        apply (exists.intro (p.to_fun 0)),
+                        apply finsupp.ext, intro,
+                        change p.to_fun a = (finsupp.single 0 (p.to_fun 0)).to_fun a,
+                        unfold finsupp.single, simp,
+                        by_cases 0 = a,
+                        simp [h],
+                        rw if_neg h,
+                        have ha : a ∉ p.support,
+                        rw [h₁, finset.insert_empty_eq_singleton, finset.mem_singleton], 
+                        apply ne.symm, assumption,
+                        apply finsupp.not_mem_support_iff.elim_left ha,
+                    end
+            else is_false
+                begin
+                    unfold C monomial finsupp.single,
+                    intro,
+                    cases a,
+                    rw a_h at *,
+                    by_cases a_w = 0,
+                    rw h at *, simp at *, assumption, simp at h₁,
+                    rw (if_neg h) at h₁,
+                    apply (ne_self_iff_false (finset.singleton 0)).mp h₁,
+                end
+-/
+
+def mv_trichotomy (p : mv_polynomial ℕ α) : psum (p = mv_polynomial.C 0) 
+            (psum (Σ'a : α, p = mv_polynomial.C a) ((Σ'a : α, p = mv_polynomial.C a) → false)):= 
+if h₀ : p.support = ∅ 
+    then
+    begin
+        left, 
+        unfold C monomial finsupp.single,
+        simp,
+        apply finsupp.ext, intro,
+        rw iff.elim_left finsupp.support_eq_empty h₀,
+        refl,
+    end
+else if h₁ : p.support = {0} 
+        then 
+        begin
+            right, left,
+            unfold C monomial,
+            apply (psigma.mk (p.to_fun 0)),
+            apply finsupp.ext, intro,
+            change p.to_fun a = (finsupp.single 0 (p.to_fun 0)).to_fun a,
+            unfold finsupp.single, simp,
+            by_cases 0 = a,
+            simp [h],
+            rw if_neg h,
+            have ha : a ∉ p.support,
+            rw [h₁, finset.insert_empty_eq_singleton, finset.mem_singleton], 
+            apply ne.symm, assumption,
+            apply finsupp.not_mem_support_iff.elim_left ha,
+        end
+    else
+    begin
+        right, right,
+        intro h,
+        unfold C monomial finsupp.single at h,
+        cases h,
+        by_cases h_fst = 0,
+        rw h at *, simp [h_snd] at *, assumption, 
+        simp [h_snd] at *,
+        rw (if_neg h) at h₁,
+        apply (ne_self_iff_false (finset.singleton 0)).mp h₁,
+    end
+
+
+def leading_term_lcm (p q : mv_polynomial ℕ α) : mv_polynomial ℕ α := 
+begin
+    have hp := mv_trichotomy p,
+    have hq := mv_trichotomy q,
+    cases hp, exact mv_polynomial.C 0,
+    cases hq, exact mv_polynomial.C 0,
+    cases hp, all_goals {cases hq},
+    begin
+        cases hp, cases hq,
+        exact mv_polynomial.C (max hp_fst hq_fst),
+    end,
+    begin
+        cases hp,
+        let coeff := max hp_fst (q.to_fun (q.leading_term')),
+        exact monomial q.leading_term' coeff,
+    end,
+    begin
+        cases hq,
+        let coeff := max hq_fst (p.to_fun (p.leading_term')),
+        exact monomial p.leading_term' coeff,
+    end,
+    begin
+        let coeff := max (p.to_fun (p.leading_term')) (q.to_fun (q.leading_term')),
+        let supp := finsupp.zip_with max (max_self 0) p.leading_term' q.leading_term',
+        exact monomial supp coeff,
+    end
+end
 
 def div (a b : mv_polynomial ℕ α) : Σ'q r, r < b ∧ a = b * q + r := 
 begin
