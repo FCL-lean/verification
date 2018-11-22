@@ -346,7 +346,6 @@ def leading_term_sub_aux (a b : ℕ →₀ ℕ)
 | nat.zero le := finsupp.single 0 (a 0 - b 0)
 | (nat.succ n) le := begin cases le, exact leading_term_sub_aux n le_right end
 
-#print leading_term_sub_aux._main
 def leading_term_sub (a b : ℕ →₀ ℕ) : (leading_term_le b a) → (ℕ →₀ ℕ) 
 | le := leading_term_sub_aux a b (finsupp.max_ab b a) le
 
