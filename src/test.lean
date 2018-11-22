@@ -249,17 +249,95 @@ def leading_term_le (a b : ℕ →₀ ℕ) : Prop := leading_term_le_aux a b (fi
 protected def le (a b : mv_polynomial ℕ α) : Prop := leading_term_le a.leading_term' b.leading_term'
 instance : has_le (mv_polynomial ℕ α) := ⟨mv_polynomial.le⟩ 
 
-instance (a b : mv_polynomial ℕ α) : decidable (a ≤ b) := sorry
+instance le_decidable (a b : mv_polynomial ℕ α) : decidable (a ≤ b) := sorry
 
-protected def lt (a b : mv_polynomial ℕ α) : Prop := ¬ leading_term_le b.leading_term' a.leading_term' 
+def leading_term_lt_aux : (ℕ →₀ ℕ) → (ℕ →₀ ℕ) → ℕ → Prop
+| a b 0 := a 0 < b 0
+| a b (nat.succ m) := (a (nat.succ m) < b (nat.succ m) ∧ leading_term_le_aux a b m)
+                    ∨ (a (nat.succ m) ≤ b (nat.succ m) ∧ leading_term_lt_aux a b m)
+
+protected def lt (a b : mv_polynomial ℕ α) : Prop 
+    := leading_term_lt_aux a.leading_term' b.leading_term' (finsupp.max_ab a.leading_term' b.leading_term') 
 instance : has_lt (mv_polynomial ℕ α) := ⟨mv_polynomial.lt⟩ 
 
-def wf_lt_aux : Π (a b : mv_polynomial ℕ α), a < b 
-     → acc (@mv_polynomial.lt α _ _ _) a :=
+instance lt_decidable (a b : mv_polynomial ℕ α) : decidable (a < b) := sorry
+
+universes u v
+inductive ind_or {κ : Type u} (r r' : κ → κ → Prop) : κ → κ → Prop
+| fst : ∀ (a b : κ), r a b → ind_or a b
+| snd : ∀ (a b : κ), r' a b → ind_or a b
+| trans_fst : ∀ (a b c: κ), r a b → ind_or b c → ind_or a c
+| trans_snd : ∀ (a b c : κ), r' a b → ind_or b c → ind_or a c
+open prod
+def lex_accessible {α : Type u} {β : Type v} {ra  : α → α → Prop} 
+   {rb  : β → β → Prop} {a} (aca : acc ra a) (acb : ∀ b, acc rb b): ∀ b, acc (lex ra rb) (a, b) :=
+  acc.rec_on aca (λ xa aca iha b,
+    acc.rec_on (acb b) 
+       (λ (a : β) (b : ∀ (y : β), rb y a → acc rb y) (c : ∀ (y : β), 
+          rb y a → acc (lex ra rb) (xa, y)), {! !}))
+
+
+def inf_or_acc {κ : Type u} : Π (r r': κ → κ → Prop) (a b : κ), 
+    acc r a → acc r' b → ∀ (y : κ), ind_or r r' y a → acc (ind_or r r') y
+| r r' a b m@(acc.intro t ac) m'@(acc.intro t' ac') y m''@(ind_or.fst ._ ._ rab r'') :=
+    inf_or_acc r r' a b (begin end) (begin end) y m''
+| r r' a b (well_founded.intro ac) (well_founded.intro ac') y ind := 
+| r r' a b (well_founded.intro ac) (well_founded.intro ac') y ind := 
+| r r' a b (well_founded.intro ac) (well_founded.intro ac') y ind := 
+
+
+def acc_or_eq {κ : Type*} : Π (r r': κ → κ → Prop) (a : κ),
+    well_founded (ind_or r r') → acc (λ a b, r a b ∨ r' a b) a
+| r r' a (well_founded.intro ac) := 
+
+def acc_or {κ : Type*} : Π (r r': κ → κ → Prop) (a : κ),
+    well_founded r → well_founded r' → acc (λ a b, r a b ∨ r' a b) a
+| r r' a wf1 wf2 :=
 begin
-    intros, unfold has_lt.lt mv_polynomial.lt at a_1,
+    cases wf1, cases wf2,
+    apply acc.rec_on (wf1 a), intros,
+    apply acc.rec_on (wf2 x), intros,
+    apply acc.intro, intros,
+    have aux : a = a → x = x → acc (λ a b, r a b ∨ r' a b) y,
+    cases a_1, 
+end
+
+def wf_or {κ : Type*} : Π (r r': κ → κ → Prop), 
+    well_founded r → well_founded r' 
+    → well_founded (λ a b, r a b ∨ r' a b) :=
+begin
+    intros,
     constructor,
     intros,
+    cases a, cases a_1, apply acc_or r r',
+    constructor, apply a, constructor, apply a_1,
+end
+
+def wf_lt_aux' : Π (a b : ℕ →₀ ℕ) (c : ℕ), 
+    leading_term_lt_aux a b c
+    → acc (λ x y, leading_term_lt_aux x y c) a :=
+begin
+    intros a b c, revert a b,
+    induction c; intros,
+    begin
+        constructor,
+        intros,
+        unfold leading_term_lt_aux at *,
+        apply inv_image.accessible, have w := nat.lt_wf,
+        cases w, apply w,
+    end,
+    begin
+        unfold leading_term_lt_aux,
+
+    end,
+end
+
+def wf_lt_aux : Π (a b : mv_polynomial ℕ α), a < b 
+     → acc (@mv_polynomial.lt α _ _ _) a
+| a b p :=
+begin
+    unfold has_lt.lt mv_polynomial.lt at p,
+    
 end
 
 protected def wf_lt : well_founded (@mv_polynomial.lt α _ _ _) :=
@@ -270,9 +348,23 @@ end
 instance : has_well_founded (mv_polynomial ℕ α) :=
 ⟨mv_polynomial.lt, mv_polynomial.wf_lt⟩
 
-def leading_term_sub (a b : ℕ →₀ ℕ) : (leading_term_le b a) → (ℕ →₀ ℕ) := sorry
+
+
+def leading_term_sub_aux (a b : ℕ →₀ ℕ) 
+   : Π (k: ℕ), (leading_term_le_aux b a k) → (ℕ →₀ ℕ) 
+| nat.zero le := finsupp.single 0 (a 0 - b 0)
+| (nat.succ n) le := begin cases le, exact leading_term_sub_aux n le_right end
+
+def leading_term_sub (a b : ℕ →₀ ℕ) : (leading_term_le b a) → (ℕ →₀ ℕ) 
+| le := leading_term_sub_aux a b (finsupp.max_ab b a) le
 
 def lcm (p q : mv_polynomial ℕ α) : mv_polynomial ℕ α := sorry
+
+def not_le_le : Π (a b : mv_polynomial ℕ α), ¬ b ≤ a → a < b :=
+begin
+    intros,
+    
+end
 
 def div : Π (a b : mv_polynomial ℕ α), Σ'q r, r < b ∧ a = b * q + r
 | a b :=
@@ -295,12 +387,16 @@ begin
     rw left_distrib,
     apply psigma.mk (0 : mv_polynomial ℕ α),
     apply psigma.mk a,
-    apply and.intro, assumption,
+    apply and.intro, apply not_le_le, assumption,
     simp,
 end
-using_well_founded {rel_tac := λ _ _, `[exact ⟨_, measure_wf mv_polynomial.total_degree⟩]}
 
-def s_poly (p q : mv_polynomial ℕ α) : mv_polynomial ℕ α := sorry
+def s_poly (p q : mv_polynomial ℕ α) : mv_polynomial ℕ α :=
+begin
+    let fst := div (lcm p q) p.leading_term,
+    let snd := div (lcm p q) q.leading_term,
+    exact fst.fst * p - snd.fst * q,
+end
 
 def buchberger {s : set (mv_polynomial ℕ α)} : set (mv_polynomial ℕ α) := sorry
 
