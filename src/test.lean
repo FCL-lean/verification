@@ -349,13 +349,7 @@ def leading_term_sub_aux (a b : ℕ →₀ ℕ)
 def leading_term_sub (a b : ℕ →₀ ℕ) : (leading_term_le b a) → (ℕ →₀ ℕ) 
 | le := leading_term_sub_aux a b (finsupp.max_ab b a) le
 
-def not_le_le : Π (a b : mv_polynomial ℕ α), ¬ b ≤ a → a < b :=
-begin
-    intros,
-    sorry
-end
-
-def div : Π (a b : mv_polynomial ℕ α), Σ'q r, r < b ∧ a = b * q + r
+def div : Π (a b : mv_polynomial ℕ α), Σ'q r, (¬ b ≤ r) ∧ a = b * q + r
 | a b :=
 begin
     by_cases (b ≤ a),
@@ -376,7 +370,7 @@ begin
     rw left_distrib,
     apply psigma.mk (0 : mv_polynomial ℕ α),
     apply psigma.mk a,
-    apply and.intro, apply not_le_le, assumption,
+    apply and.intro, assumption,
     simp,
 end
 
@@ -471,6 +465,8 @@ def buchberger : list (mv_polynomial ℕ α) → list (mv_polynomial ℕ α)
             then list.nil
             else [(x, y)]
     in let s_polys : list (mv_polynomial ℕ α) := pairs.map (λ a, s_poly a.fst a.snd)
-    in buchberger (list.foldl (λ a b, let div_result := div_list b a in 
-            if div_result ∉ a then div_result :: a else a) s s_polys)
+    in let result := (list.foldl (λ a b, 
+                let div_result := div_list (b : mv_polynomial ℕ α) a 
+                in if div_result ∉ a then div_result :: a else a) s s_polys)
+        in if s = result then s else buchberger result
 end mv_polynomial
