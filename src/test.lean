@@ -274,9 +274,9 @@ def inf_or_acc {κ : Type u} : Π (r r': κ → κ → Prop) (a b : κ),
     acc r a → acc r' b → ∀ (y : κ), ind_or r r' y a → acc (ind_or r r') y
 | r r' a b m@(acc.intro t ac) m'@(acc.intro t' ac') y m''@(ind_or.fst ._ ._ rab r'') :=
     inf_or_acc r r' a b (begin end) (begin end) y m''
-| r r' a b (well_founded.intro ac) (well_founded.intro ac') y ind := sorry
-| r r' a b (well_founded.intro ac) (well_founded.intro ac') y ind := sorry
-| r r' a b (well_founded.intro ac) (well_founded.intro ac') y ind := sorry
+| r r' a b (acc.intro ac) (acc.intro ac') y ind := sorry
+| r r' a b (acc.intro ac) (acc.intro ac') y ind := sorry
+| r r' a b (acc.intro ac) (acc.intro ac') y ind := sorry
 
 
 def acc_or_eq {κ : Type*} : Π (r r': κ → κ → Prop) (a : κ),
@@ -346,6 +346,7 @@ def leading_term_sub_aux (a b : ℕ →₀ ℕ)
 | nat.zero le := finsupp.single 0 (a 0 - b 0)
 | (nat.succ n) le := begin cases le, exact leading_term_sub_aux n le_right end
 
+#print leading_term_sub_aux._main
 def leading_term_sub (a b : ℕ →₀ ℕ) : (leading_term_le b a) → (ℕ →₀ ℕ) 
 | le := leading_term_sub_aux a b (finsupp.max_ab b a) le
 
