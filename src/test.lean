@@ -453,8 +453,8 @@ end
 
 def s_poly (p q : mv_polynomial ℕ α) : mv_polynomial ℕ α :=
 begin
-    let fst := div (lcm p q) p.leading_term,
-    let snd := div (lcm p q) q.leading_term,
+    let fst := div (leading_term_lcm p q) p.leading_term,
+    let snd := div (leading_term_lcm p q) q.leading_term,
     exact fst.fst * p - snd.fst * q,
 end
 
