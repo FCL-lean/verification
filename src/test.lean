@@ -458,6 +458,19 @@ begin
     exact fst.fst * p - snd.fst * q,
 end
 
-def buchberger {s : set (mv_polynomial ℕ α)} : set (mv_polynomial ℕ α) := sorry
+def div_list : (mv_polynomial ℕ α) → (list (mv_polynomial ℕ α)) → mv_polynomial ℕ α
+| a list.nil := a
+| a (list.cons x xs) := div_list (div a x).snd.fst xs
 
+def buchberger : list (mv_polynomial ℕ α) → list (mv_polynomial ℕ α)
+| s :=
+    let pairs : list (mv_polynomial ℕ α × mv_polynomial ℕ α) :=
+        do  x ← s,
+            y ← s,
+            if x = y
+            then list.nil
+            else [(x, y)]
+    in let s_polys : list (mv_polynomial ℕ α) := pairs.map (λ a, s_poly a.fst a.snd)
+    in buchberger (list.foldl (λ a b, let div_result := div_list b a in 
+            if div_result ∉ a then div_result :: a else a) s s_polys)
 end mv_polynomial
