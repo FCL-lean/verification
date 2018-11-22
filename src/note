@@ -1,0 +1,5 @@
+λ (a : mv_polynomial),
+                  ∀ (t_1 : set mv_polynomial) (x : submodule ?m_1 mv_polynomial),
+                    (λ (a : mv_polynomial),
+                         ∀ (t_1 : set mv_polynomial), t ⊆ ↑x → ↑x = t_1 → t_1 a) =
+                             t_1 → t_1 a

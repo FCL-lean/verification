@@ -292,8 +292,8 @@ begin
     apply acc.rec_on (wf2 x), intros,
     apply acc.intro, intros,
     have aux : a = a → x = x → acc (λ a b, r a b ∨ r' a b) y,
-    cases a_1, 
-    sorry
+    cases a_1;
+
 end
 
 def wf_or {κ : Type*} : Π (r r': κ → κ → Prop), 
@@ -327,15 +327,15 @@ begin
 end
 
 def wf_lt_aux : Π (a b : mv_polynomial ℕ α), a < b 
-     → acc (@mv_polynomial.lt α _ _ _) a
+     → acc (@mv_polynomial.lt α _ _ _ _) a
 | a b p :=
 begin
     unfold has_lt.lt mv_polynomial.lt at p,
 end
 
-protected def wf_lt : well_founded (@mv_polynomial.lt α _ _ _) :=
+protected def wf_lt : well_founded (@mv_polynomial.lt α _ _ _ _) :=
 begin
-    constructor, intro, 
+    constructor, intro, sorry
 end
 
 instance : has_well_founded (mv_polynomial ℕ α) :=
@@ -352,7 +352,7 @@ def leading_term_sub (a b : ℕ →₀ ℕ) : (leading_term_le b a) → (ℕ →
 def not_le_le : Π (a b : mv_polynomial ℕ α), ¬ b ≤ a → a < b :=
 begin
     intros,
-    
+    sorry
 end
 
 def div : Π (a b : mv_polynomial ℕ α), Σ'q r, r < b ∧ a = b * q + r
