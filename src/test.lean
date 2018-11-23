@@ -21,10 +21,10 @@ def le_aux : (ℕ →₀ ℕ) → (ℕ →₀ ℕ) → ℕ → Prop
 | a b (nat.succ m) := (a (nat.succ m) < b (nat.succ m)) ∨ 
                         ((a (nat.succ m) = b (nat.succ m)) ∧ le_aux a b m) 
     
-def max (a : ℕ →₀ ℕ) : ℕ := a.support.sup id
-def max_ab (a b : ℕ →₀ ℕ) : ℕ := (a.support ∪ b.support).sup id
+def finsupp_max (a : ℕ →₀ ℕ) : ℕ := a.support.sup id
+def finsupp_max_ab (a b : ℕ →₀ ℕ) : ℕ := (a.support ∪ b.support).sup id
 
-protected def le : (ℕ →₀ ℕ) → (ℕ →₀ ℕ) → Prop := λ a b, le_aux a b $ max_ab a b
+protected def le : (ℕ →₀ ℕ) → (ℕ →₀ ℕ) → Prop := λ a b, le_aux a b $ finsupp_max_ab a b
 instance : has_le (ℕ →₀ ℕ) := ⟨finsupp.le⟩ 
 
 protected def lt : (ℕ →₀ ℕ) → (ℕ →₀ ℕ) → Prop := λ a b, a ≤ b ∧ a ≠ b
@@ -42,16 +42,16 @@ begin
     rw h', simp, assumption
 end
 
-lemma gt_max_not_in : ∀ (a : ℕ →₀ ℕ) (x : ℕ), (x > max a) → x ∉ a.support :=
+lemma gt_max_not_in : ∀ (a : ℕ →₀ ℕ) (x : ℕ), (x > finsupp_max a) → x ∉ a.support :=
 begin
     intros a x h₁ h₂,
-    unfold max at *,
+    unfold finsupp_max at *,
     let h₃ : id x ≤ finset.sup (a.support) id := finset.le_sup h₂,
     rw id at *,
     apply (absurd h₁ (not_lt_of_ge h₃))
 end
 
-lemma gt_sup_eq_zero (a : ℕ →₀ ℕ) : ∀ k : ℕ, max a < k → a k = 0 :=
+lemma gt_sup_eq_zero (a : ℕ →₀ ℕ) : ∀ k : ℕ, finsupp_max a < k → a k = 0 :=
 begin
     intros,
     have h : k ∉ a.support := gt_max_not_in a k a_1,
@@ -60,24 +60,24 @@ begin
     apply not_mem_support_iff.elim_left, assumption
 end
 
-lemma max_ab_ge_max_a : ∀ (a b : ℕ →₀ ℕ), max_ab a b ≥ max a :=
+lemma max_ab_ge_max_a : ∀ (a b : ℕ →₀ ℕ), finsupp_max_ab a b ≥ finsupp_max a :=
 begin
     intros a b,
-    unfold max_ab max,
+    unfold finsupp_max_ab finsupp_max,
     rw finset.sup_union, apply lattice.le_sup_left,
 end
 
-lemma max_ab_ge_max_b : ∀ (a b : ℕ →₀ ℕ), max_ab a b ≥ max b :=
+lemma max_ab_ge_max_b : ∀ (a b : ℕ →₀ ℕ), finsupp_max_ab a b ≥ finsupp_max b :=
 begin
     intros a b,
-    unfold max_ab max,
+    unfold finsupp_max_ab finsupp_max,
     rw finset.sup_union, apply lattice.le_sup_right,
 end
 
-lemma gt_max_ab_not_in : ∀ (a b : ℕ →₀ ℕ) (x : ℕ), (x > max_ab a b) → x ∉ a.support ∧ x ∉ b.support :=
+lemma gt_max_ab_not_in : ∀ (a b : ℕ →₀ ℕ) (x : ℕ), (x > finsupp_max_ab a b) → x ∉ a.support ∧ x ∉ b.support :=
 begin
     intros a b x h₁,
-    unfold max_ab at *, 
+    unfold finsupp_max_ab at *, 
     rw finset.sup_union at *,
     have h₄ : finset.sup (a.support) id < x := lt_of_le_of_lt lattice.le_sup_left h₁,
     have h₅ : finset.sup (b.support) id < x := lt_of_le_of_lt lattice.le_sup_right h₁,
@@ -118,9 +118,9 @@ begin
     rw finset.sup_union,
     apply lattice.le_sup_left,
 end
-lemma max_ab_lt_add (a b w : ℕ →₀ ℕ) : max_ab a b ≤ max_ab (a + w) (b + w) :=
+lemma max_ab_lt_add (a b w : ℕ →₀ ℕ) : finsupp_max_ab a b ≤ finsupp_max_ab (a + w) (b + w) :=
 begin
-    unfold max_ab,
+    unfold finsupp_max_ab,
     have prf := λ (a b : ℕ →₀ ℕ), finset.subset.antisymm (union_support_contain a b) finsupp.support_add,
     repeat {rw [←prf] },
     rw [ finset.union_assoc, finset.union_comm b.support w.support ],
@@ -157,6 +157,46 @@ begin
     end,
 end
 
+lemma le_aux_of_ge_max (a b : ℕ →₀ ℕ) (i : ℕ) (h : a ≤ b) (hi : i ≥ finsupp_max_ab a b) : le_aux a b i :=
+begin
+    unfold has_le.le finsupp.le at h,
+    induction i,
+    unfold le_aux, 
+    rw nat.le_zero_iff.1 hi at h, 
+    unfold le_aux at h, assumption,
+    from if hi₁ : nat.succ i_n = finsupp_max_ab a b
+        then by rw hi₁; assumption
+        else 
+        begin
+            have hi₂ := ne_iff_lt_or_gt.1 hi₁,
+            cases hi₂,
+            apply (absurd hi₂ (not_lt_of_ge hi)),
+            have hia := gt_sup_eq_zero a (nat.succ i_n) (lt_of_le_of_lt (max_ab_ge_max_a a b) hi₂),
+            have hib := gt_sup_eq_zero b (nat.succ i_n) (lt_of_le_of_lt (max_ab_ge_max_b a b) hi₂),
+            rw hib.symm at hia,
+            unfold le_aux, 
+            right, apply and.intro, assumption,
+            apply i_ih (nat.le_of_lt_succ hi₂),
+        end,
+end
+
+lemma le_of_ge_max_aux (a b : ℕ →₀ ℕ) (i : ℕ) : le_aux a b ((finsupp_max_ab a b) + i) → a ≤ b :=
+begin
+    intro hi,
+    induction i,
+    unfold has_le.le finsupp.le,
+    assumption,
+    unfold le_aux at hi,
+    have hi₁ : nat.succ (finsupp_max_ab a b + i_n) > (finsupp_max_ab a b), 
+    have hi₂ : (finsupp_max_ab a b + i_n) < nat.succ(finsupp_max_ab a b + i_n), apply nat.lt_succ_self,
+    have hi₃ : (finsupp_max_ab a b) ≤ (finsupp_max_ab a b + i_n), simp, apply lt_of_le_of_lt hi₃ hi₂,
+    have hia := gt_sup_eq_zero a (nat.succ (finsupp_max_ab a b + i_n)) (lt_of_le_of_lt (max_ab_ge_max_a a b) hi₁),
+    have hib := gt_sup_eq_zero b (nat.succ (finsupp_max_ab a b + i_n)) (lt_of_le_of_lt (max_ab_ge_max_b a b) hi₁),
+    rw [hia, hib] at hi,
+    repeat {cases hi},
+    apply i_ih hi_right,
+end
+
 lemma le_add (a b w : ℕ →₀ ℕ) (i : ℕ) (hab : le_aux a b i) : le_aux (a + w) (b + w) i :=
 begin
     induction i,
@@ -172,7 +212,7 @@ begin
     intros a b w hab,
     unfold has_le.le finsupp.le at *,
     apply le_add,
-    have h := le_of_succ_eqs a b (max_ab a b) ((max_ab (a + w) (b + w)) - (max_ab a b)) hab _ ,
+    have h := le_of_succ_eqs a b (finsupp_max_ab a b) ((finsupp_max_ab (a + w) (b + w)) - (finsupp_max_ab a b)) hab _ ,
     rw nat.add_sub_of_le at h, assumption,
     swap,
     intros,
@@ -183,6 +223,7 @@ begin
     apply nat.lt_of_le_of_lt h' a_1,
     apply max_ab_lt_add,
 end
+
 lemma not_le_not_ge_eq (a b : ℕ) : ¬ a < b → ¬ b < a → a = b :=
 begin
     intros,
@@ -191,11 +232,50 @@ begin
     cases h, assumption, exact absurd h a_2,
 end
 
+lemma le_refl : ∀ a : ℕ →₀ ℕ, a ≤ a := 
+begin 
+    intro, unfold has_le.le finsupp.le,
+    induction finsupp_max_ab a a;
+    unfold le_aux, right, apply and.intro, refl, assumption,
+end
+
+lemma le_aux_trans : ∀ (a b c : ℕ →₀ ℕ) (k : ℕ), (le_aux a b k) → (le_aux b c k) → (le_aux a c k) :=
+begin
+    intros a b c k hab hbc,
+    induction k;
+    unfold le_aux at *, apply le_trans hab hbc,
+    cases hab; cases hbc,
+    left, apply lt_trans hab hbc,
+    left, apply (lt_of_lt_of_le hab (le_of_eq hbc.left)),
+    left, apply (lt_of_le_of_lt (le_of_eq hab.left) hbc),
+    right, apply and.intro, apply eq.trans hab.left hbc.left,
+    apply k_ih hab.right hbc.right,
+end
+
+set_option trace.simplify.rewrite true
+lemma le_trans : ∀ a b c : ℕ →₀ ℕ, a ≤ b → b ≤ c → a ≤ c :=
+begin
+    intros a b c hab hbc,
+    unfold has_le.le finsupp.le at hab hbc,
+    generalize hs : [(finsupp_max_ab a b), (finsupp_max_ab b c), (finsupp_max_ab a c)] = s,
+    generalize hk: s.to_finset.sup id = k, rw [←hs] at hk,
+    have hkab : (finsupp_max_ab a b) ≤ k, rw ←hk, simp,
+    have hkbc : (finsupp_max_ab b c) ≤ k, rw ←hk, simp, rw ←lattice.sup_assoc, apply lattice.le_sup_right,
+    have hkac : (finsupp_max_ab a c) ≤ k, rw ←hk, simp, rw [lattice.sup_comm, lattice.sup_assoc], apply lattice.le_sup_left,
+    have hab' := le_aux_of_ge_max a b k hab hkab,
+    have hbc' := le_aux_of_ge_max b c k hbc hkbc,
+    have hac' := le_aux_trans a b c k hab' hbc',
+    apply le_of_ge_max_aux,
+    swap, exact (k - (finsupp_max_ab a c)),
+    rw nat.add_sub_of_le hkac,
+    assumption,
+end
+
 instance : is_monomial_order (ℕ →₀ ℕ) finsupp.le := sorry
 instance : decidable_rel finsupp.le := λ a b, 
 begin 
     unfold finsupp.le,
-    induction max_ab a b,
+    induction finsupp_max_ab a b,
     unfold le_aux, apply_instance,
     unfold le_aux,
     by_cases (a (nat.succ n) < b (nat.succ n)),
@@ -218,6 +298,16 @@ begin
     exact is_false m,
     exact is_true (or.inr (and.intro m ih)),
 end
+
+instance : decidable_linear_order (ℕ →₀ ℕ) :=
+{
+    le := finsupp.le,
+    le_refl := le_refl,
+    le_trans := le_trans,
+    le_antisymm := sorry,
+    le_total := sorry,
+    decidable_le := sorry,
+}
 
 end finsupp
 
@@ -245,12 +335,22 @@ def leading_term_le_aux : (ℕ →₀ ℕ) → (ℕ →₀ ℕ) → ℕ → Prop
 | a b 0 := a 0 ≤ b 0
 | a b (nat.succ m) := a (nat.succ m) ≤ b (nat.succ m) ∧ leading_term_le_aux a b m 
 
-def leading_term_le (a b : ℕ →₀ ℕ) : Prop := leading_term_le_aux a b (finsupp.max_ab a b)
+def leading_term_le (a b : ℕ →₀ ℕ) : Prop := leading_term_le_aux a b (finsupp.finsupp_max_ab a b)
 
 protected def le (a b : mv_polynomial ℕ α) : Prop := leading_term_le a.leading_term' b.leading_term'
 instance : has_le (mv_polynomial ℕ α) := ⟨mv_polynomial.le⟩ 
 
-instance le_decidable (a b : mv_polynomial ℕ α) : decidable (a ≤ b) := sorry
+instance le_decidable (a b : mv_polynomial ℕ α) : decidable (a ≤ b) := 
+begin
+    unfold has_le.le mv_polynomial.le leading_term_le,
+    induction (finsupp.finsupp_max_ab (leading_term' a) (leading_term' b));
+    unfold leading_term_le_aux, apply_instance,
+    cases ih,
+    begin left, intro h, apply (absurd h.right ih), end,
+    from if h: (a.leading_term'.to_fun (nat.succ n) ≤ b.leading_term'.to_fun (nat.succ n))
+    then is_true begin apply and.intro; assumption, end
+    else is_false begin intro h', apply (absurd h'.left h), end,
+end
 
 def leading_term_lt_aux : (ℕ →₀ ℕ) → (ℕ →₀ ℕ) → ℕ → Prop
 | a b 0 := a 0 < b 0
@@ -258,8 +358,28 @@ def leading_term_lt_aux : (ℕ →₀ ℕ) → (ℕ →₀ ℕ) → ℕ → Prop
                     ∨ (a (nat.succ m) ≤ b (nat.succ m) ∧ leading_term_lt_aux a b m)
 
 protected def lt (a b : mv_polynomial ℕ α) : Prop 
-    := leading_term_lt_aux a.leading_term' b.leading_term' (finsupp.max_ab a.leading_term' b.leading_term') 
+    := leading_term_lt_aux a.leading_term' b.leading_term' (finsupp.finsupp_max_ab a.leading_term' b.leading_term') 
 instance : has_lt (mv_polynomial ℕ α) := ⟨mv_polynomial.lt⟩ 
+
+lemma aux_le_of_eq {a b : ℕ →₀ ℕ} (h : a = b) : ∀ n : ℕ, leading_term_le_aux a b n := 
+begin
+    intro n,
+    induction n;
+    unfold leading_term_le_aux;
+    rw h at *, apply and.intro, refl, assumption,
+end
+
+lemma not_aux_lt_of_eq {a b : ℕ →₀ ℕ} (h : a = b) : ∀ n : ℕ, ¬leading_term_lt_aux a b n := 
+begin
+    intros n hab,
+    rw h at hab,
+    induction n;
+    unfold leading_term_lt_aux at hab,
+    apply nat.lt_irrefl (b.to_fun 0), assumption,
+    cases hab,
+    apply nat.lt_irrefl (b.to_fun (nat.succ n_n)), apply hab.left,
+    apply n_ih hab.right,
+end
 
 instance lt_decidable (a b : mv_polynomial ℕ α) : decidable (a < b) := sorry
 
