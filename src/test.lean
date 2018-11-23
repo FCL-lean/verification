@@ -33,7 +33,7 @@ instance : has_lt (ℕ →₀ ℕ) := ⟨finsupp.lt⟩
 lemma add_gt (a b : ℕ →₀ ℕ) : a ≤ (a + b) := 
 begin
     unfold has_le.le finsupp.le,
-    induction (max_ab a (a + b)),
+    induction (finsupp_max_ab a (a + b)),
     all_goals {unfold le_aux},
     all_goals {simp},
     by_cases (b (nat.succ n) > 0), left, assumption,
@@ -385,8 +385,8 @@ instance lt_decidable (a b : mv_polynomial ℕ α) : decidable (a < b) := sorry
 
 def lex_mon_order_imp_lt_lex_order : Π (a b : ℕ →₀ ℕ), a < b 
      → prod.lex nat.lt nat.lt 
-         (finsupp.max a, a (finsupp.max a)) 
-         (finsupp.max b, b (finsupp.max b)) :=
+         (finsupp.finsupp_max a, a (finsupp.finsupp_max a)) 
+         (finsupp.finsupp_max b, b (finsupp.finsupp_max b)) :=
 begin
     intros, unfold has_lt.lt finsupp.lt at a_1, cases a_1,
     unfold has_le.le finsupp.le at a_1_left,
@@ -401,13 +401,13 @@ protected def wf_lt : well_founded (@mv_polynomial.lt α _ _ _ _) :=
 begin
     apply @subrelation.wf _ 
         (λ a b : mv_polynomial ℕ α, prod.lex nat.lt nat.lt 
-          (finsupp.max a.leading_term', a.leading_term' (finsupp.max a.leading_term'))
-          (finsupp.max b.leading_term', b.leading_term' (finsupp.max b.leading_term'))), 
+          (finsupp.finsupp_max a.leading_term', a.leading_term' (finsupp.finsupp_max a.leading_term'))
+          (finsupp.finsupp_max b.leading_term', b.leading_term' (finsupp.finsupp_max b.leading_term'))), 
     swap,
     constructor, intros,
     have inv := @inv_image.accessible _ _ (prod.lex nat.lt nat.lt)
         (λ (a : mv_polynomial ℕ α), 
-           (finsupp.max a.leading_term', a.leading_term' (finsupp.max a.leading_term'))) a,
+           (finsupp.finsupp_max a.leading_term', a.leading_term' (finsupp.finsupp_max a.leading_term'))) a,
     apply inv,
     apply prod.lex_accessible;
     have lt_wf := nat.lt_wf; cases lt_wf,
@@ -424,7 +424,7 @@ def leading_term_sub_aux (a b : ℕ →₀ ℕ)
 | (nat.succ n) le := begin cases le, exact leading_term_sub_aux n le_right end
 
 def leading_term_sub (a b : ℕ →₀ ℕ) : (leading_term_le b a) → (ℕ →₀ ℕ) 
-| le := leading_term_sub_aux a b (finsupp.max_ab b a) le
+| le := leading_term_sub_aux a b (finsupp.finsupp_max_ab b a) le
 
 
 
