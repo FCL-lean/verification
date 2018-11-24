@@ -60,6 +60,11 @@ begin
     apply not_mem_support_iff.elim_left, assumption
 end
 
+lemma in_sup_ge_max : ∀ (a : ℕ →₀ ℕ) (b : ℕ), b ∈ a.support → finsupp_max a ≥ b :=
+begin
+    intros, unfold finsupp_max, unfold ge, apply @finset.le_sup _ _ _ _ id _ a_1,
+end
+
 lemma max_ab_ge_max_a : ∀ (a b : ℕ →₀ ℕ), finsupp_max_ab a b ≥ finsupp_max a :=
 begin
     intros a b,
@@ -271,6 +276,94 @@ begin
     assumption,
 end
 
+inductive nat_le' : ℕ → ℕ → Prop
+| base : ∀ a, nat_le' 0 a
+| ind : ∀ a b, nat_le' a b → nat_le' (nat.succ a) (nat.succ b)
+
+lemma nat_le'_refl : ∀ {a : ℕ}, nat_le' a a
+| nat.zero := nat_le'.base 0
+| (nat.succ n) := nat_le'.ind _ _ nat_le'_refl
+
+lemma nat_le'_suc : ∀ {a b : ℕ}, nat_le' a b → nat_le' a (nat.succ b)
+| 0 a (nat_le'.base b) := nat_le'.base _
+| (nat.succ a) (nat.succ b) (nat_le'.ind c d le) := nat_le'.ind _ _ (nat_le'_suc le)
+
+lemma nat_le'_le : ∀ {a b : ℕ}, nat_le' a b → a ≤ b
+| ._ a (nat_le'.base b) := nat.zero_le b
+| (nat.succ a) (nat.succ b) (nat_le'.ind c d le) := nat.succ_le_succ (nat_le'_le le)
+
+lemma nat_le_le' : ∀ {a b : ℕ}, a ≤ b → nat_le' a b
+| a b (nat.less_than_or_equal.refl c) := nat_le'_refl
+| a b (@nat.less_than_or_equal.step c d e) := nat_le'_suc (nat_le_le' e)
+
+lemma nat_le_le'_iff : ∀ {a b : ℕ}, a ≤ b ↔ nat_le' a b :=
+begin
+    intros, constructor,
+    exact nat_le_le',
+    exact nat_le'_le,
+end
+
+
+def nat_lt' : ℕ → ℕ → Prop := λ a b, nat_le' (nat.succ a) b
+
+lemma nat_lt_lt'_iff : ∀ {a b : ℕ}, a < b ↔ nat_lt' a b := λ a b, nat_le_le'_iff
+
+lemma lt'_lt'_antisym : ∀ {a b : ℕ}, nat_lt' a b → nat_lt' b a → false
+| (nat.succ a) (nat.succ b) (nat_le'.ind ._ ._ le) (nat_le'.ind ._ ._ le2) 
+    := lt'_lt'_antisym le le2
+
+lemma lt_lt_antisym : ∀ {a b : ℕ}, a < b → b < a → false
+| a b le le2 :=
+begin
+    have eq := propext (@nat_lt_lt'_iff a b),
+    have eq' := propext (@nat_lt_lt'_iff b a),
+    rw eq at *,
+    rw eq' at *,
+    exact lt'_lt'_antisym le le2,
+end
+
+lemma le_antisymm_aux_zero : ∀ (a b : ℕ →₀ ℕ) (i : ℕ),
+    le_aux a b i → le_aux b a i → a 0 = b 0
+| a b i :=
+begin
+    induction i; intros,
+    unfold le_aux at *, apply nat.le_antisymm; assumption,
+    unfold le_aux at *; cases a_1; cases a_2, 
+    apply false.elim,
+    apply lt_lt_antisym; assumption,
+    cases a_2, rw a_2_left at *,
+    apply false.elim, apply nat.lt_irrefl _ a_1,
+    cases a_1, rw a_1_left at *, apply false.elim,
+    apply nat.lt_irrefl _ a_2,
+    cases a_1, cases a_2, apply i_ih; assumption,
+end
+
+lemma le_antisymm_aux : ∀ (a b : ℕ →₀ ℕ) (i j: ℕ),
+    le_aux a b (i + j) → le_aux b a (i + j) → a i = b i
+| a b i j le1 le2 :=
+begin
+    induction j,
+    cases i; simp at *; unfold le_aux at *,
+    apply nat.le_antisymm le1 le2,
+    cases le1; cases le2, apply false.elim,
+    apply lt_lt_antisym le1 le2,
+    cases le2, symmetry, assumption, cases le1,
+    assumption, cases le1, assumption,
+    unfold le_aux at *, cases le1; cases le2,
+    apply false.elim, apply lt_lt_antisym le1 le2,
+    cases le2, rw le2_left at *, apply false.elim, 
+    apply nat.lt_irrefl _ le1,
+    cases le1, rw le1_left at *, apply false.elim,
+    apply nat.lt_irrefl _ le2,
+    cases le1; cases le2,
+    exact j_ih le1_right le2_right,
+end
+
+lemma le_antisymm : ∀ a b : ℕ →₀ ℕ, a ≤ b → b ≤ a → a = b :=
+begin
+    intros,
+    unfold has_le.le finsupp.le at *,
+end
 instance : is_monomial_order (ℕ →₀ ℕ) finsupp.le := sorry
 instance : decidable_rel finsupp.le := λ a b, 
 begin 
@@ -382,6 +475,94 @@ begin
 end
 
 instance lt_decidable (a b : mv_polynomial ℕ α) : decidable (a < b) := sorry
+
+lemma demorgan : Π {a b : Prop}, ¬ (a ∨ b) → ¬ a ∧ ¬ b :=
+begin
+    intros, constructor,
+    intro, apply a_1, left, assumption,
+    intro, apply a_1, right, assumption,
+end
+lemma eq_zero_not_finsupp_max_ab : Π (a b : ℕ →₀ ℕ) (i : ℕ),
+    a (nat.succ i) = 0 → b (nat.succ i) = 0 → finsupp.finsupp_max_ab a b ≠ (nat.succ i) 
+| a b i eqa eqb eqi:=
+begin
+    unfold finsupp.finsupp_max_ab finset.sup at eqi,
+    generalize k : a.support ∪ b.support = c,
+    rw k at *,
+end
+
+lemma finsupp_max_ab_in_a_sup_or_b_sup : Π (a b : ℕ →₀ ℕ),
+    finsupp.finsupp_max_ab a b ∈ a.support 
+    ∨ finsupp.finsupp_max_ab a b ∈ b.support
+| a b :=
+begin
+    have u := classical.em (finsupp.finsupp_max_ab a b ∈ a.support ∨ 
+                            finsupp.finsupp_max_ab a b ∈ b.support),
+    cases u, assumption,
+    apply false.elim,
+    have u' := demorgan u,
+    cases u',
+    /-
+    max_ab a b ≥ max b
+    max_ab a b ≥ max a
+    max_ab a b ∉ a.support → a (max_ab a b) = 0
+    max_ab a b ∉ b.support → b (max_ab a b) = 0
+    -/
+
+end
+
+def finsupp_le_sup_le : Π (a b : ℕ →₀ ℕ),
+    a ≤ b → finsupp.finsupp_max a ≤ finsupp.finsupp_max b
+| a b le :=
+begin
+    unfold has_le.le at le,
+    unfold finsupp.le at le,
+    generalize h : finsupp.finsupp_max_ab a b = x,
+    rw h at le,
+    cases x,
+    unfold finsupp.le_aux at le,
+    swap,
+    unfold finsupp.le_aux at le, cases le,
+    rw ←h at le,
+    have gt_zero := lt_of_le_of_lt (zero_le _) le,
+    have neq_zero := zero_lt_iff_ne_zero.elim_left gt_zero,
+    have max_ab_in_supp := finsupp.mem_support_iff.elim_right neq_zero,
+    have x := finsupp.in_sup_ge_max b (finsupp.finsupp_max_ab a b) max_ab_in_supp,
+    have y := finsupp.max_ab_ge_max_b a b, have z := le_antisymm x y,
+    rw [←z], exact finsupp.max_ab_ge_max_a a b,
+    /- 
+    1. 0 < b (finsupp.finsupp_max_ab a b)
+    2. 0 < b (finsupp.finsupp_max_ab a b) 
+            → finsupp.finsupp_max_ab a b ∈ b.support
+    3. finsupp.finsupp_max_ab a b ∈ b.support 
+            → finsupp.finsupp_max b ≥ finsupp.finsupp_max_ab a b
+    4. therefore, finsupp.finsupp_max_ab a b = finsupp.finsupp_max b (anti)
+    5. finsupp.finsupp_max a ≤ finsupp.finsupp_max_ab a b = finsupp.finsupp_max b
+     -/
+    rw ←h at *, cases le,
+    by_cases finsupp.finsupp_max_ab a b ∈ a.support;
+    by_cases finsupp.finsupp_max_ab a b ∈ b.support; dedup,
+    any_goals { try { have x := finsupp.in_sup_ge_max a (finsupp.finsupp_max_ab a b) h_1 },
+                try { have y := finsupp.in_sup_ge_max b (finsupp.finsupp_max_ab a b) h_2 },
+                dedup,
+            },
+    any_goals { have z := finsupp.max_ab_ge_max_b a b, have m := le_antisymm y z,
+    rw [←m], exact finsupp.max_ab_ge_max_a a b },
+    have q := finsupp.not_mem_support_iff.elim_left h_2, rw q at le_left,
+    have b_not := finsupp.not_mem_support_iff.elim_right le_left,
+    exact absurd h_1 b_not,
+    
+
+end
+def lex_mon_order_imp_lt_lex_order_aux : Π (a b : ℕ →₀ ℕ) (i : ℕ),
+    finsupp.le_aux a b i →
+    prod.lex nat.lt nat.lt 
+        (finsupp.finsupp_max a, a (finsupp.finsupp_max a)) 
+        (finsupp.finsupp_max b, b (finsupp.finsupp_max b))
+| a b i lt :=
+begin
+    
+end
 
 def lex_mon_order_imp_lt_lex_order : Π (a b : ℕ →₀ ℕ), a < b 
      → prod.lex nat.lt nat.lt 
