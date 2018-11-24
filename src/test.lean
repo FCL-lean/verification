@@ -20,15 +20,16 @@ def le_aux : (ℕ →₀ ℕ) → (ℕ →₀ ℕ) → ℕ → Prop
 | a b 0 := a 0 ≤ b 0
 | a b (nat.succ m) := (a (nat.succ m) < b (nat.succ m)) ∨ 
                         ((a (nat.succ m) = b (nat.succ m)) ∧ le_aux a b m) 
-    
+
+
 def finsupp_max (a : ℕ →₀ ℕ) : ℕ := a.support.sup id
 def finsupp_max_ab (a b : ℕ →₀ ℕ) : ℕ := (a.support ∪ b.support).sup id
 
 protected def le : (ℕ →₀ ℕ) → (ℕ →₀ ℕ) → Prop := λ a b, le_aux a b $ finsupp_max_ab a b
 instance : has_le (ℕ →₀ ℕ) := ⟨finsupp.le⟩ 
 
-protected def lt : (ℕ →₀ ℕ) → (ℕ →₀ ℕ) → Prop := λ a b, a ≤ b ∧ a ≠ b
-instance : has_lt (ℕ →₀ ℕ) := ⟨finsupp.lt⟩
+/-protected def lt : (ℕ →₀ ℕ) → (ℕ →₀ ℕ) → Prop := λ a b, a ≤ b ∧ a ≠ b
+instance : has_lt (ℕ →₀ ℕ) := ⟨finsupp.lt⟩-/
 
 lemma add_gt (a b : ℕ →₀ ℕ) : a ≤ (a + b) := 
 begin
@@ -118,6 +119,7 @@ begin
     rw finset.sup_union,
     apply lattice.le_sup_left,
 end
+
 lemma max_ab_lt_add (a b w : ℕ →₀ ℕ) : finsupp_max_ab a b ≤ finsupp_max_ab (a + w) (b + w) :=
 begin
     unfold finsupp_max_ab,
@@ -271,6 +273,14 @@ begin
     assumption,
 end
 
+instance : preorder (ℕ →₀ ℕ) :=
+{
+    le := finsupp.le,
+    le_refl := le_refl,
+    le_trans := le_trans,
+}
+instance : has_lt (ℕ →₀ ℕ) := ⟨preorder.lt⟩ 
+
 instance : is_monomial_order (ℕ →₀ ℕ) finsupp.le := sorry
 instance : decidable_rel finsupp.le := λ a b, 
 begin 
@@ -299,14 +309,36 @@ begin
     exact is_true (or.inr (and.intro m ih)),
 end
 
+lemma le_antisymm_aux : ∀ (a b : ℕ →₀ ℕ) (i j: ℕ), le_aux a b (i + j) → le_aux b a (i + j) → a i = b i := sorry
+
+lemma le_antisymm :  ∀ a b : ℕ →₀ ℕ, a ≤ b → b ≤ a → a = b := 
+λ a b hab hba, 
+    begin
+        have hab₀ := hab,
+        have hba₀ := hba,
+        unfold has_le.le finsupp.le at hab hba,
+        apply ext,
+        intro x,
+        have h : (finsupp_max_ab a b) = (finsupp_max_ab b a),
+        unfold finsupp_max_ab, rw finset.union_comm,
+        induction x; rw h at hab, 
+        rw [←zero_add (finsupp_max_ab b a)] at hab hba,
+        apply le_antisymm_aux a b 0 (finsupp_max_ab b a) hab hba,
+        have hab' : le_aux a b (nat.succ x_n + (finsupp_max_ab b a)),
+            have h : (nat.succ x_n + (finsupp_max_ab b a)) ≥ finsupp_max_ab a b, rw h, apply nat.le_add_left,
+            apply (le_aux_of_ge_max a b (nat.succ x_n + (finsupp_max_ab b a)) hab₀ h),
+        have hba' : le_aux b a (nat.succ x_n + (finsupp_max_ab b a)),
+            have h : (nat.succ x_n + (finsupp_max_ab b a)) ≥ finsupp_max_ab b a, apply nat.le_add_left,
+            apply (le_aux_of_ge_max b a (nat.succ x_n + (finsupp_max_ab b a)) hba₀ h),
+        apply le_antisymm_aux a b (nat.succ x_n) (finsupp_max_ab b a) hab' hba',
+    end
+
 instance : decidable_linear_order (ℕ →₀ ℕ) :=
 {
-    le := finsupp.le,
-    le_refl := le_refl,
-    le_trans := le_trans,
     le_antisymm := sorry,
     le_total := sorry,
     decidable_le := sorry,
+    ..finsupp.preorder,
 }
 
 end finsupp
