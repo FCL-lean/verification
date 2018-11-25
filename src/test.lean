@@ -555,6 +555,19 @@ begin
     rw [finset.mem_union], right, assumption,
 end
 
+lemma finsupp_max_ab_in_a_sup_or_b_sup : Π (a b : ℕ →₀ ℕ),
+    a.support ≠ ∅ ∨ b.support ≠ ∅ →
+    finsupp.finsupp_max_ab a b ∈ a.support 
+    ∨ finsupp.finsupp_max_ab a b ∈ b.support
+| a b ne :=
+begin
+    cases ne,
+    by_cases (b.support = ∅),
+    unfold finsupp.finsupp_max_ab, rw h, rw finset.union_empty,
+    left, apply mem_of_sup_id, assumption,
+    all_goals { apply finsupp_max_ab_in_a_sup_or_b_sup_aux, assumption, },
+end
+
 lemma eq_zero_not_finsupp_max_ab : Π (a b : ℕ →₀ ℕ) (i : ℕ),
     a (nat.succ i) = 0 → b (nat.succ i) = 0 → finsupp.finsupp_max_ab a b ≠ (nat.succ i) 
 | a b i eqa eqb eqi:=
