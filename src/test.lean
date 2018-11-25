@@ -11,6 +11,65 @@ variables [comm_ring (mv_polynomial ℕ α)]
 class is_monomial_order (α : Type*) (r : α → α → Prop) extends has_add α, is_linear_order α r :=
     (mono_order : ∀ a b w : α, (r a b) → r (a + w) (b + w) )
 
+inductive nat_le' : ℕ → ℕ → Prop
+| base : ∀ a, nat_le' 0 a
+| ind : ∀ a b, nat_le' a b → nat_le' (nat.succ a) (nat.succ b)
+
+lemma nat_le'_refl : ∀ {a : ℕ}, nat_le' a a
+| nat.zero := nat_le'.base 0
+| (nat.succ n) := nat_le'.ind _ _ nat_le'_refl
+
+lemma nat_le'_suc : ∀ {a b : ℕ}, nat_le' a b → nat_le' a (nat.succ b)
+| 0 a (nat_le'.base b) := nat_le'.base _
+| (nat.succ a) (nat.succ b) (nat_le'.ind c d le) := nat_le'.ind _ _ (nat_le'_suc le)
+
+lemma nat_le'_le : ∀ {a b : ℕ}, nat_le' a b → a ≤ b
+| ._ a (nat_le'.base b) := nat.zero_le b
+| (nat.succ a) (nat.succ b) (nat_le'.ind c d le) := nat.succ_le_succ (nat_le'_le le)
+
+lemma nat_le_le' : ∀ {a b : ℕ}, a ≤ b → nat_le' a b
+| a b (nat.less_than_or_equal.refl c) := nat_le'_refl
+| a b (@nat.less_than_or_equal.step c d e) := nat_le'_suc (nat_le_le' e)
+
+lemma nat_le_le'_iff : ∀ {a b : ℕ}, a ≤ b ↔ nat_le' a b :=
+begin
+    intros, constructor,
+    exact nat_le_le',
+    exact nat_le'_le,
+end
+
+
+def nat_lt' : ℕ → ℕ → Prop := λ a b, nat_le' (nat.succ a) b
+
+lemma nat_lt_lt'_iff : ∀ {a b : ℕ}, a < b ↔ nat_lt' a b := λ a b, nat_le_le'_iff
+
+lemma lt'_lt'_antisym : ∀ {a b : ℕ}, nat_lt' a b → nat_lt' b a → false
+| (nat.succ a) (nat.succ b) (nat_le'.ind ._ ._ le) (nat_le'.ind ._ ._ le2) 
+    := lt'_lt'_antisym le le2
+
+lemma lt_lt_antisym : ∀ {a b : ℕ}, a < b → b < a → false
+| a b le le2 :=
+begin
+    have eq := propext (@nat_lt_lt'_iff a b),
+    have eq' := propext (@nat_lt_lt'_iff b a),
+    rw eq at *,
+    rw eq' at *,
+    exact lt'_lt'_antisym le le2,
+end
+
+lemma le_not_eq_lt : ∀ {a b : ℕ}, a ≤ b → a ≠ b → a < b
+| a b le neq :=
+begin
+    by_cases (a < b),
+    assumption,
+    have q := not_lt_of_le le,
+    have m := nat.lt_trichotomy a b,
+    cases m, assumption,
+    cases m, rw m at *, apply false.elim,
+    apply neq, constructor,
+    exact absurd m q,
+end
+
 namespace finsupp
 
 lemma in_not (a : ℕ →₀ ℕ) : ∀ x : ℕ, x ∈ a.support ∨ x ∉ a.support := 
@@ -280,6 +339,7 @@ begin
     assumption,
 end
 
+<<<<<<< HEAD
 instance : preorder (ℕ →₀ ℕ) :=
 {
     le := finsupp.le,
@@ -332,6 +392,9 @@ begin
     rw eq' at *,
     exact lt'_lt'_antisym le le2,
 end
+=======
+
+>>>>>>> f8bdacb4a2875bef4d5d0d9ba3eb48bf9c414095
 
 lemma le_antisymm_aux_zero : ∀ (a b : ℕ →₀ ℕ) (i : ℕ),
     le_aux a b i → le_aux b a i → a 0 = b 0
@@ -509,7 +572,68 @@ begin
     intro, apply a_1, right, assumption,
 end
 
-lemma mem_of_sup_id : Π (a : finset ℕ), a ≠ ∅ → a.sup id ∈ a := sorry
+
+lemma sup_ab_eq_a_or_b : Π (a b : ℕ), a ⊔ b = a ∨ a ⊔ b = b
+| a b :=
+begin
+    intros,
+    by_cases (a ≤ b), right, apply lattice.sup_of_le_right, assumption,
+    by_cases (b ≤ a), left, apply lattice.sup_of_le_left, assumption,
+    rw not_le at *, apply false.elim, dedup, apply lt_lt_antisym h h_1,
+end
+
+lemma sup_max : Π (a : finset ℕ), a ≠ ∅ → some (a.sup id) = a.max
+| a :=
+begin
+    apply finset.induction_on a,
+    intros, apply false.elim, apply a_1; trivial,
+    intros, intros, by_cases (s = ∅),
+    rw h, simp, unfold option.lift_or_get,
+    let ih := a_3 h, simp, rw ←ih, unfold option.lift_or_get,
+    constructor, 
+end
+
+
+lemma sup_id_insert : Π (a : finset ℕ) (b : ℕ), a.sup id ∈ a
+    → (insert b a).sup id ∈ insert b a :=
+begin
+    intros,
+    apply finset.induction_on a,
+    simp,
+    intros,
+    rw finset.insert.comm,
+    rw finset.sup_insert,
+    unfold id,
+    have h := sup_ab_eq_a_or_b a_2 (finset.sup (insert b s) id),
+    cases h; rw h,
+    simp, apply finset.mem_insert_of_mem, assumption
+end
+
+lemma mem_of_sup_id : Π (a : finset ℕ), a ≠ ∅ → a.sup id ∈ a
+| a' := finset.induction_on a' (λ a, false.elim (a (refl _)))
+    (λ a b notin ih notempty, 
+        dite (b = ∅) (λ emp, begin rw emp, simp, end) 
+            (λ not_emp, sup_id_insert _ _ (ih not_emp)))
+
+lemma finsupp_max_ab_in_a_sup_or_b_sup_aux : Π (a b : finset ℕ),
+    b ≠ ∅ →
+    (a ∪ b).sup id ∈ a
+    ∨ (a ∪ b).sup id ∈ b
+| a :=
+begin
+    apply finset.induction_on a,
+    intros, right, simp,
+    apply mem_of_sup_id, assumption,
+    intros c s notin ih b notemp,
+    have iha := ih b notemp,
+    cases iha;
+    rw finset.insert_union;
+    have m := sup_id_insert (s ∪ b) c _,
+    rw [←finset.mem_union, finset.insert_union], assumption,
+    rw [finset.mem_union], left, assumption,
+    rw [←finset.mem_union, finset.insert_union], assumption,
+    rw [finset.mem_union], right, assumption,
+end
 
 lemma eq_zero_not_finsupp_max_ab : Π (a b : ℕ →₀ ℕ) (i : ℕ),
     a (nat.succ i) = 0 → b (nat.succ i) = 0 → finsupp.finsupp_max_ab a b ≠ (nat.succ i) 
@@ -532,26 +656,6 @@ begin
     have h : (nat.succ i) ∈ (a.support ∪ b.support), 
         have h' := (mem_of_sup_id (a.support ∪ b.support) h_nempty), rw eqi at h', assumption,
     apply absurd h hab,
-end
-
-lemma finsupp_max_ab_in_a_sup_or_b_sup : Π (a b : ℕ →₀ ℕ),
-    finsupp.finsupp_max_ab a b ∈ a.support 
-    ∨ finsupp.finsupp_max_ab a b ∈ b.support
-| a b :=
-begin
-    have u := classical.em (finsupp.finsupp_max_ab a b ∈ a.support ∨ 
-                            finsupp.finsupp_max_ab a b ∈ b.support),
-    cases u, assumption,
-    apply false.elim,
-    have u' := demorgan u,
-    cases u',
-    /-
-    max_ab a b ≥ max b
-    max_ab a b ≥ max a
-    max_ab a b ∉ a.support → a (max_ab a b) = 0
-    max_ab a b ∉ b.support → b (max_ab a b) = 0
-    -/
-
 end
 
 def finsupp_le_sup_le : Π (a b : ℕ →₀ ℕ),
@@ -594,19 +698,29 @@ begin
     have q := finsupp.not_mem_support_iff.elim_left h_2, rw q at le_left,
     have b_not := finsupp.not_mem_support_iff.elim_right le_left,
     exact absurd h_1 b_not,
-    
-
+    apply false.elim,
+    apply eq_zero_not_finsupp_max_ab a b x;
+    rw h at *; try { rw ←finsupp.not_mem_support_iff }; try { assumption },
+    have h' : finset.sup (a.support ∪ b.support) id = 0 := h,
+    have q := finsupp.finset_max_le a.support b.support,
+    have q' := finsupp.finset_max_le b.support a.support,
+    rw finset.union_comm at q',
+    rw h' at *, 
+    have eq1 := nat.le_antisymm q (nat.zero_le _),
+    have eq2 := nat.le_antisymm q' (nat.zero_le _),
+    unfold finsupp.finsupp_max, rw [eq1, eq2],
 end
+
 def lex_mon_order_imp_lt_lex_order_aux : Π (a b : ℕ →₀ ℕ) (i : ℕ),
-    finsupp.le_aux a b i →
+    finsupp.le_aux a b i → a i ≠ b i →
     prod.lex nat.lt nat.lt 
-        (finsupp.finsupp_max a, a (finsupp.finsupp_max a)) 
-        (finsupp.finsupp_max b, b (finsupp.finsupp_max b))
-| a b i lt :=
+        (i, a i) 
+        (i, b i)
+| a b i le neq :=
 begin
-    
-end
 
+end
+-- finsupp.le_aux a b (max a) → (max a, a (max a)) < (max a, b (max a))
 def lex_mon_order_imp_lt_lex_order : Π (a b : ℕ →₀ ℕ), a < b 
      → prod.lex nat.lt nat.lt 
          (finsupp.finsupp_max a, a (finsupp.finsupp_max a)) 
