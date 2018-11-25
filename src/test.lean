@@ -625,8 +625,17 @@ begin
     have q := finsupp.not_mem_support_iff.elim_left h_2, rw q at le_left,
     have b_not := finsupp.not_mem_support_iff.elim_right le_left,
     exact absurd h_1 b_not,
-    
-
+    apply false.elim,
+    apply eq_zero_not_finsupp_max_ab a b x;
+    rw h at *; try { rw ←finsupp.not_mem_support_iff }; try { assumption },
+    have h' : finset.sup (a.support ∪ b.support) id = 0 := h,
+    have q := finsupp.finset_max_le a.support b.support,
+    have q' := finsupp.finset_max_le b.support a.support,
+    rw finset.union_comm at q',
+    rw h' at *, 
+    have eq1 := nat.le_antisymm q (nat.zero_le _),
+    have eq2 := nat.le_antisymm q' (nat.zero_le _),
+    unfold finsupp.finsupp_max, rw [eq1, eq2],
 end
 
 def lex_mon_order_imp_lt_lex_order_aux : Π (a b : ℕ →₀ ℕ) (i : ℕ),
