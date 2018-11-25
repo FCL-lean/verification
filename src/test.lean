@@ -339,7 +339,6 @@ begin
     assumption,
 end
 
-<<<<<<< HEAD
 instance : preorder (ℕ →₀ ℕ) :=
 {
     le := finsupp.le,
@@ -348,53 +347,8 @@ instance : preorder (ℕ →₀ ℕ) :=
 }
 instance : has_lt (ℕ →₀ ℕ) := ⟨preorder.lt⟩ 
 
-inductive nat_le' : ℕ → ℕ → Prop
-| base : ∀ a, nat_le' 0 a
-| ind : ∀ a b, nat_le' a b → nat_le' (nat.succ a) (nat.succ b)
-
-lemma nat_le'_refl : ∀ {a : ℕ}, nat_le' a a
-| nat.zero := nat_le'.base 0
-| (nat.succ n) := nat_le'.ind _ _ nat_le'_refl
-
-lemma nat_le'_suc : ∀ {a b : ℕ}, nat_le' a b → nat_le' a (nat.succ b)
-| 0 a (nat_le'.base b) := nat_le'.base _
-| (nat.succ a) (nat.succ b) (nat_le'.ind c d le) := nat_le'.ind _ _ (nat_le'_suc le)
-
-lemma nat_le'_le : ∀ {a b : ℕ}, nat_le' a b → a ≤ b
-| ._ a (nat_le'.base b) := nat.zero_le b
-| (nat.succ a) (nat.succ b) (nat_le'.ind c d le) := nat.succ_le_succ (nat_le'_le le)
-
-lemma nat_le_le' : ∀ {a b : ℕ}, a ≤ b → nat_le' a b
-| a b (nat.less_than_or_equal.refl c) := nat_le'_refl
-| a b (@nat.less_than_or_equal.step c d e) := nat_le'_suc (nat_le_le' e)
-
-lemma nat_le_le'_iff : ∀ {a b : ℕ}, a ≤ b ↔ nat_le' a b :=
-begin
-    intros, constructor,
-    exact nat_le_le',
-    exact nat_le'_le,
-end
-
-def nat_lt' : ℕ → ℕ → Prop := λ a b, nat_le' (nat.succ a) b
-
-lemma menat_lt_lt'_iff : ∀ {a b : ℕ}, a < b ↔ nat_lt' a b := λ a b, nat_le_le'_iff
-
-lemma lt'_lt'_antisym : ∀ {a b : ℕ}, nat_lt' a b → nat_lt' b a → false
-| (nat.succ a) (nat.succ b) (nat_le'.ind ._ ._ le) (nat_le'.ind ._ ._ le2) 
-    := lt'_lt'_antisym le le2
-
 lemma lt_lt_antisym : ∀ {a b : ℕ}, a < b → b < a → false
-| a b le le2 :=
-begin
-    have eq := propext (@nat_lt_lt'_iff a b),
-    have eq' := propext (@nat_lt_lt'_iff b a),
-    rw eq at *,
-    rw eq' at *,
-    exact lt'_lt'_antisym le le2,
-end
-=======
-
->>>>>>> f8bdacb4a2875bef4d5d0d9ba3eb48bf9c414095
+| a b le₀ le₁ := begin apply (absurd le₀ (not_lt_of_ge (le_of_lt le₁))), end
 
 lemma le_antisymm_aux_zero : ∀ (a b : ℕ →₀ ℕ) (i : ℕ),
     le_aux a b i → le_aux b a i → a 0 = b 0
