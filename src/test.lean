@@ -4,12 +4,13 @@ import ring_theory.ideals
 import tactic.find
 import finsupp
 import finset
+import ideal
 
 
 variables {α : Type*} {β : Type*} {γ : Type*} {δ : Type*} {ι : Type*}
 variables [discrete_field α]
 variables [decidable_eq α] [decidable_linear_order α]
-variables [comm_ring (mv_polynomial ℕ α)]
+-- variables [comm_ring (mv_polynomial ℕ α)]
 
 namespace mv_polynomial
 
@@ -259,17 +260,61 @@ def div_list : (mv_polynomial ℕ α) → (list (mv_polynomial ℕ α)) → mv_p
 | a list.nil := a
 | a (list.cons x xs) := div_list (div a x).snd.fst xs
 
-def buchberger : list (mv_polynomial ℕ α) → list (mv_polynomial ℕ α)
-| s :=
-    let pairs : list (mv_polynomial ℕ α × mv_polynomial ℕ α) :=
-        do  x ← s,
-            y ← s,
-            if x = y
-            then list.nil
-            else [(x, y)]
-    in let s_polys : list (mv_polynomial ℕ α) := pairs.map (λ a, s_poly a.fst a.snd)
-    in let result := (list.foldl (λ a b, 
+def buch_pairs (s : list (mv_polynomial ℕ α)) : list (mv_polynomial ℕ α × mv_polynomial ℕ α) :=
+    do  x ← s,
+        y ← s,
+        if x = y
+        then list.nil
+        else [(x, y)]
+
+def buch_s_polys (pairs : list (mv_polynomial ℕ α × mv_polynomial ℕ α)) : list (mv_polynomial ℕ α) := pairs.map (λ a, s_poly a.fst a.snd)
+
+def buch_result (s s_polys: list (mv_polynomial ℕ α)) := (list.foldl (λ a b, 
                 let div_result := div_list (b : mv_polynomial ℕ α) a 
                 in if div_result ∉ a then div_result :: a else a) s s_polys)
+
+def buchberger : list (mv_polynomial ℕ α) → list (mv_polynomial ℕ α)
+| s :=
+    let result := buch_result s $ buch_s_polys $ buch_pairs s
         in if s = result then s else buchberger result
+
+
+lemma div_mem {a b : mv_polynomial ℕ α} {s : set (mv_polynomial ℕ α)}: a ∈ s → b ∈ s → (div a b).snd.fst ∈ s := 
+λ ha hb, begin
+    
+end
+
+lemma s_poly_mem {a b : mv_polynomial ℕ α} {s : set (mv_polynomial ℕ α)} : a ∈ s → b ∈ s → s_poly a b ∈ (ideal.span s) := 
+λ ha hb, begin
+    unfold s_poly, simp,
+    generalize hx : (div (leading_term_lcm a b) (leading_term a)).fst = x,
+    generalize hy : (div (leading_term_lcm a b) (leading_term b)).fst = y,
+    rw neg_mul_eq_neg_mul y b,
+    exact ideal.linear_combine_mem x (-y) ha hb,
+end
+
+set_option trace.simplify.rewrite true
+lemma buch_s_poly_mem (s : list (mv_polynomial ℕ α)) : ∀ x ∈ buch_s_polys (buch_pairs s), x ∈ ideal.span s.to_finset.to_set :=
+λ x hx, begin
+    unfold buch_s_polys buch_pairs at hx,
+    simp at hx,
+    cases hx with a, cases hx_h with b,
+    cases hx_h_h.left with a', cases h.right with b',
+    from if hab : a' = b'
+    then begin 
+        simp [hab] at h_1,
+        revert h_1, 
+        simp only [false_implies_iff],
+    end
+    else begin
+        simp [hab] at h_1,
+        rw [←list.mem_to_finset, ←finset.mem_coe] at h h_1,
+        rw [←hx_h_h.right, h_1.right.right, h_1.right.left],
+        apply s_poly_mem h.left h_1.left,
+    end
+end
+
+
+set_option trace.check true
+theorem buchberger_correct : ∀ l : list (mv_polynomial ℕ α), ideal.span l.to_finset.to_set = ideal.span (buchberger l).to_finset.to_set := sorry
 end mv_polynomial
