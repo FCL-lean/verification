@@ -7,6 +7,7 @@ variables {α : Type*} {β : Type*} {γ : Type*} {δ : Type*} {ι : Type*}
 variables [discrete_field α]
 variables [decidable_eq α] [decidable_linear_order α]
 variables [comm_ring (mv_polynomial ℕ α)]
+variables [has_zero γ] [has_zero δ] [decidable_eq γ] [decidable_eq δ]
 
 class is_monomial_order (α : Type*) (r : α → α → Prop) extends has_add α, is_linear_order α r :=
     (mono_order : ∀ a b w : α, (r a b) → r (a + w) (b + w) )
@@ -485,6 +486,69 @@ begin
     unfold finsupp.finsupp_max, rw [eq1, eq2],
 end
 
-protected def wf_lt : well_founded (@finsupp.has_lt.1) := sorry
+@[simp]
+def max_ab_zero : Π (x : ℕ →₀ ℕ), finsupp_max_ab x 0 = finsupp_max x :=
+begin
+    intro x, unfold finsupp_max_ab, simp,
+    trivial,
+end
+@[simp]
+def max_ab_zero' : Π (x : ℕ →₀ ℕ), finsupp_max_ab 0 x = finsupp_max x :=
+begin
+    intro x, unfold finsupp_max_ab, simp,
+    trivial,
+end
+
+def zero_le : Π (a : ℕ →₀ ℕ), 0 ≤ a :=
+begin
+    intros, apply finsupp.induction a,
+    trivial, intros,
+    apply le_trans _ _ _ a_4,
+    rw add_comm,
+    apply add_gt,
+end
+
+
+
+
+def neq_zero_gt_zero : Π (x : ℕ →₀ ℕ), x ≠ 0 → 0 < x :=
+begin
+    intros,
+    have m := @lt_or_eq_of_le _ _ 0 x (zero_le _),
+    cases m, assumption, rw m at *, apply false.elim,
+    apply a, trivial,
+end
+
+def single_inj1 : Π (a b: δ) (c d: γ), (c ≠ 0) → single a c = single b d → a = b :=
+begin
+    intros, unfold single at *, simp at a_1,
+    by_cases c = 0, rw h at *, simp at *,
+    apply false.elim; assumption,
+    simp [a_1] at a_2,
+    by_cases d = 0, rw h at *, simp at *,
+    apply false.elim; assumption,
+    simp [a_1, h] at a_2,
+    cases a_2, rw finset.singleton_inj at a_2_left,
+    assumption,
+end
+
+def single_inj2 : Π (a b: δ) (c d: γ), single a c = single b d → c = d :=
+begin
+    intros, unfold single at *, simp at a_1,
+    by_cases c = 0; rw h at *;
+    by_cases d = 0; rw h at *,
+    simp [h] at *, cases a_1, 
+    unfold finset.singleton has_emptyc.emptyc finset.empty at a_1_left,
+    simp at a_1_left, apply false.elim, assumption,
+    tactic.unfreeze_local_instances, dedup, simp [h] at a_1,
+    apply false.elim, assumption,
+    tactic.unfreeze_local_instances, dedup, simp [h, h_1] at a_1,
+    cases a_1, rw finset.singleton_inj at a_1_left,
+    rw a_1_left at *, let m := congr_fun a_1_right b,
+    simp at m, assumption,
+end
+
+def coe_f : Π (a : δ →₀ γ) (n : δ), a n = a.to_fun n := λ a n, rfl
+-- protected def wf_lt : well_founded (@finsupp.has_lt.1) := sorry
 
 end finsupp
