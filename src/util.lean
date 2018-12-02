@@ -1,4 +1,5 @@
 import data.set.lattice
+import data.finset
 
 namespace nat
 
@@ -34,3 +35,23 @@ begin
 end
 
 end logic
+
+namespace list
+variables {α : Type*} [decidable_eq α]
+
+lemma mem_to_set {a : α} {l : list α} : a ∈ l ↔ a ∈ l.to_finset.to_set := 
+begin
+    apply iff.intro; intro h, rw [←list.mem_to_finset, ←finset.mem_coe] at h, assumption,
+    have h' : a ∈ l.to_finset, rw [←finset.mem_coe], exact h,
+    simp at h', assumption,
+end
+
+lemma subset_to_set {l₁ l₂ : list α} : l₁ ⊆ l₂ ↔ l₁.to_finset.to_set ⊆ l₂.to_finset.to_set :=
+begin
+    apply iff.intro; unfold has_subset.subset list.subset set.subset;
+    intros h a ha, 
+    rw ←mem_to_set at *, exact h ha,
+    rw mem_to_set at *, exact h ha,
+end
+
+end list

@@ -1,5 +1,6 @@
 import ring_theory.ideals
-variables {α : Type*} [comm_ring α]
+import util
+variables {α : Type*} [comm_ring α] [decidable_eq α]
 
 namespace ideal
 
@@ -19,4 +20,11 @@ lemma linear_combine_mem {p q : α} {s : set α} : ∀ a b, p ∈ s → q ∈ s 
     exact mem_set hq,
 end
 
+lemma list_subset {I : ideal α} {l : list α} : l.to_finset.to_set ⊆ I ↔ (∀ a ∈ l, a ∈ I) :=
+begin
+    unfold has_subset.subset set.subset,
+    apply iff.intro,
+    intros h a ha, rw list.mem_to_set at ha, apply h ha,
+    intros h a ha, rw ←list.mem_to_set at ha, exact h a ha,
+end
 end ideal
