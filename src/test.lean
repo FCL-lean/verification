@@ -426,10 +426,25 @@ def buch_div_result (s s_polys: list (mv_polynomial ℕ α)) := (list.foldl (λ 
                 let div_result := div_list (b : mv_polynomial ℕ α) a 
                 in if div_result ∉ a then div_result :: a else a) s s_polys)
 
+
+constant buch_lt : rel (list (mv_polynomial ℕ α))
+constant buch_lt_wf : @well_founded (list (mv_polynomial ℕ α)) buch_lt
+constant buch_lt_lt : Π (s : list (mv_polynomial ℕ α)), 
+    (buch_div_result s $ buch_s_polys $ buch_pairs s) ≠ s
+    → buch_lt (buch_div_result s $ buch_s_polys $ buch_pairs s) s
+
 def buchberger : list (mv_polynomial ℕ α) → list (mv_polynomial ℕ α)
 | s :=
     let result := buch_div_result s $ buch_s_polys $ buch_pairs s
-        in if s = result then s else buchberger result
+        in if s = result then s else 
+                begin
+                    let h : buch_lt result s := buch_lt_lt s sorry,
+                    exact buchberger result
+                end
+using_well_founded { rel_tac := λ _ _, `[exact ⟨_, buch_lt_wf⟩] 
+                   , dec_tac := tactic.assumption }
+
+
 
 def buchberger_correct₂ (l l': list (mv_polynomial ℕ α)) (h: list.perm l l') 
     (d : mv_polynomial ℕ α): div_list d l = div_list d l' := sorry
