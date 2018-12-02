@@ -101,7 +101,7 @@ lemma leading_term_le_of_ge_max_aux : ∀ (a b : mv_polynomial ℕ α) (i : ℕ)
     apply i_ih h.right,
 end
 
-lemma le_trans : ∀ a b c : mv_polynomial ℕ α, leading_term_le' a b → leading_term_le' b c → leading_term_le' a c :=
+lemma mv_poly_le_trans : ∀ a b c : mv_polynomial ℕ α, leading_term_le' a b → leading_term_le' b c → leading_term_le' a c :=
 λ a b c hab hbc, 
 begin 
     unfold leading_term_le leading_term_le' at hab hbc,
@@ -367,7 +367,21 @@ end
 
 --set_option trace.class_instances true
 set_option trace.simp_lemmas true
-lemma buch_subset_span {s : list (mv_polynomial ℕ α)} : (buchberger s).to_finset.to_set ⊆ ↑(ideal.span (s.to_finset.to_set)) := sorry
+lemma buch_subset_span : ∀ {s : list (mv_polynomial ℕ α)}, (buchberger s).to_finset.to_set ⊆ ↑(ideal.span (s.to_finset.to_set))
+| s := begin
+    unfold buchberger, simp,
+    have h :  (buch_div_result s (buch_s_polys (buch_pairs s))).to_finset.to_set ⊆ ↑(ideal.span (s.to_finset.to_set)),
+    apply buch_div_subset_span, apply ideal.subset_span, apply buch_s_poly_subset_span s,
+    generalize hs : buch_div_result s (buch_s_polys (buch_pairs s)) = s', rw hs at h,
+    from if hss' : s = s' 
+    then begin
+        simp [hss'], exact ideal.subset_span,
+    end
+    else begin
+        simp [hss'], apply ideal.span_le.1 (le_trans (ideal.span_le.2 (@buch_subset_span s')) (ideal.span_le.2 h)),
+    end
+    
+end
 
 lemma buch_div_contain : ∀ {s s' s_poly : list (mv_polynomial ℕ α)}, 
     s.to_finset.to_set ⊆ s'.to_finset.to_set
@@ -389,6 +403,14 @@ end
 lemma buch_contain : ∀ {s : list (mv_polynomial ℕ α)}, s.to_finset.to_set ⊆ (buchberger s).to_finset.to_set
 | s := begin
     unfold buchberger, simp,
+    generalize hs : buch_div_result s (buch_s_polys (buch_pairs s)) = s',
+    have hs' : s ⊆ s', rw [list.subset_to_set, ←hs], apply buch_div_contain, refl,
+    from if h : s = s'
+    then by simp [h]
+    else begin
+        simp [h],
+        apply set.subset.trans (list.subset_to_set.1 hs') (@buch_contain s'),
+    end
 end
 
 theorem buchberger_correct : ∀ s : list (mv_polynomial ℕ α), ideal.span s.to_finset.to_set = ideal.span (buchberger s).to_finset.to_set := 
