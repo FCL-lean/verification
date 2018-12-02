@@ -157,24 +157,40 @@ begin
     rw finset_sort_singleton,
     intros, simp,
 end
-
+lemma sort_empty_eq_nil : finset.sort finsupp.le ∅ = [] :=
+begin
+    apply quot.lift_beta id, intros, assumption,
+end
+#print sort_empty_eq_nil
 lemma insert_le : ∀ a s h h', a < list.last (finset.sort finsupp.le s) h
     → list.last (finset.sort finsupp.le (insert a s)) h' =
         list.last (finset.sort finsupp.le s) h :=
 begin
-    intro a, intros,
+    intro a, intro s,
     apply finset.induction_on s,
-
+    intros, apply false.elim, apply h,
+    exact sort_empty_eq_nil,
+    intros,
+    
 end
 
-
-lemma finset_erase_last_lt : Π (a : finset (ℕ →₀ ℕ)), Π (b c : ℕ →₀ ℕ),
-    c > b → (∀ k ∈ a, b > k) →
-    list.last (finset.sort finsupp.le (insert b a)) sorry <
-            list.last (finset.sort finsupp.le (insert b (insert c a))) sorry :=
+lemma insert_max: Π (a : finset (ℕ →₀ ℕ)) (c : ℕ →₀ ℕ) h,
+    (∀ k ∈ a, c > k) → list.last (finset.sort finsupp.le (insert c a)) h = c :=
 begin
     intro a, intros,
-    revert a_2,
+    revert a_1 h,
+    apply finset.induction_on a,
+    intros,
+    apply finset_last_sort_singleton,
+    intros,
+end
+lemma finset_erase_last_lt : Π (a : finset (ℕ →₀ ℕ)), Π (b c : ℕ →₀ ℕ) h h',
+    c > b → (∀ k ∈ a, b > k) →
+    list.last (finset.sort finsupp.le (insert b a)) h <
+            list.last (finset.sort finsupp.le (insert b (insert c a))) h' :=
+begin
+    intro a, intros,
+    revert h h' a_2,
     apply finset.induction_on a,
     intros, 
     sorry, intros,
@@ -186,6 +202,10 @@ begin
     rw finset.insert.comm b a_2,
     rw finset.insert.comm c a_2,
     rw finset.insert.comm b a_2,
+    repeat {rw @insert_le a_2},
+    exact ih,
+    apply trans, exact b_gt,
+
 end
 
 lemma finset_sorted_support:  Π (a : mv_polynomial ℕ α) b, 

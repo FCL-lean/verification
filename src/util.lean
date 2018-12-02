@@ -43,11 +43,30 @@ begin
     simp, apply false.elim, apply h, rw ev, trivial,
     trivial,
 end
+
+lemma ite_true {c : Prop} [h: decidable c] {α : Sort u} {b₁ b₂ : α}
+    : Π (ev: c = true), ite c b₁ b₂ = b₁ :=
+begin
+    intros, unfold ite, 
+    tactic.unfreeze_local_instances,
+    cases h, apply false.elim, apply h, rw ev, trivial,
+    trivial,
+end
+
 lemma dite_true' {c : Prop} [h: decidable c] {α : Sort u} {b₁ : c → α} {b₂ : ¬ c → α}
     : Π ev: c, dite c b₁ b₂ = b₁ ev
  :=
 begin
     intros, unfold dite,
+    tactic.unfreeze_local_instances,
+    cases h, apply false.elim, apply h, assumption,
+    trivial,
+end
+
+lemma ite_true' {c : Prop} [h: decidable c] {α : Sort u} {b₁ b₂ : α}
+    : Π (ev: c), ite c b₁ b₂ = b₁ :=
+begin
+    intros, unfold ite, 
     tactic.unfreeze_local_instances,
     cases h, apply false.elim, apply h, assumption,
     trivial,
@@ -62,6 +81,16 @@ begin
     apply false.elim, rw ev at h, assumption,
 end
 
+lemma ite_false {c : Prop} [h: decidable c] {α : Sort u} {b₁ b₂ : α}
+    : Π (ev: c = false), ite c b₁ b₂ = b₂ :=
+begin
+    intros, unfold ite, 
+    tactic.unfreeze_local_instances,
+    cases h, simp,
+    apply false.elim, rw ev at *, assumption,
+end
+
+
 lemma dite_false' {c : Prop} [h: decidable c] {α : Sort u} {b₁ : c → α} {b₂ : ¬ c → α}
     : Π ev: ¬ c, dite c b₁ b₂ = b₂ ev
  :=
@@ -72,6 +101,14 @@ begin
     simp, apply false.elim, apply ev, assumption,
 end
 
+lemma ite_false' {c : Prop} [h: decidable c] {α : Sort u} {b₁ b₂ : α}
+    : Π (ev: ¬ c), ite c b₁ b₂ = b₂ :=
+begin
+    intros, unfold ite, 
+    tactic.unfreeze_local_instances,
+    cases h, simp,
+    apply false.elim, apply ev, assumption,
+end
 
 
 end logic
