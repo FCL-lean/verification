@@ -32,5 +32,48 @@ begin
     intro, apply a_1, left, assumption,
     intro, apply a_1, right, assumption,
 end
+universe u
+lemma dite_true {c : Prop} [h: decidable c] {α : Sort u} {b₁ : c → α} {b₂ : ¬ c → α}
+    : Π (ev: c = true), dite c b₁ b₂ = b₁ (@eq.subst _ id _ _ (eq.symm ev) true.intro)
+ :=
+begin
+    intros,
+    unfold dite, tactic.unfreeze_local_instances, cases h;
+    simp, apply false.elim, apply h, rw ev, trivial,
+    trivial,
+end
+lemma dite_true' {c : Prop} [h: decidable c] {α : Sort u} {b₁ : c → α} {b₂ : ¬ c → α}
+    : Π ev: c, dite c b₁ b₂ = b₁ ev
+ :=
+begin
+    intros, unfold dite,
+    tactic.unfreeze_local_instances,
+    cases h, apply false.elim, apply h, assumption,
+    trivial,
+end
+
+lemma dite_false {c : Prop} [h: decidable c] {α : Sort u} {b₁ : c → α} {b₂ : ¬ c → α}
+    : Π (ev: c = false), dite c b₁ b₂ = b₂ (λ neq, begin rw ev at neq, assumption end)
+ :=
+begin
+    intros, unfold dite,
+    tactic.unfreeze_local_instances, cases h; simp,
+    apply false.elim, rw ev at h, assumption,
+end
+
+lemma dite_false' {c : Prop} [h: decidable c] {α : Sort u} {b₁ : c → α} {b₂ : ¬ c → α}
+    : Π ev: ¬ c, dite c b₁ b₂ = b₂ ev
+ :=
+begin
+    intros, unfold dite,
+    tactic.unfreeze_local_instances,
+    cases h,
+    simp, apply false.elim, apply ev, assumption,
+end
+
+
 
 end logic
+universe α
+
+def rel (A : Sort α) := A → A → Prop

@@ -88,16 +88,6 @@ begin
     else is_false begin intro h', apply (absurd h'.left h), end,
 end
 
--- finsupp.le_aux a b (max a) → (max a, a (max a)) < (max a, b (max a))
-def lex_mon_order_imp_lt_lex_order : Π (a b : ℕ →₀ ℕ), a < b 
-     → prod.lex nat.lt nat.lt 
-         (finsupp.finsupp_max a, a (finsupp.finsupp_max a)) 
-         (finsupp.finsupp_max b, b (finsupp.finsupp_max b)) :=
-begin
-    intros, unfold has_lt.lt finsupp.lt at a_1, cases a_1,
-    unfold has_le.le preorder.le finsupp.le at a_1_left,
-    sorry
-end
 
 def leading_term_sub_aux (a b : ℕ →₀ ℕ) 
    : Π (k: ℕ), (leading_term_le_aux b a k) → (ℕ →₀ ℕ) 
@@ -107,8 +97,152 @@ def leading_term_sub_aux (a b : ℕ →₀ ℕ)
 def leading_term_sub (a b : ℕ →₀ ℕ) : (leading_term_le b a) → (ℕ →₀ ℕ) 
 | le := leading_term_sub_aux a b (finsupp.finsupp_max_ab b a) le
 
+constant lt_wellfounded : well_founded (@preorder.lt (ℕ →₀ ℕ) _)
 
-def div : Π (a b : mv_polynomial ℕ α), Σ'q r, (¬ leading_term_le' b r) ∧ a = b * q + r
+
+lemma finset_sort_singleton : Π (b : ℕ →₀ ℕ),
+    finset.sort finsupp.le (finset.singleton b) = [b] :=
+begin
+    intros,
+    unfold finset.sort multiset.sort, unfold quot.lift_on,
+    apply quot.lift_beta id, intros, assumption,
+end
+
+lemma finset_last_sort_singleton : Π (b : ℕ →₀ ℕ) h,
+    list.last (finset.sort finsupp.le (finset.singleton b)) h = b :=
+begin
+    intro b,
+    rw finset_sort_singleton,
+    intros, simp,
+end
+
+lemma insert_le : ∀ a s h h', a < list.last (finset.sort finsupp.le s) h
+    → list.last (finset.sort finsupp.le (insert a s)) h' =
+        list.last (finset.sort finsupp.le s) h :=
+begin
+    intro a, intros,
+    apply finset.induction_on s,
+
+end
+
+
+lemma finset_erase_last_lt : Π (a : finset (ℕ →₀ ℕ)), Π (b c : ℕ →₀ ℕ),
+    c > b → (∀ k ∈ a, b > k) →
+    list.last (finset.sort finsupp.le (insert b a)) sorry <
+            list.last (finset.sort finsupp.le (insert b (insert c a))) sorry :=
+begin
+    intro a, intros,
+    revert a_2,
+    apply finset.induction_on a,
+    intros, 
+    sorry, intros,
+    have ih := a_4 _,
+    have b_gt : b > a_2,
+    apply a_2_1, simp,
+    swap, intros,
+    apply a_2_1, simp, right, assumption,
+    rw finset.insert.comm b a_2,
+    rw finset.insert.comm c a_2,
+    rw finset.insert.comm b a_2,
+end
+
+lemma finset_sorted_support:  Π (a : mv_polynomial ℕ α) b, 
+    b ∈ finset.sort finsupp.le (a.support) →
+    b ∈ a.support :=
+begin
+    intro a,
+    apply @finset.induction_on _ 
+        (λ sup, ∀ (b : ℕ →₀ ℕ), b ∈ finset.sort finsupp.le sup
+                    → b ∈ sup) _ a.support,
+    intros, simp at a_1, apply false.elim, assumption,
+    intros, simp, simp at a_4, cases a_4,
+    left, assumption,
+    right, assumption,
+end
+
+lemma last_mem (α : Sort*): Π (l : list α) (h : l ≠ list.nil),  
+        l.last h ∈ l :=
+begin
+    intro l,
+    induction l;
+    intros, apply false.elim, apply h, trivial,
+    simp, cases l_tl,
+    left, simp,
+    right, simp,
+    apply l_ih,
+end
+
+lemma sub_eq_eq_zero : Π (a b : mv_polynomial ℕ α) (n : ℕ →₀ ℕ),
+    a.to_fun n = b.to_fun n → 
+    (a - b).to_fun n = 0 :=
+begin
+    intros a b n,
+    intros, simp,
+    rw ←finsupp.coe_f at *,
+    rw ←finsupp.coe_f at *,
+    rw finsupp.add_apply,
+    rw a_1, simp,
+end
+lemma sub_dec : Π (a b : mv_polynomial ℕ α),
+    a.leading_term = b.leading_term 
+    → a.leading_term' ≠ 0
+    → (a - b).leading_term' < a.leading_term' :=
+begin
+    intros a b eql neq0,
+    unfold leading_term' at *,
+    by_cases finset.sort finsupp.le (a.support) = list.nil,
+    rw logic.dite_true' h at neq0,
+    apply false.elim, apply neq0, trivial,
+    rw logic.dite_false' h,
+    by_cases finset.sort finsupp.le ((a - b).support) = list.nil,
+    tactic.unfreeze_local_instances,
+    dedup,
+    rw logic.dite_true' h_1,
+    rw logic.dite_false' h at neq0,
+    generalize n : list.last (finset.sort finsupp.le (a.support)) h = x,
+    rw n at *,
+    apply finsupp.neq_zero_gt_zero, assumption, tactic.unfreeze_local_instances,
+    dedup,
+    rw logic.dite_false' h_1,
+    unfold leading_term at *,
+    rw logic.dite_false' h at neq0 eql,
+    by_cases finset.sort finsupp.le (b.support) = list.nil,
+    rw logic.dite_true' h at eql, simp at eql,
+    unfold C monomial at eql,
+    apply false.elim, apply neq0,
+    apply finsupp.single_inj1 
+        (list.last (finset.sort finsupp.le (a.support)) (by assumption)) (0 : ℕ →₀ ℕ)
+            (a.to_fun (list.last (finset.sort finsupp.le (a.support)) (by assumption)))
+            (b.to_fun 0),
+    dedup,
+    have q : list.last (finset.sort finsupp.le (a.support)) h ∈ a.support ↔
+        a.to_fun (list.last (finset.sort finsupp.le (a.support)) h) ≠ 0:= @finsupp.mem_support_iff _ _ _
+                    a (list.last (finset.sort finsupp.le (a.support)) h),
+    rw [←q],
+    apply finset_sorted_support,
+    apply last_mem, assumption,
+    simp at eql, rw logic.dite_false' h at eql,
+
+    
+
+
+    /-
+    def largest_elem a = list.last (finset.sort finsupp.le a) ??
+    largest_elem (a - b) < largest_elem a = largest_elem b
+    1. list.last (finset.sort finsupp.le (a.support)) h ∉ finset.sort finsupp.le ((a - b).support)
+    1. list.last (finset.sort finsupp.le (b.support)) h ∉ finset.sort finsupp.le ((a - b).support)
+    2. finset.sort finsupp.le ((a - b).support)
+         ⊂ finset.sort finsupp.le a.support ++ finset.sort finsupp.le b.support
+    3.
+    list.last (finset.sort finsupp.le ((a - b).support)) h_1 ≤ 
+    list.last (finset.sort finsupp.le ((a + b).support.erase last_elem)) h_1
+    < last_elem
+    -/
+
+end
+
+def div : Π (a b : mv_polynomial ℕ α),
+                 Σ'q r, (¬ leading_term_le' b r) ∧ a = b * q + r
 | a b :=
 begin
     by_cases (leading_term_le' b a),
@@ -133,9 +267,8 @@ begin
     apply and.intro, assumption,
     simp,
 end
-using_well_founded { rel_tac := λ _ _, `[exact ⟨_, inv_image.wf psigma.fst (inv_image.wf leading_term' finsupp.wf_lt)⟩] 
+using_well_founded { rel_tac := λ _ _, `[exact ⟨_, inv_image.wf psigma.fst (inv_image.wf leading_term' lt_wellfounded)⟩] 
                    , dec_tac := tactic.assumption }
-
 def mv_trichotomy (p : mv_polynomial ℕ α) : psum (p = mv_polynomial.C 0) 
             (psum (Σ'a : α, p = mv_polynomial.C a) ((Σ'a : α, p = mv_polynomial.C a) → false)):= 
 if h₀ : p.support = ∅ 
@@ -226,9 +359,15 @@ def buchberger : list (mv_polynomial ℕ α) → list (mv_polynomial ℕ α)
             if x = y
             then list.nil
             else [(x, y)]
-    in let s_polys : list (mv_polynomial ℕ α) := pairs.map (λ a, s_poly a.fst a.snd)
+    in let s_polys : list (mv_polynomial ℕ α) := pairs.map (λ a, s_poly  a.fst a.snd)
     in let result := (list.foldl (λ a b, 
                 let div_result := div_list (b : mv_polynomial ℕ α) a 
                 in if div_result ∉ a then div_result :: a else a) s s_polys)
         in if s = result then s else buchberger result
+
+def buchberger_correct₁ (l : list (mv_polynomial ℕ α)) : span {a | a ∈ l } = span { a | a ∈ (@buchberger _ _ _ _ _ ltn wf_ltn l)} := sorry
+
+def buchberger_correct₂ (l l': list (mv_polynomial ℕ α)) (h: list.perm l l') 
+    (d : mv_polynomial ℕ α): div_list d l = div_list d l' := sorry
+
 end mv_polynomial
