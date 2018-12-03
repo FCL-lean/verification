@@ -134,4 +134,16 @@ begin
     rw mem_to_set at *, exact h ha,
 end
 
+lemma last_mem (α : Sort*): Π (l : list α) (h : l ≠ list.nil),  
+        l.last h ∈ l :=
+begin
+    intro l,
+    induction l;
+    intros, apply false.elim, apply h, trivial,
+    simp, cases l_tl,
+    left, simp,
+    right, simp,
+    apply l_ih,
+end
+
 end list

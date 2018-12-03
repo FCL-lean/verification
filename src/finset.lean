@@ -55,4 +55,40 @@ begin
     rw [finset.mem_union], right, assumption,
 end
 
+section 
+parameters {α : Type*}
+
+lemma ne_empty_iff_exists_mem {s : finset α} : s ≠ ∅ ↔ ∃ x, x ∈ s :=
+begin
+    simp [eq_empty_iff_forall_not_mem],
+    apply @not_forall_not _ _ (classical.dec _),
+end
+
+end
+
+variables {α : Type*}
+variables [decidable_eq α]
+variables (r : α → α → Prop) [decidable_rel r] [is_trans α r] [is_antisymm α r] [is_total α r]
+
+lemma sort_nil : sort r ∅ = [] := by apply quot.lift_beta id; intros; assumption
+
+lemma sort_empty_nil {s : finset α} : sort r s = [] ↔ s = ∅ :=
+begin
+    apply iff.intro; intro h,
+    from if hs : s = ∅ 
+    then by assumption
+    else begin      
+        rw [←ne.def, ne_empty_iff_exists_mem] at hs,
+        cases hs, rw [←finset.mem_sort r, h] at hs_h,
+        cases hs_h,
+    end,
+    rw h, apply sort_nil,
+end
+
+lemma sort_ne_empty_ne_nil {s : finset α} : s ≠ ∅ → sort r s ≠ [] :=
+λ hs hss, begin
+    rw sort_empty_nil at hss,
+    apply absurd hss hs,
+end
+
 end finset

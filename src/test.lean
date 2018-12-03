@@ -5,6 +5,7 @@ import tactic.find
 import finsupp
 import finset
 import ideal
+import leading_term
 
 
 variables {α : Type*} {β : Type*} {γ : Type*} {δ : Type*} {ι : Type*}
@@ -14,133 +15,14 @@ variables [decidable_eq α] [decidable_linear_order α]
 
 namespace mv_polynomial
 
-def leading_term (p : mv_polynomial ℕ α) : mv_polynomial ℕ α := 
-   dite (p.support.sort finsupp.le = list.nil) 
-        (λ prf, mv_polynomial.C (p.to_fun 0))
-        (λ nprf, let g := list.last (p.support.sort finsupp.le) nprf 
-                 in finsupp.single g (p.to_fun g))
-
-def leading_term' (p : mv_polynomial ℕ α) : ℕ →₀ ℕ := 
-   dite (p.support.sort finsupp.le = list.nil) 
-        (λ prf, 0)
-        (λ nprf, list.last (p.support.sort finsupp.le) nprf)
-
-def leading_coeff (p : mv_polynomial ℕ α) : α := 
-   dite (p.support.sort finsupp.le = list.nil) 
-        (λ prf, p.to_fun 0)
-        (λ nprf, let g := list.last (p.support.sort finsupp.le) nprf 
-                 in p.to_fun g)
-
-def leading_term_le_aux : (ℕ →₀ ℕ) → (ℕ →₀ ℕ) → ℕ → Prop
-| a b 0 := a 0 ≤ b 0
-| a b (nat.succ m) := a (nat.succ m) ≤ b (nat.succ m) ∧ leading_term_le_aux a b m 
-
-def leading_term_le (a b : ℕ →₀ ℕ) : Prop := leading_term_le_aux a b (finsupp.finsupp_max_ab a b)
-
-def leading_term_le' (a b : mv_polynomial ℕ α) : Prop := leading_term_le a.leading_term' b.leading_term'
-
-/-
-lemma le_imp_finsupp_le : ∀ a b : mv_polynomial ℕ α, a ≤ b → a.leading_term' ≤ b.leading_term' :=
-λ a b, 
-    begin 
-        unfold has_le.le preorder.le finsupp.le mv_polynomial.le leading_term_le,
-        induction (finsupp.finsupp_max_ab (leading_term' a) (leading_term' b));
-        unfold leading_term_le_aux finsupp.le_aux, simp,
-        intro h,
-        cases h.left, 
-        rw le_iff_lt_or_eq at h,
-        left, assumption,
-        right, apply and.intro h_1 (ih h.right),
-    end
--/
-
-lemma le_refl : ∀ a : mv_polynomial ℕ α, leading_term_le' a a :=
-λ a, 
-begin 
-    unfold leading_term_le' leading_term_le, 
-    induction (finsupp.finsupp_max_ab (leading_term' a) (leading_term' a));
-    unfold leading_term_le_aux, 
-    apply and.intro,
-    refl, assumption,
+lemma finset_insert_neq_nil : Π (b : ℕ →₀ ℕ) (s : finset (ℕ →₀ ℕ)), finset.sort finsupp.le (insert b s) ≠ list.nil :=
+λ b s, begin
+    rw finset.insert_eq,
+    intro h,
+    have h' : b ∈ {b} ∪ s, simp,
+    rw [←finset.mem_sort finsupp.le, h] at h',
+    cases h',
 end
-
-lemma leading_term_le_aux_trans : ∀ (a b c : ℕ →₀ ℕ) (k : ℕ), (leading_term_le_aux a b k) → (leading_term_le_aux b c k) → (leading_term_le_aux a c k) :=
-λ a b c k, begin
-    induction k;
-    unfold leading_term_le_aux,
-    apply le_trans,
-    intros hab hbc,
-    apply and.intro, apply le_trans hab.left hbc.left,
-    apply k_ih hab.right hbc.right,
-end
-
-lemma leading_term_le_aux_of_ge_max : ∀ (a b : mv_polynomial ℕ α) (i : ℕ), leading_term_le' a b 
-    → i ≥ (finsupp.finsupp_max_ab (leading_term' a) (leading_term' b)) 
-    → leading_term_le_aux a.leading_term' b.leading_term' i :=
-λ a b i h hi, begin 
-    unfold leading_term_le' leading_term_le at h,
-    induction i, rw nat.le_zero_iff.1 hi at h, assumption,
-    from if hi₁ : nat.succ i_n = (finsupp.finsupp_max_ab (leading_term' a) (leading_term' b))
-    then by rw hi₁; assumption
-    else begin
-        have hi₂ := ne_iff_lt_or_gt.1 hi₁,
-        cases hi₂, apply (absurd hi₂ (not_lt_of_ge hi)),
-        unfold leading_term_le_aux,
-        have hia := finsupp.gt_sup_eq_zero a.leading_term' (nat.succ i_n) (lt_of_le_of_lt (finsupp.max_ab_ge_max_a a.leading_term' b.leading_term') hi₂),
-        have hib := finsupp.gt_sup_eq_zero b.leading_term' (nat.succ i_n) (lt_of_le_of_lt (finsupp.max_ab_ge_max_b a.leading_term' b.leading_term') hi₂),
-        rw [hia, hib], apply and.intro, refl, apply i_ih (nat.le_of_lt_succ hi₂),
-    end
-end
-
-lemma leading_term_le_of_ge_max_aux : ∀ (a b : mv_polynomial ℕ α) (i : ℕ), 
-    leading_term_le_aux a.leading_term' b.leading_term' ((finsupp.finsupp_max_ab (leading_term' a) (leading_term' b)) + i)
-    → leading_term_le' a b :=
-λ a b i h, begin
-    induction i, unfold leading_term_le' leading_term_le, assumption,
-    unfold leading_term_le_aux at h,
-    apply i_ih h.right,
-end
-
-lemma mv_poly_le_trans : ∀ a b c : mv_polynomial ℕ α, leading_term_le' a b → leading_term_le' b c → leading_term_le' a c :=
-λ a b c hab hbc, 
-begin 
-    unfold leading_term_le leading_term_le' at hab hbc,
-    generalize hs : [(finsupp.finsupp_max_ab a.leading_term' b.leading_term'), (finsupp.finsupp_max_ab b.leading_term' c.leading_term'), (finsupp.finsupp_max_ab a.leading_term' c.leading_term')] = s,
-    generalize hk: s.to_finset.sup id = k, rw [←hs] at hk,
-    have hkab : (finsupp.finsupp_max_ab a.leading_term' b.leading_term') ≤ k, rw ←hk, simp,
-    have hkbc : (finsupp.finsupp_max_ab b.leading_term' c.leading_term') ≤ k, rw ←hk, simp, rw ←lattice.sup_assoc, apply lattice.le_sup_right,
-    have hkac : (finsupp.finsupp_max_ab a.leading_term' c.leading_term') ≤ k, rw ←hk, simp, rw [lattice.sup_comm, lattice.sup_assoc], apply lattice.le_sup_left,
-    have hab' := leading_term_le_aux_of_ge_max a b k hab hkab,
-    have hbc' := leading_term_le_aux_of_ge_max b c k hbc hkbc,
-    have hac' := leading_term_le_aux_trans a.leading_term' b.leading_term' c.leading_term' k hab' hbc',
-    apply leading_term_le_of_ge_max_aux a c ((k - (finsupp.finsupp_max_ab a.leading_term' c.leading_term'))),
-    rw nat.add_sub_of_le hkac,
-    assumption,
-end
-
-instance le_decidable (a b : mv_polynomial ℕ α) : decidable (leading_term_le' a b) := 
-begin
-    unfold leading_term_le' leading_term_le,
-    induction (finsupp.finsupp_max_ab (leading_term' a) (leading_term' b));
-    unfold leading_term_le_aux, apply_instance,
-    cases ih,
-    begin left, intro h, apply (absurd h.right ih), end,
-    from if h: (a.leading_term'.to_fun (nat.succ n) ≤ b.leading_term'.to_fun (nat.succ n))
-    then is_true begin apply and.intro; assumption, end
-    else is_false begin intro h', apply (absurd h'.left h), end,
-end
-
-
-def leading_term_sub_aux (a b : ℕ →₀ ℕ) 
-   : Π (k: ℕ), (leading_term_le_aux b a k) → (ℕ →₀ ℕ) 
-| nat.zero le := finsupp.single 0 (a 0 - b 0)
-| (nat.succ n) le := begin cases le, exact leading_term_sub_aux n le_right end
-
-def leading_term_sub (a b : ℕ →₀ ℕ) : (leading_term_le b a) → (ℕ →₀ ℕ) 
-| le := leading_term_sub_aux a b (finsupp.finsupp_max_ab b a) le
-
-constant lt_wellfounded : well_founded (@preorder.lt (ℕ →₀ ℕ) _)
-
 
 lemma finset_sort_singleton : Π (b : ℕ →₀ ℕ),
     finset.sort finsupp.le (finset.singleton b) = [b] :=
@@ -197,15 +79,8 @@ begin
     have ih := a_4 _,
     have b_gt : b > a_2,
     apply a_2_1, simp,
-    swap, intros,
-    apply a_2_1, simp, right, assumption,
-    rw finset.insert.comm b a_2,
-    rw finset.insert.comm c a_2,
-    rw finset.insert.comm b a_2,
-    repeat {rw @insert_le a_2},
-    exact ih,
-    apply trans, exact b_gt,
-
+    swap, intros, apply finset_insert_neq_nil,
+    sorry
 end
 
 lemma finset_sorted_support:  Π (a : mv_polynomial ℕ α) b, 
@@ -245,6 +120,7 @@ begin
     rw finsupp.add_apply,
     rw a_1, simp,
 end
+
 lemma sub_dec : Π (a b : mv_polynomial ℕ α),
     a.leading_term = b.leading_term 
     → a.leading_term' ≠ 0
@@ -272,10 +148,10 @@ begin
     rw logic.dite_true' h at eql, simp at eql,
     unfold C monomial at eql,
     apply false.elim, apply neq0,
-    apply finsupp.single_inj1 
-        (list.last (finset.sort finsupp.le (a.support)) (by assumption)) (0 : ℕ →₀ ℕ)
-            (a.to_fun (list.last (finset.sort finsupp.le (a.support)) (by assumption)))
-            (b.to_fun 0),
+    apply finsupp.single_inj1, 
+        --(list.last (finset.sort finsupp.le (a.support)) (by assumption)) (0 : ℕ →₀ ℕ)
+        --    (a.to_fun (list.last (finset.sort finsupp.le (a.support)) (by assumption)))
+        --    (b.to_fun 0),
     dedup,
     have q : list.last (finset.sort finsupp.le (a.support)) h ∈ a.support ↔
         a.to_fun (list.last (finset.sort finsupp.le (a.support)) h) ≠ 0:= @finsupp.mem_support_iff _ _ _

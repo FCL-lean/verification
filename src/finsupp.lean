@@ -519,7 +519,7 @@ begin
     apply a, trivial,
 end
 
-def single_inj1 : Π (a b: δ) (c d: γ), (c ≠ 0) → single a c = single b d → a = b :=
+def single_inj1 : Π {a b: δ} {c d: γ}, (c ≠ 0) → single a c = single b d → a = b :=
 begin
     intros, unfold single at *, simp at a_1,
     by_cases c = 0, rw h at *, simp at *,
