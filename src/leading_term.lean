@@ -138,18 +138,13 @@ constant lt_wellfounded : well_founded (@preorder.lt (ℕ →₀ ℕ) _)
 
 lemma support_empty {a : mv_polynomial ℕ α} : a.support = ∅ → a.leading_term' = 0 :=
 λ h, begin
-<<<<<<< HEAD
-    unfold leading_term', rw [h], simp [finset.sort_nil finsupp.le],
-    refl,
-=======
     unfold leading_term', rw [h], simp [finset.sort_nil finsupp.le], refl,
->>>>>>> 68552fa09fe6cf72cf4d64a7f70e333dd3bd6ecb
 end
 
 lemma leading_coeff_not0 {a : mv_polynomial ℕ α} : a.support ≠ ∅ → a.leading_coeff ≠ 0 :=
 λ ha halc, begin
     unfold leading_coeff leading_term' at halc,
-    have h := finsupp.mem_support_iff.1 (finsupp.mem_of_sup_id' ha),
+    have h := finsupp.mem_support_iff.1 (finset.mem_of_sup_id ha),
     apply absurd halc h,
 end
 

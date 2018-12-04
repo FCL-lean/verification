@@ -153,10 +153,10 @@ end
 lemma sub_sup: Π (a b : finset (ℕ →₀ ℕ)), a ⊆ b → a.sup id ≤ b.sup id :=
 λ a b asubb,
 begin
-    revert a,
-    apply finset.induction_on b; intros,
-    sorry, simp,
-
+    --revert a,
+    --apply finset.induction_on b; intros,
+    --sorry, simp,
+    unfold has_subset.subset at asubb,
 end
 
 
