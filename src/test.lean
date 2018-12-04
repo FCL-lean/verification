@@ -44,44 +44,6 @@ begin
     apply quot.lift_beta id, intros, assumption,
 end
 #print sort_empty_eq_nil
-lemma insert_le : ∀ a s h h', a < list.last (finset.sort finsupp.le s) h
-    → list.last (finset.sort finsupp.le (insert a s)) h' =
-        list.last (finset.sort finsupp.le s) h :=
-begin
-    intro a, intro s,
-    apply finset.induction_on s,
-    intros, apply false.elim, apply h,
-    exact sort_empty_eq_nil,
-    intros,
-    
-end
-
-lemma insert_max: Π (a : finset (ℕ →₀ ℕ)) (c : ℕ →₀ ℕ) h,
-    (∀ k ∈ a, c > k) → list.last (finset.sort finsupp.le (insert c a)) h = c :=
-begin
-    intro a, intros,
-    revert a_1 h,
-    apply finset.induction_on a,
-    intros,
-    apply finset_last_sort_singleton,
-    intros,
-end
-lemma finset_erase_last_lt : Π (a : finset (ℕ →₀ ℕ)), Π (b c : ℕ →₀ ℕ) h h',
-    c > b → (∀ k ∈ a, b > k) →
-    list.last (finset.sort finsupp.le (insert b a)) h <
-            list.last (finset.sort finsupp.le (insert b (insert c a))) h' :=
-begin
-    intro a, intros,
-    revert h h' a_2,
-    apply finset.induction_on a,
-    intros, 
-    sorry, intros,
-    have ih := a_4 _,
-    have b_gt : b > a_2,
-    apply a_2_1, simp,
-    swap, intros, apply finset_insert_neq_nil,
-    sorry
-end
 
 lemma finset_sorted_support:  Π (a : mv_polynomial ℕ α) b, 
     b ∈ finset.sort finsupp.le (a.support) →
@@ -171,8 +133,8 @@ begin
     have coeff_neq_z := leading_term_ne_zero_coeff neq0,
     have lead_tm_eq := finsupp.single_inj1 coeff_neq_z eql,
     have lead_coeff_eq := finsupp.single_inj2 eql,
-    have a_sup_in_a := finsupp.mem_of_sup_id' (support_ne_empty_of_leading_term' neq0),
-    have a_sup_in_b := finsupp.mem_of_sup_id' (support_ne_empty_of_leading_term neq0 lead_tm_eq),
+    have a_sup_in_a := finset.mem_of_sup_id (support_ne_empty_of_leading_term' neq0),
+    have a_sup_in_b := finset.mem_of_sup_id (support_ne_empty_of_leading_term neq0 lead_tm_eq),
     unfold leading_term' at lead_tm_eq,
     rw ←lead_tm_eq at a_sup_in_b,
     have sup_a_u_b : finset.sup (a.support ∪ b.support) id = finset.sup (a.support) id,
@@ -187,7 +149,7 @@ begin
     rw ←ab_le at not_in_a_sub_b,
     by_cases (a - b).support = ∅,
     swap,
-    apply absurd (finsupp.mem_of_sup_id' h) not_in_a_sub_b,
+    apply absurd (finset.mem_of_sup_id h) not_in_a_sub_b,
     rw h at *, simp at *,
     apply finsupp.neq_zero_gt_zero,
     assumption,

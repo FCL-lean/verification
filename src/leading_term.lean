@@ -169,7 +169,7 @@ lemma leading_term_ne_zero_coeff {a : mv_polynomial ℕ α} :
 begin
     unfold leading_coeff at eqa, unfold leading_term' at neqz,
     have h' : a.support ≠ ∅ := sorry,
-    have h := finsupp.mem_of_sup_id' h',
+    have h := finset.mem_of_sup_id h',
     rw [finsupp.mem_support_iff] at h,
     exact absurd eqa h,
 end

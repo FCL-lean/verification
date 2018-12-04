@@ -39,25 +39,6 @@ begin
     simp, apply finset.mem_insert_of_mem, assumption
 end
 
-lemma union_sup_in_a_or_b : Π (a b : finset ℕ),
-    b ≠ ∅ →
-    (a ∪ b).sup id ∈ a
-    ∨ (a ∪ b).sup id ∈ b
-| a :=
-begin
-    apply finset.induction_on a,
-    intros, right, simp,
-    apply mem_of_sup_id, assumption,
-    intros c s notin ih b notemp,
-    have iha := ih b notemp,
-    cases iha;
-    rw finset.insert_union;
-    have m := sup_id_insert (s ∪ b) c _,
-    rw [←finset.mem_union, finset.insert_union], assumption,
-    rw [finset.mem_union], left, assumption,
-    rw [←finset.mem_union, finset.insert_union], assumption,
-    rw [finset.mem_union], right, assumption,
-end
 
 end nat
 
@@ -108,6 +89,7 @@ lemma mem_of_sup_id : ∀ {a : finset α}, a ≠ ∅ → a.sup id ∈ a
 
 end decidable_semilattice
 
+
 section sort
 
 variables [decidable_eq α]
@@ -137,5 +119,29 @@ end
 end sort
 
 end general
+section nat
+
+lemma union_sup_in_a_or_b : Π (a b : finset ℕ),
+    b ≠ ∅ →
+    (a ∪ b).sup id ∈ a
+    ∨ (a ∪ b).sup id ∈ b
+| a :=
+begin
+    apply finset.induction_on a,
+    intros, right, simp,
+    apply finset.mem_of_sup_id, assumption,
+    intros c s notin ih b notemp,
+    have iha := ih b notemp,
+    cases iha;
+    rw finset.insert_union;
+    have m := finset.nat.sup_id_insert (s ∪ b) c _,
+    rw [←finset.mem_union, finset.insert_union], assumption,
+    rw [finset.mem_union], left, assumption,
+    rw [←finset.mem_union, finset.insert_union], assumption,
+    rw [finset.mem_union], right, assumption,
+end
+
+
+end nat
 
 end finset

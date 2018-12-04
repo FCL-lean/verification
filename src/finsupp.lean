@@ -29,7 +29,7 @@ begin
     assumption,
 end
 
-def single_inj2 : Π (a b: δ) (c d: γ), single a c = single b d → c = d :=
+def single_inj2 : Π {a b: δ} {c d: γ}, single a c = single b d → c = d :=
 begin
     intros, unfold single at *, simp at a_1,
     by_cases c = 0; rw h at *;
@@ -439,7 +439,7 @@ begin
     by_cases (b.support = ∅),
     unfold finsupp.max_ab, rw h, rw finset.union_empty,
     left, apply finset.mem_of_sup_id, assumption,
-    all_goals { apply finset.nat.union_sup_in_a_or_b, assumption, },
+    all_goals { apply finset.union_sup_in_a_or_b, assumption, },
 end
 
 lemma eq_zero_not_finsupp.max_ab : Π (a b : ℕ →₀ ℕ) (i : ℕ),
