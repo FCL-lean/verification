@@ -185,16 +185,18 @@ begin
     -/
 end
 
-def div : Π (a b : mv_polynomial ℕ α),
+def div : Π (a b : mv_polynomial ℕ α), b ≠ 0 →
                  Σ'q r, (¬ leading_term_le' b r) ∧ a = b * q + r
-| a b :=
+| a b bneqz :=
 begin
     by_cases (leading_term_le' b a),
     let sub := leading_term_sub a.leading_term' b.leading_term' h,
     let q' := (finsupp.single sub (a.leading_coeff / b.leading_coeff)),
     generalize h : a - b * q' = r',
-    let tt' : r'.leading_term' < a.leading_term', sorry,
-    have result := div r' b,
+    let tt' : r'.leading_term' < a.leading_term', 
+    rw ←h,
+    exact sub_dec a (b * q') sorry sorry,
+    have result := div r' b bneqz,
     cases result with r_q, cases result_snd with r_r,
     apply psigma.mk (q' + r_q),
     apply psigma.mk r_r,
@@ -284,40 +286,60 @@ begin
     end
 end
 
-def s_poly (p q : mv_polynomial ℕ α) : mv_polynomial ℕ α :=
+def poly_lead_tm_neqz {p : mv_polynomial ℕ α}: p ≠ 0 → p.leading_term ≠ 0 :=
+λ pneqz eqz,
+begin 
+    sorry
+end
+def s_poly (p q : mv_polynomial ℕ α) : 
+    p ≠ 0 → q ≠ 0 → mv_polynomial ℕ α :=
+λ pneqz qneqz,
 begin
-    let fst := div (leading_term_lcm p q) p.leading_term,
-    let snd := div (leading_term_lcm p q) q.leading_term,
+    let fst := div (leading_term_lcm p q) p.leading_term (poly_lead_tm_neqz pneqz),
+    let snd := div (leading_term_lcm p q) q.leading_term (poly_lead_tm_neqz qneqz),
     exact fst.fst * p - snd.fst * q,
 end
 
-def div_list : (mv_polynomial ℕ α) → (list (mv_polynomial ℕ α)) → mv_polynomial ℕ α
+def div_list : (mv_polynomial ℕ α) → 
+    (list (Σ' (p: mv_polynomial ℕ α), p ≠ 0)) →
+     mv_polynomial ℕ α
 | a list.nil := a
-| a (list.cons x xs) := div_list (div a x).snd.fst xs
+| a (list.cons x xs) := div_list (div a x.fst x.snd).snd.fst xs 
 
-def buch_pairs (s : list (mv_polynomial ℕ α)) : list (mv_polynomial ℕ α × mv_polynomial ℕ α) :=
+
+def buch_pairs (s : list (Σ' (p: mv_polynomial ℕ α), p ≠ 0)) 
+: list (Σ' (p: mv_polynomial ℕ α × mv_polynomial ℕ α), 
+                pprod (p.1 ≠ 0) (p.2 ≠ 0)) :=
     do  x ← s,
         y ← s,
         if x = y
         then list.nil
-        else [(x, y)]
+        else [⟨(x.fst, y.fst), ⟨x.snd, y.snd⟩⟩]
 
-def buch_s_polys (pairs : list (mv_polynomial ℕ α × mv_polynomial ℕ α)) : list (mv_polynomial ℕ α) := pairs.map (λ a, s_poly a.fst a.snd)
+def buch_s_polys (pairs : list (Σ' (p: mv_polynomial ℕ α × mv_polynomial ℕ α), 
+                pprod (p.1 ≠ 0) (p.2 ≠ 0))) : list (mv_polynomial ℕ α) 
+    := pairs.map (λ a, s_poly a.fst.fst a.fst.snd a.snd.fst a.snd.snd)
 
-def buch_div_result (s s_polys: list (mv_polynomial ℕ α)) := (list.foldl (λ a b, 
-                let div_result := div_list (b : mv_polynomial ℕ α) a 
-                in if div_result ∉ a then div_result :: a else a) s s_polys)
+def buch_div_result (s s_polys: list (Σ' (p: mv_polynomial ℕ α), p ≠ 0))
+    := (list.foldl (λ a b, 
+    let div_result := div_list (b: (Σ' (p: mv_polynomial ℕ α), p ≠ 0)).fst a
+    in if div_result ∉ list.map psigma.fst a 
+        then (if h: div_result ≠ 0 then ⟨div_result, h⟩ :: a else a) else a) s s_polys)
 
+def filter_non_zero : list (mv_polynomial ℕ α) →
+    list (Σ' (p: mv_polynomial ℕ α), p ≠ 0)
+| [] := []
+| (x :: xs) := if h: x = 0 then filter_non_zero xs else ⟨x, h⟩ :: filter_non_zero xs
 
-constant buch_lt : rel (list (mv_polynomial ℕ α))
-constant buch_lt_wf : @well_founded (list (mv_polynomial ℕ α)) buch_lt
-constant buch_lt_lt : Π (s : list (mv_polynomial ℕ α)), 
-    (buch_div_result s $ buch_s_polys $ buch_pairs s) ≠ s
-    → buch_lt (buch_div_result s $ buch_s_polys $ buch_pairs s) s
+constant buch_lt : rel (list (Σ' (p: mv_polynomial ℕ α), p ≠ 0))
+constant buch_lt_wf : @well_founded (list (Σ' (p: mv_polynomial ℕ α), p ≠ 0)) buch_lt
+constant buch_lt_lt : Π (s : list (Σ' (p: mv_polynomial ℕ α), p ≠ 0)), 
+    (buch_div_result s $ filter_non_zero $ buch_s_polys $ buch_pairs s) ≠ s
+    → buch_lt (buch_div_result s $ filter_non_zero $ buch_s_polys $ buch_pairs s) s
 
-def buchberger : list (mv_polynomial ℕ α) → list (mv_polynomial ℕ α)
+def buchberger : list (Σ' (p: mv_polynomial ℕ α), p ≠ 0) → list (Σ' (p: mv_polynomial ℕ α), p ≠ 0)
 | s :=
-    let result := buch_div_result s $ buch_s_polys $ buch_pairs s
+    let result := buch_div_result s $ filter_non_zero $ buch_s_polys $ buch_pairs s
         in if s = result then s else 
                 begin
                     let h : buch_lt result s := buch_lt_lt s sorry,
