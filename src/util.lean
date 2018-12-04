@@ -1,6 +1,15 @@
 import data.set.lattice
 import data.finset
 
+
+namespace lattice
+section classes
+
+set_option old_structure_cmd true
+class decidable_semilattice_sup_bot (α : Type*) extends semilattice_sup_bot α, decidable_linear_order α
+
+end classes
+end lattice
 namespace nat
 
 lemma lt_lt_antisym : ∀ {a b : ℕ}, a < b → b < a → false
