@@ -112,6 +112,22 @@ begin
     rw finsupp.support_neg at m, assumption,
 end
 
+
+set_option trace.simplify.rewrite true
+lemma sub_sup': Π (a b : finset (ℕ →₀ ℕ)), 
+    a.sup id ∈ b → a.sup id ≤ b.sup id :=
+λ a b ha,
+begin
+    revert ha,
+    apply finset.induction_on b; intros,
+    cases ha,
+    simp at ha, simp,
+    cases ha, rw ha,
+    simp,
+    apply lattice.le_sup_right_of_le,
+    exact a_3 ha,    
+end
+
 lemma sub_sup: Π (a b : finset (ℕ →₀ ℕ)), a ⊆ b → a.sup id ≤ b.sup id :=
 λ a b asubb,
 begin
@@ -119,6 +135,9 @@ begin
     --apply finset.induction_on b; intros,
     --sorry, simp,
     unfold has_subset.subset at asubb,
+    by_cases a = ∅, rw h, simp,
+    have sup_a_in_b := asubb (finset.mem_of_sup_id h),
+    apply sub_sup' _ _ sup_a_in_b,
 end
 
 
@@ -402,7 +421,7 @@ end
 set_option trace.simp_lemmas true
 lemma buch_subset_span : ∀ {s : list (mv_polynomial ℕ α)}, (buchberger s).to_finset.to_set ⊆ ↑(ideal.span (s.to_finset.to_set))
 | s := begin
-    unfold buchberger, simp,
+    unfold buchberger, 
     have h :  (buch_div_result s (buch_s_polys (buch_pairs s))).to_finset.to_set ⊆ ↑(ideal.span (s.to_finset.to_set)),
     apply buch_div_subset_span, apply ideal.subset_span, apply buch_s_poly_subset_span s,
     generalize hs : buch_div_result s (buch_s_polys (buch_pairs s)) = s', rw hs at h,
@@ -435,7 +454,7 @@ end
 
 lemma buch_contain : ∀ {s : list (mv_polynomial ℕ α)}, s.to_finset.to_set ⊆ (buchberger s).to_finset.to_set
 | s := begin
-    unfold buchberger, simp,
+    unfold buchberger,
     generalize hs : buch_div_result s (buch_s_polys (buch_pairs s)) = s',
     have hs' : s ⊆ s', rw [list.subset_to_set, ←hs], apply buch_div_contain, refl,
     from if h : s = s'
