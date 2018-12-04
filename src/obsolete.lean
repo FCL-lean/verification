@@ -16,7 +16,7 @@ def leading_term_lt_aux : (ℕ →₀ ℕ) → (ℕ →₀ ℕ) → ℕ → Prop
                     ∨ (a (nat.succ m) ≤ b (nat.succ m) ∧ leading_term_lt_aux a b m)
 
 protected def lt (a b : mv_polynomial ℕ α) : Prop 
-    := leading_term_lt_aux a.leading_term' b.leading_term' (finsupp.finsupp_max_ab a.leading_term' b.leading_term') 
+    := leading_term_lt_aux a.leading_term' b.leading_term' (finsupp.max_ab a.leading_term' b.leading_term') 
 instance : has_lt (mv_polynomial ℕ α) := ⟨lt⟩ 
 
 lemma aux_le_of_eq {a b : ℕ →₀ ℕ} (h : a = b) : ∀ n : ℕ, leading_term_le_aux a b n := 
@@ -46,13 +46,13 @@ protected def wf_lt : well_founded (@lt α _ _ _ _) :=
 begin
     apply @subrelation.wf _ 
         (λ a b : mv_polynomial ℕ α, prod.lex nat.lt nat.lt 
-          (finsupp.finsupp_max a.leading_term', a.leading_term' (finsupp.finsupp_max a.leading_term'))
-          (finsupp.finsupp_max b.leading_term', b.leading_term' (finsupp.finsupp_max b.leading_term'))), 
+          (finsupp.max a.leading_term', a.leading_term' (finsupp.max a.leading_term'))
+          (finsupp.max b.leading_term', b.leading_term' (finsupp.max b.leading_term'))), 
     swap,
     constructor, intros,
     have inv := @inv_image.accessible _ _ (prod.lex nat.lt nat.lt)
         (λ (a : mv_polynomial ℕ α), 
-           (finsupp.finsupp_max a.leading_term', a.leading_term' (finsupp.finsupp_max a.leading_term'))) a,
+           (finsupp.max a.leading_term', a.leading_term' (finsupp.max a.leading_term'))) a,
     apply inv,
     apply prod.lex_accessible;
     have lt_wf := nat.lt_wf; cases lt_wf,

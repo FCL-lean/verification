@@ -14,7 +14,7 @@ class is_monomial_order (α : Type*) (r : α → α → Prop) extends has_add α
 
 namespace finsupp
 
-lemma in_not (a : ℕ →₀ ℕ) : ∀ x : ℕ, x ∈ a.support ∨ x ∉ a.support := 
+lemma in_not (a : γ →₀ δ) : ∀ x : γ, x ∈ a.support ∨ x ∉ a.support := 
     by intro; apply classical.or_not
 
 def le_aux : (ℕ →₀ ℕ) → (ℕ →₀ ℕ) → ℕ → Prop
@@ -23,15 +23,15 @@ def le_aux : (ℕ →₀ ℕ) → (ℕ →₀ ℕ) → ℕ → Prop
                         ((a (nat.succ m) = b (nat.succ m)) ∧ le_aux a b m) 
 
 
-def finsupp_max (a : ℕ →₀ ℕ) : ℕ := a.support.sup id
-def finsupp_max_ab (a b : ℕ →₀ ℕ) : ℕ := (a.support ∪ b.support).sup id
+protected def max (a : ℕ →₀ ℕ) : ℕ := a.support.sup id
+protected def max_ab (a b : ℕ →₀ ℕ) : ℕ := (a.support ∪ b.support).sup id
 
-protected def le : (ℕ →₀ ℕ) → (ℕ →₀ ℕ) → Prop := λ a b, le_aux a b $ finsupp_max_ab a b
+protected def le : (ℕ →₀ ℕ) → (ℕ →₀ ℕ) → Prop := λ a b, le_aux a b $ finsupp.max_ab a b
 
 lemma le_refl : ∀ a : ℕ →₀ ℕ, finsupp.le a a := 
 begin 
     intro, unfold finsupp.le,
-    induction finsupp_max_ab a a;
+    induction finsupp.max_ab a a;
     unfold le_aux, right, apply and.intro, refl, assumption,
 end
 
@@ -48,30 +48,30 @@ begin
     apply k_ih hab.right hbc.right,
 end
 
-lemma max_ab_ge_max_a : ∀ (a b : ℕ →₀ ℕ), finsupp_max_ab a b ≥ finsupp_max a :=
+lemma max_ab_ge_max_a : ∀ (a b : ℕ →₀ ℕ), finsupp.max_ab a b ≥ finsupp.max a :=
 begin
     intros a b,
-    unfold finsupp_max_ab finsupp_max,
+    unfold finsupp.max_ab finsupp.max,
     rw finset.sup_union, apply lattice.le_sup_left,
 end
 
-lemma max_ab_ge_max_b : ∀ (a b : ℕ →₀ ℕ), finsupp_max_ab a b ≥ finsupp_max b :=
+lemma max_ab_ge_max_b : ∀ (a b : ℕ →₀ ℕ), finsupp.max_ab a b ≥ finsupp.max b :=
 begin
     intros a b,
-    unfold finsupp_max_ab finsupp_max,
+    unfold finsupp.max_ab finsupp.max,
     rw finset.sup_union, apply lattice.le_sup_right,
 end
 
-lemma gt_max_not_in : ∀ (a : ℕ →₀ ℕ) (x : ℕ), (x > finsupp_max a) → x ∉ a.support :=
+lemma gt_max_not_in : ∀ (a : ℕ →₀ ℕ) (x : ℕ), (x > finsupp.max a) → x ∉ a.support :=
 begin
     intros a x h₁ h₂,
-    unfold finsupp_max at *,
+    unfold finsupp.max at *,
     let h₃ : id x ≤ finset.sup (a.support) id := finset.le_sup h₂,
     rw id at *,
     apply (absurd h₁ (not_lt_of_ge h₃))
 end
 
-lemma gt_sup_eq_zero (a : ℕ →₀ ℕ) : ∀ k : ℕ, finsupp_max a < k → a k = 0 :=
+lemma gt_sup_eq_zero (a : ℕ →₀ ℕ) : ∀ k : ℕ, finsupp.max a < k → a k = 0 :=
 begin
     intros,
     have h : k ∉ a.support := gt_max_not_in a k a_1,
@@ -80,14 +80,14 @@ begin
     apply not_mem_support_iff.elim_left, assumption
 end
 
-lemma le_aux_of_ge_max (a b : ℕ →₀ ℕ) (i : ℕ) (h : finsupp.le a b) (hi : i ≥ finsupp_max_ab a b) : le_aux a b i :=
+lemma le_aux_of_ge_max (a b : ℕ →₀ ℕ) (i : ℕ) (h : finsupp.le a b) (hi : i ≥ finsupp.max_ab a b) : le_aux a b i :=
 begin
     unfold finsupp.le at h,
     induction i,
     unfold le_aux, 
     rw nat.le_zero_iff.1 hi at h, 
     unfold le_aux at h, assumption,
-    from if hi₁ : nat.succ i_n = finsupp_max_ab a b
+    from if hi₁ : nat.succ i_n = finsupp.max_ab a b
         then by rw hi₁; assumption
         else 
         begin
@@ -103,18 +103,18 @@ begin
         end,
 end
 
-lemma le_of_ge_max_aux (a b : ℕ →₀ ℕ) (i : ℕ) : le_aux a b ((finsupp_max_ab a b) + i) → finsupp.le a b :=
+lemma le_of_ge_max_aux (a b : ℕ →₀ ℕ) (i : ℕ) : le_aux a b ((finsupp.max_ab a b) + i) → finsupp.le a b :=
 begin
     intro hi,
     induction i,
     unfold has_le.le preorder.le finsupp.le,
     assumption,
     unfold le_aux at hi,
-    have hi₁ : nat.succ (finsupp_max_ab a b + i_n) > (finsupp_max_ab a b), 
-    have hi₂ : (finsupp_max_ab a b + i_n) < nat.succ(finsupp_max_ab a b + i_n), apply nat.lt_succ_self,
-    have hi₃ : (finsupp_max_ab a b) ≤ (finsupp_max_ab a b + i_n), simp, apply lt_of_le_of_lt hi₃ hi₂,
-    have hia := gt_sup_eq_zero a (nat.succ (finsupp_max_ab a b + i_n)) (lt_of_le_of_lt (max_ab_ge_max_a a b) hi₁),
-    have hib := gt_sup_eq_zero b (nat.succ (finsupp_max_ab a b + i_n)) (lt_of_le_of_lt (max_ab_ge_max_b a b) hi₁),
+    have hi₁ : nat.succ (finsupp.max_ab a b + i_n) > (finsupp.max_ab a b), 
+    have hi₂ : (finsupp.max_ab a b + i_n) < nat.succ(finsupp.max_ab a b + i_n), apply nat.lt_succ_self,
+    have hi₃ : (finsupp.max_ab a b) ≤ (finsupp.max_ab a b + i_n), simp, apply lt_of_le_of_lt hi₃ hi₂,
+    have hia := gt_sup_eq_zero a (nat.succ (finsupp.max_ab a b + i_n)) (lt_of_le_of_lt (max_ab_ge_max_a a b) hi₁),
+    have hib := gt_sup_eq_zero b (nat.succ (finsupp.max_ab a b + i_n)) (lt_of_le_of_lt (max_ab_ge_max_b a b) hi₁),
     rw [hia, hib] at hi,
     repeat {cases hi},
     apply i_ih hi_right,
@@ -124,16 +124,16 @@ lemma le_trans : ∀ a b c : ℕ →₀ ℕ, finsupp.le a b → finsupp.le b c �
 begin
     intros a b c hab hbc,
     unfold finsupp.le at hab hbc,
-    generalize hs : [(finsupp_max_ab a b), (finsupp_max_ab b c), (finsupp_max_ab a c)] = s,
+    generalize hs : [(finsupp.max_ab a b), (finsupp.max_ab b c), (finsupp.max_ab a c)] = s,
     generalize hk: s.to_finset.sup id = k, rw [←hs] at hk,
-    have hkab : (finsupp_max_ab a b) ≤ k, rw ←hk, simp,
-    have hkbc : (finsupp_max_ab b c) ≤ k, rw ←hk, simp, rw ←lattice.sup_assoc, apply lattice.le_sup_right,
-    have hkac : (finsupp_max_ab a c) ≤ k, rw ←hk, simp, rw [lattice.sup_comm, lattice.sup_assoc], apply lattice.le_sup_left,
+    have hkab : (finsupp.max_ab a b) ≤ k, rw ←hk, simp,
+    have hkbc : (finsupp.max_ab b c) ≤ k, rw ←hk, simp, rw ←lattice.sup_assoc, apply lattice.le_sup_right,
+    have hkac : (finsupp.max_ab a c) ≤ k, rw ←hk, simp, rw [lattice.sup_comm, lattice.sup_assoc], apply lattice.le_sup_left,
     have hab' := le_aux_of_ge_max a b k hab hkab,
     have hbc' := le_aux_of_ge_max b c k hbc hkbc,
     have hac' := le_aux_trans a b c k hab' hbc',
     apply le_of_ge_max_aux,
-    swap, exact (k - (finsupp_max_ab a c)),
+    swap, exact (k - (finsupp.max_ab a c)),
     rw nat.add_sub_of_le hkac,
     assumption,
 end
@@ -193,28 +193,28 @@ lemma le_antisymm :  ∀ (a b : ℕ →₀ ℕ), a ≤ b → b ≤ a → a = b :
         unfold has_le.le preorder.le finsupp.le at hab hba,
         apply ext,
         intro x,
-        have h : (finsupp_max_ab a b) = (finsupp_max_ab b a),
-        unfold finsupp_max_ab, rw finset.union_comm,
+        have h : (finsupp.max_ab a b) = (finsupp.max_ab b a),
+        unfold finsupp.max_ab, rw finset.union_comm,
         induction x; rw h at hab, 
-        rw [←zero_add (finsupp_max_ab b a)] at hab hba,
-        apply le_antisymm_aux a b 0 (finsupp_max_ab b a) hab hba,
-        have hab' : le_aux a b (nat.succ x_n + (finsupp_max_ab b a)),
-            have h : (nat.succ x_n + (finsupp_max_ab b a)) ≥ finsupp_max_ab a b, rw h, apply nat.le_add_left,
-            apply (le_aux_of_ge_max a b (nat.succ x_n + (finsupp_max_ab b a)) hab₀ h),
-        have hba' : le_aux b a (nat.succ x_n + (finsupp_max_ab b a)),
-            have h : (nat.succ x_n + (finsupp_max_ab b a)) ≥ finsupp_max_ab b a, apply nat.le_add_left,
-            apply (le_aux_of_ge_max b a (nat.succ x_n + (finsupp_max_ab b a)) hba₀ h),
-        apply le_antisymm_aux a b (nat.succ x_n) (finsupp_max_ab b a) hab' hba',
+        rw [←zero_add (finsupp.max_ab b a)] at hab hba,
+        apply le_antisymm_aux a b 0 (finsupp.max_ab b a) hab hba,
+        have hab' : le_aux a b (nat.succ x_n + (finsupp.max_ab b a)),
+            have h : (nat.succ x_n + (finsupp.max_ab b a)) ≥ finsupp.max_ab a b, rw h, apply nat.le_add_left,
+            apply (le_aux_of_ge_max a b (nat.succ x_n + (finsupp.max_ab b a)) hab₀ h),
+        have hba' : le_aux b a (nat.succ x_n + (finsupp.max_ab b a)),
+            have h : (nat.succ x_n + (finsupp.max_ab b a)) ≥ finsupp.max_ab b a, apply nat.le_add_left,
+            apply (le_aux_of_ge_max b a (nat.succ x_n + (finsupp.max_ab b a)) hba₀ h),
+        apply le_antisymm_aux a b (nat.succ x_n) (finsupp.max_ab b a) hab' hba',
     end
 
 lemma le_total : ∀  a b : ℕ →₀ ℕ, a ≤ b ∨ b ≤ a :=
 λ a b, 
 begin
     unfold has_le.le preorder.le finsupp.le,
-    have h : (finsupp_max_ab a b) = (finsupp_max_ab b a),
-        unfold finsupp_max_ab, rw finset.union_comm,
+    have h : (finsupp.max_ab a b) = (finsupp.max_ab b a),
+        unfold finsupp.max_ab, rw finset.union_comm,
     rw h,
-    induction (finsupp_max_ab b a);
+    induction (finsupp.max_ab b a);
     unfold le_aux, apply nat.le_total,
     have h_tri := lt_trichotomy (a (nat.succ n)) (b (nat.succ n)),
     cases ih;
@@ -228,7 +228,7 @@ end
 instance : decidable_rel finsupp.le := λ a b, 
 begin 
     unfold finsupp.le,
-    induction finsupp_max_ab a b,
+    induction finsupp.max_ab a b,
     unfold le_aux, apply_instance,
     unfold le_aux,
     by_cases (a (nat.succ n) < b (nat.succ n)),
@@ -265,7 +265,7 @@ instance : decidable_linear_order (ℕ →₀ ℕ) :=
 lemma add_gt (a b : ℕ →₀ ℕ) : a ≤ (a + b) := 
 begin
     unfold has_le.le preorder.le finsupp.le,
-    induction (finsupp_max_ab a (a + b)),
+    induction (finsupp.max_ab a (a + b)),
     all_goals {unfold le_aux},
     all_goals {simp},
     by_cases (b (nat.succ n) > 0), left, assumption,
@@ -277,15 +277,15 @@ end
 
 lemma eq_zero_not_in (a : ℕ →₀ ℕ) (i : ℕ): a i = 0 → i ∉ a.support := begin apply imp_not_comm.1 (a.mem_support_to_fun i).1, end
 
-lemma in_sup_ge_max : ∀ (a : ℕ →₀ ℕ) (b : ℕ), b ∈ a.support → finsupp_max a ≥ b :=
+lemma in_sup_ge_max : ∀ (a : ℕ →₀ ℕ) (b : ℕ), b ∈ a.support → finsupp.max a ≥ b :=
 begin
-    intros, unfold finsupp_max, unfold ge, apply @finset.le_sup _ _ _ _ id _ a_1,
+    intros, unfold finsupp.max, unfold ge, apply @finset.le_sup _ _ _ _ id _ a_1,
 end
 
-lemma gt_max_ab_not_in : ∀ (a b : ℕ →₀ ℕ) (x : ℕ), (x > finsupp_max_ab a b) → x ∉ a.support ∧ x ∉ b.support :=
+lemma gt_max_ab_not_in : ∀ (a b : ℕ →₀ ℕ) (x : ℕ), (x > finsupp.max_ab a b) → x ∉ a.support ∧ x ∉ b.support :=
 begin
     intros a b x h₁,
-    unfold finsupp_max_ab at *, 
+    unfold finsupp.max_ab at *, 
     rw finset.sup_union at *,
     have h₄ : finset.sup (a.support) id < x := lt_of_le_of_lt lattice.le_sup_left h₁,
     have h₅ : finset.sup (b.support) id < x := lt_of_le_of_lt lattice.le_sup_right h₁,
@@ -321,9 +321,9 @@ begin
     exact hb lem,
 end
 
-lemma max_ab_lt_add (a b w : ℕ →₀ ℕ) : finsupp_max_ab a b ≤ finsupp_max_ab (a + w) (b + w) :=
+lemma max_ab_lt_add (a b w : ℕ →₀ ℕ) : finsupp.max_ab a b ≤ finsupp.max_ab (a + w) (b + w) :=
 begin
-    unfold finsupp_max_ab,
+    unfold finsupp.max_ab,
     have prf := λ (a b : ℕ →₀ ℕ), finset.subset.antisymm (union_support_contain a b) finsupp.support_add,
     repeat {rw [←prf] },
     rw [ finset.union_assoc, finset.union_comm b.support w.support ],
@@ -375,7 +375,7 @@ begin
     intros a b w hab,
     unfold has_le.le preorder.le finsupp.le at *,
     apply le_add,
-    have h := le_of_succ_eqs a b (finsupp_max_ab a b) ((finsupp_max_ab (a + w) (b + w)) - (finsupp_max_ab a b)) hab _ ,
+    have h := le_of_succ_eqs a b (finsupp.max_ab a b) ((finsupp.max_ab (a + w) (b + w)) - (finsupp.max_ab a b)) hab _ ,
     rw nat.add_sub_of_le at h, assumption,
     swap,
     intros,
@@ -392,24 +392,24 @@ instance : is_monomial_order (ℕ →₀ ℕ) finsupp.le :=
     mono_order := mono_order_lem,
 }
 
-lemma finsupp_max_ab_in_a_sup_or_b_sup : Π (a b : ℕ →₀ ℕ),
+lemma finsupp.max_ab_in_a_sup_or_b_sup : Π (a b : ℕ →₀ ℕ),
     a.support ≠ ∅ ∨ b.support ≠ ∅ →
-    finsupp.finsupp_max_ab a b ∈ a.support 
-    ∨ finsupp.finsupp_max_ab a b ∈ b.support
+    finsupp.max_ab a b ∈ a.support 
+    ∨ finsupp.max_ab a b ∈ b.support
 | a b ne :=
 begin
     cases ne,
     by_cases (b.support = ∅),
-    unfold finsupp.finsupp_max_ab, rw h, rw finset.union_empty,
+    unfold finsupp.max_ab, rw h, rw finset.union_empty,
     left, apply finset.nat.mem_of_sup_id, assumption,
     all_goals { apply finset.nat.union_sup_in_a_or_b, assumption, },
 end
 
-lemma eq_zero_not_finsupp_max_ab : Π (a b : ℕ →₀ ℕ) (i : ℕ),
-    a (nat.succ i) = 0 → b (nat.succ i) = 0 → finsupp.finsupp_max_ab a b ≠ (nat.succ i) 
+lemma eq_zero_not_finsupp.max_ab : Π (a b : ℕ →₀ ℕ) (i : ℕ),
+    a (nat.succ i) = 0 → b (nat.succ i) = 0 → finsupp.max_ab a b ≠ (nat.succ i) 
 | a b i eqa eqb eqi:=
 begin
-    unfold finsupp.finsupp_max_ab at eqi,
+    unfold finsupp.max_ab at eqi,
     have ha := finsupp.eq_zero_not_in a (nat.succ i) eqa,
     have hb := finsupp.eq_zero_not_in b (nat.succ i) eqb,
     have hab := finset.not_mem_union.2 (and.intro ha hb),
@@ -429,11 +429,11 @@ begin
 end
 
 def finsupp_le_sup_le : Π (a b : ℕ →₀ ℕ),
-    a ≤ b → finsupp.finsupp_max a ≤ finsupp.finsupp_max b
+    a ≤ b → finsupp.max a ≤ finsupp.max b
 | a b le :=
 begin
     unfold has_le.le preorder.le finsupp.le at le,
-    generalize h : finsupp.finsupp_max_ab a b = x,
+    generalize h : finsupp.max_ab a b = x,
     rw h at le,
     cases x,
     unfold finsupp.le_aux at le,
@@ -443,23 +443,23 @@ begin
     have gt_zero := lt_of_le_of_lt (zero_le _) le,
     have neq_zero := zero_lt_iff_ne_zero.elim_left gt_zero,
     have max_ab_in_supp := finsupp.mem_support_iff.elim_right neq_zero,
-    have x := finsupp.in_sup_ge_max b (finsupp.finsupp_max_ab a b) max_ab_in_supp,
+    have x := finsupp.in_sup_ge_max b (finsupp.max_ab a b) max_ab_in_supp,
     have y := finsupp.max_ab_ge_max_b a b, have z := nat.le_antisymm x y,
     rw [←z], exact finsupp.max_ab_ge_max_a a b,
     /- 
-    1. 0 < b (finsupp.finsupp_max_ab a b)
-    2. 0 < b (finsupp.finsupp_max_ab a b) 
-            → finsupp.finsupp_max_ab a b ∈ b.support
-    3. finsupp.finsupp_max_ab a b ∈ b.support 
-            → finsupp.finsupp_max b ≥ finsupp.finsupp_max_ab a b
-    4. therefore, finsupp.finsupp_max_ab a b = finsupp.finsupp_max b (anti)
-    5. finsupp.finsupp_max a ≤ finsupp.finsupp_max_ab a b = finsupp.finsupp_max b
+    1. 0 < b (finsupp.max_ab a b)
+    2. 0 < b (finsupp.max_ab a b) 
+            → finsupp.max_ab a b ∈ b.support
+    3. finsupp.max_ab a b ∈ b.support 
+            → finsupp.max b ≥ finsupp.max_ab a b
+    4. therefore, finsupp.max_ab a b = finsupp.max b (anti)
+    5. finsupp.max a ≤ finsupp.max_ab a b = finsupp.max b
      -/
     rw ←h at *, cases le,
-    by_cases finsupp.finsupp_max_ab a b ∈ a.support;
-    by_cases finsupp.finsupp_max_ab a b ∈ b.support; dedup,
-    any_goals { try { have x := finsupp.in_sup_ge_max a (finsupp.finsupp_max_ab a b) h_1 },
-                try { have y := finsupp.in_sup_ge_max b (finsupp.finsupp_max_ab a b) h_2 },
+    by_cases finsupp.max_ab a b ∈ a.support;
+    by_cases finsupp.max_ab a b ∈ b.support; dedup,
+    any_goals { try { have x := finsupp.in_sup_ge_max a (finsupp.max_ab a b) h_1 },
+                try { have y := finsupp.in_sup_ge_max b (finsupp.max_ab a b) h_2 },
                 dedup,
             },
     any_goals { have z := finsupp.max_ab_ge_max_b a b, have m := nat.le_antisymm y z,
@@ -468,7 +468,7 @@ begin
     have b_not := finsupp.not_mem_support_iff.elim_right le_left,
     exact absurd h_1 b_not,
     apply false.elim,
-    apply eq_zero_not_finsupp_max_ab a b x;
+    apply eq_zero_not_finsupp.max_ab a b x;
     rw h at *; try { rw ←finsupp.not_mem_support_iff }; try { assumption },
     have h' : finset.sup (a.support ∪ b.support) id = 0 := h,
     have q := finset.nat.max_le a.support b.support,
@@ -477,19 +477,19 @@ begin
     rw h' at *, 
     have eq1 := nat.le_antisymm q (nat.zero_le _),
     have eq2 := nat.le_antisymm q' (nat.zero_le _),
-    unfold finsupp.finsupp_max, rw [eq1, eq2],
+    unfold finsupp.max, rw [eq1, eq2],
 end
 
 @[simp]
-def max_ab_zero : Π (x : ℕ →₀ ℕ), finsupp_max_ab x 0 = finsupp_max x :=
+def max_ab_zero : Π (x : ℕ →₀ ℕ), finsupp.max_ab x 0 = finsupp.max x :=
 begin
-    intro x, unfold finsupp_max_ab, simp,
+    intro x, unfold finsupp.max_ab, simp,
     trivial,
 end
 @[simp]
-def max_ab_zero' : Π (x : ℕ →₀ ℕ), finsupp_max_ab 0 x = finsupp_max x :=
+def max_ab_zero' : Π (x : ℕ →₀ ℕ), finsupp.max_ab 0 x = finsupp.max x :=
 begin
-    intro x, unfold finsupp_max_ab, simp,
+    intro x, unfold finsupp.max_ab, simp,
     trivial,
 end
 
