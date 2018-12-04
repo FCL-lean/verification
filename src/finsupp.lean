@@ -560,7 +560,7 @@ begin
     assumption,
 end
 
-def single_inj2 : Π (a b: δ) (c d: γ), single a c = single b d → c = d :=
+def single_inj2 : Π {a b: δ} {c d: γ}, single a c = single b d → c = d :=
 begin
     intros, unfold single at *, simp at a_1,
     by_cases c = 0; rw h at *;
@@ -576,7 +576,8 @@ begin
     simp at m, assumption,
 end
 
-def coe_f : Π (a : δ →₀ γ) (n : δ), a n = a.to_fun n := λ a n, rfl
+
+lemma coe_f : Π (a : δ →₀ γ) (n : δ), a n = a.to_fun n := λ a n, rfl
 -- protected def wf_lt : well_founded (@finsupp.has_lt.1) := sorry
 
 end finsupp
