@@ -1,7 +1,17 @@
 import data.finset
+import data.finsupp
 import util
 
 namespace finset
+
+namespace nat
+
+lemma max_le (a b : finset ℕ) : finset.sup a id ≤ finset.sup (a ∪ b) id :=
+begin
+    rw finset.sup_union,
+    apply lattice.le_sup_left,
+end
+
 
 lemma sup_max : Π (a : finset ℕ), a ≠ ∅ → some (a.sup id) = a.max
 | a :=
@@ -29,7 +39,7 @@ begin
     simp, apply finset.mem_insert_of_mem, assumption
 end
 
-lemma mem_of_sup_id : Π (a : finset ℕ), a ≠ ∅ → a.sup id ∈ a
+lemma mem_of_sup_id : Π {a : finset ℕ}, a ≠ ∅ → a.sup id ∈ a
 | a' := finset.induction_on a' (λ a, false.elim (a (refl _)))
     (λ a b notin ih notempty, 
         dite (b = ∅) (λ emp, begin rw emp, simp, end) 
@@ -55,6 +65,8 @@ begin
     rw [finset.mem_union], right, assumption,
 end
 
+end nat
+
 section 
 parameters {α : Type*}
 
@@ -65,6 +77,8 @@ begin
 end
 
 end
+
+section
 
 variables {α : Type*}
 variables [decidable_eq α]
@@ -89,6 +103,8 @@ lemma sort_ne_empty_ne_nil {s : finset α} : s ≠ ∅ → sort r s ≠ [] :=
 λ hs hss, begin
     rw sort_empty_nil at hss,
     apply absurd hss hs,
+end
+
 end
 
 end finset

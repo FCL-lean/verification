@@ -6,7 +6,7 @@ import util
 variables {α : Type*} {β : Type*} {γ : Type*} {δ : Type*} {ι : Type*}
 variables [discrete_field α]
 variables [decidable_eq α] [decidable_linear_order α]
-variables [comm_ring (mv_polynomial ℕ α)]
+--variables [comm_ring (mv_polynomial ℕ α)]
 variables [has_zero γ] [has_zero δ] [decidable_eq γ] [decidable_eq δ]
 
 class is_monomial_order (α : Type*) (r : α → α → Prop) extends has_add α, is_linear_order α r :=
@@ -321,12 +321,6 @@ begin
     exact hb lem,
 end
 
-lemma finset_max_le (a b : finset ℕ) : finset.sup a id ≤ finset.sup (a ∪ b) id :=
-begin
-    rw finset.sup_union,
-    apply lattice.le_sup_left,
-end
-
 lemma max_ab_lt_add (a b w : ℕ →₀ ℕ) : finsupp_max_ab a b ≤ finsupp_max_ab (a + w) (b + w) :=
 begin
     unfold finsupp_max_ab,
@@ -335,7 +329,7 @@ begin
     rw [ finset.union_assoc, finset.union_comm b.support w.support ],
     rw [←finset.union_assoc w.support, finset.union_idempotent, 
          finset.union_comm w.support, ←finset.union_assoc],
-    apply finset_max_le,
+    apply finset.nat.max_le,
 end
 
 lemma le_of_succ_eq (a b : ℕ →₀ ℕ) (i  : ℕ) (hlei : le_aux a b i) 
@@ -407,8 +401,8 @@ begin
     cases ne,
     by_cases (b.support = ∅),
     unfold finsupp.finsupp_max_ab, rw h, rw finset.union_empty,
-    left, apply finset.mem_of_sup_id, assumption,
-    all_goals { apply finset.union_sup_in_a_or_b, assumption, },
+    left, apply finset.nat.mem_of_sup_id, assumption,
+    all_goals { apply finset.nat.union_sup_in_a_or_b, assumption, },
 end
 
 lemma eq_zero_not_finsupp_max_ab : Π (a b : ℕ →₀ ℕ) (i : ℕ),
@@ -430,7 +424,7 @@ begin
         end
         else by assumption,
     have h : (nat.succ i) ∈ (a.support ∪ b.support), 
-        have h' := (finset.mem_of_sup_id (a.support ∪ b.support) h_nempty), rw eqi at h', assumption,
+        have h' := (finset.nat.mem_of_sup_id h_nempty), rw eqi at h', assumption,
     apply absurd h hab,
 end
 
@@ -477,8 +471,8 @@ begin
     apply eq_zero_not_finsupp_max_ab a b x;
     rw h at *; try { rw ←finsupp.not_mem_support_iff }; try { assumption },
     have h' : finset.sup (a.support ∪ b.support) id = 0 := h,
-    have q := finsupp.finset_max_le a.support b.support,
-    have q' := finsupp.finset_max_le b.support a.support,
+    have q := finset.nat.max_le a.support b.support,
+    have q' := finset.nat.max_le b.support a.support,
     rw finset.union_comm at q',
     rw h' at *, 
     have eq1 := nat.le_antisymm q (nat.zero_le _),
@@ -508,8 +502,42 @@ begin
     apply add_gt,
 end
 
+instance : lattice.semilattice_sup_bot (ℕ →₀ ℕ) := {
+    bot := 0,
+    le := finsupp.le,
+    le_refl := le_refl,
+    le_trans := le_trans,
+    le_antisymm := le_antisymm,
+    bot_le := zero_le,
+    sup := max,
+    le_sup_left := le_max_left,
+    le_sup_right := le_max_right,
+    sup_le := λ a b c, max_le
+}
 
-
+lemma mem_of_sup_id' : ∀ {a : finset (ℕ →₀ ℕ)}, a ≠ ∅ → a.sup id ∈ a
+| a := finset.induction_on a (λ a, false.elim (a (refl _)))
+    (λ x y notin ih notempty, begin 
+        rw [finset.insert_eq, finset.sup_union, finset.mem_union, finset.sup_singleton],
+        simp,
+        from if h₁ : y = ∅ 
+        then begin
+            left,
+            rw [h₁, finset.sup_empty, lattice.sup_bot_eq],
+        end
+        else begin
+            from if h₂ : x < y.sup id
+            then begin
+                right, 
+                rw [lattice.sup_of_le_right (le_of_lt h₂)],
+                apply ih h₁,
+            end
+            else begin
+                left,                
+                rw [lattice.sup_of_le_left (le_of_not_lt h₂)],
+            end
+        end
+    end)
 
 def neq_zero_gt_zero : Π (x : ℕ →₀ ℕ), x ≠ 0 → 0 < x :=
 begin

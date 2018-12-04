@@ -19,16 +19,9 @@ namespace mv_polynomial
         (λ nprf, let g := list.last (p.support.sort finsupp.le) nprf 
                  in finsupp.single g (p.to_fun g))-/
 
-def leading_term' (p : mv_polynomial ℕ α) : ℕ →₀ ℕ := 
-   dite (p.support.sort finsupp.le = list.nil) 
-        (λ prf, 0)
-        (λ nprf, list.last (p.support.sort finsupp.le) nprf)
+def leading_term' (p : mv_polynomial ℕ α) : ℕ →₀ ℕ := p.support.sup id
 
-def leading_coeff (p : mv_polynomial ℕ α) : α := 
-   dite (p.support.sort finsupp.le = list.nil) 
-        (λ prf, p.to_fun 0)
-        (λ nprf, let g := list.last (p.support.sort finsupp.le) nprf 
-                 in p.to_fun g)
+def leading_coeff (p : mv_polynomial ℕ α) : α := p.to_fun p.leading_term'
 
 def leading_term (p : mv_polynomial ℕ α) : mv_polynomial ℕ α := finsupp.single p.leading_term' p.leading_coeff
 
@@ -150,19 +143,9 @@ end
 
 lemma leading_coeff_not0 {a : mv_polynomial ℕ α} : a.support ≠ ∅ → a.leading_coeff ≠ 0 :=
 λ ha halc, begin
-    unfold leading_coeff at halc,
-    rw [finset.ne_empty_iff_exists_mem] at ha,
-    cases ha, rw ←finset.mem_sort finsupp.le at ha_h,
-    from if h : finset.sort finsupp.le (a.support) = list.nil
-    then by rw h at ha_h; cases ha_h
-    else begin
-        simp [h] at halc,
-        rw [←finsupp.coe_f, ←@finsupp.not_mem_support_iff] at halc,
-        have hl : (list.last (finset.sort finsupp.le (a.support)) h) ∈ finset.sort finsupp.le (a.support),
-        apply list.last_mem,
-        rw [finset.mem_sort] at hl,
-        exact absurd hl halc,
-    end
+    unfold leading_coeff leading_term' at halc,
+    have h := finsupp.mem_support_iff.1 (finsupp.mem_of_sup_id' ha),
+    apply absurd halc h,
 end
 
 lemma support_ne_empty_of_leading_term {a b : mv_polynomial ℕ α} : a.leading_term' ≠ 0 
