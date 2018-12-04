@@ -10,7 +10,7 @@ variables [decidable_eq α] [decidable_linear_order α]
 
 namespace finsupp
 
-section
+section general
 variables [has_zero γ] [has_zero δ] [decidable_eq γ] [decidable_eq δ] [add_monoid δ]
 
 lemma in_not (a : γ →₀ δ) : ∀ x : γ, x ∈ a.support ∨ x ∉ a.support := 
@@ -29,7 +29,7 @@ begin
     assumption,
 end
 
-def single_inj2 : Π (a b: δ) (c d: γ), single a c = single b d → c = d :=
+def single_inj2 : Π {a b: δ} {c d: γ}, single a c = single b d → c = d :=
 begin
     intros, unfold single at *, simp at a_1,
     by_cases c = 0; rw h at *;
@@ -47,12 +47,12 @@ end
 
 def coe_f : Π (a : δ →₀ γ) (n : δ), a n = a.to_fun n := λ a n, rfl
 
-end
+end general
 
 class is_monomial_order (α : Type*) (r : α → α → Prop) extends has_add α, is_linear_order α r :=
     (mono_order : ∀ a b w : α, (r a b) → r (a + w) (b + w) )
 
-section
+section nat
 
 def le_aux : (ℕ →₀ ℕ) → (ℕ →₀ ℕ) → ℕ → Prop
 | a b 0 := a 0 ≤ b 0
@@ -438,8 +438,8 @@ begin
     cases ne,
     by_cases (b.support = ∅),
     unfold finsupp.max_ab, rw h, rw finset.union_empty,
-    left, apply finset.nat.mem_of_sup_id, assumption,
-    all_goals { apply finset.nat.union_sup_in_a_or_b, assumption, },
+    left, apply finset.mem_of_sup_id, assumption,
+    all_goals { apply finset.union_sup_in_a_or_b, assumption, },
 end
 
 lemma eq_zero_not_finsupp.max_ab : Π (a b : ℕ →₀ ℕ) (i : ℕ),
@@ -461,7 +461,7 @@ begin
         end
         else by assumption,
     have h : (nat.succ i) ∈ (a.support ∪ b.support), 
-        have h' := (finset.nat.mem_of_sup_id h_nempty), rw eqi at h', assumption,
+        have h' := (finset.mem_of_sup_id h_nempty), rw eqi at h', assumption,
     apply absurd h hab,
 end
 
@@ -560,7 +560,5 @@ begin
     apply a, trivial,
 end
 
-end
--- protected def wf_lt : well_founded (@finsupp.has_lt.1) := sorry
-
+end nat
 end finsupp

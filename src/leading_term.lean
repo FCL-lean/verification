@@ -144,7 +144,7 @@ end
 lemma leading_coeff_not0 {a : mv_polynomial ℕ α} : a.support ≠ ∅ → a.leading_coeff ≠ 0 :=
 λ ha halc, begin
     unfold leading_coeff leading_term' at halc,
-    have h := finsupp.mem_support_iff.1 (finsupp.mem_of_sup_id' ha),
+    have h := finsupp.mem_support_iff.1 (finset.mem_of_sup_id ha),
     apply absurd halc h,
 end
 
@@ -154,6 +154,24 @@ lemma support_ne_empty_of_leading_term {a b : mv_polynomial ℕ α} : a.leading_
 λ ha hab, begin
     rw hab at ha, intro h,
     apply absurd (support_empty h) ha,
+end
+
+lemma support_ne_empty_of_leading_term' {a : mv_polynomial ℕ α} : 
+    a.leading_term' ≠ 0 
+    → a.support ≠ ∅ := 
+begin
+    intros neqz neqz2,
+    apply absurd (support_empty neqz2) neqz,
+end
+lemma leading_term_ne_zero_coeff {a : mv_polynomial ℕ α} : 
+    a.leading_term' ≠ 0 → a.leading_coeff ≠ 0 :=
+λ neqz eqa,
+begin
+    unfold leading_coeff at eqa, unfold leading_term' at neqz,
+    have h' : a.support ≠ ∅ := sorry,
+    have h := finset.mem_of_sup_id h',
+    rw [finsupp.mem_support_iff] at h,
+    exact absurd eqa h,
 end
 
 end mv_polynomial

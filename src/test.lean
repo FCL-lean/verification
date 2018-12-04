@@ -44,44 +44,6 @@ begin
     apply quot.lift_beta id, intros, assumption,
 end
 #print sort_empty_eq_nil
-lemma insert_le : ∀ a s h h', a < list.last (finset.sort finsupp.le s) h
-    → list.last (finset.sort finsupp.le (insert a s)) h' =
-        list.last (finset.sort finsupp.le s) h :=
-begin
-    intro a, intro s,
-    apply finset.induction_on s,
-    intros, apply false.elim, apply h,
-    exact sort_empty_eq_nil,
-    intros,
-    
-end
-
-lemma insert_max: Π (a : finset (ℕ →₀ ℕ)) (c : ℕ →₀ ℕ) h,
-    (∀ k ∈ a, c > k) → list.last (finset.sort finsupp.le (insert c a)) h = c :=
-begin
-    intro a, intros,
-    revert a_1 h,
-    apply finset.induction_on a,
-    intros,
-    apply finset_last_sort_singleton,
-    intros,
-end
-lemma finset_erase_last_lt : Π (a : finset (ℕ →₀ ℕ)), Π (b c : ℕ →₀ ℕ) h h',
-    c > b → (∀ k ∈ a, b > k) →
-    list.last (finset.sort finsupp.le (insert b a)) h <
-            list.last (finset.sort finsupp.le (insert b (insert c a))) h' :=
-begin
-    intro a, intros,
-    revert h h' a_2,
-    apply finset.induction_on a,
-    intros, 
-    sorry, intros,
-    have ih := a_4 _,
-    have b_gt : b > a_2,
-    apply a_2_1, simp,
-    swap, intros, apply finset_insert_neq_nil,
-    sorry
-end
 
 lemma finset_sorted_support:  Π (a : mv_polynomial ℕ α) b, 
     b ∈ finset.sort finsupp.le (a.support) →
@@ -121,62 +83,87 @@ begin
     rw a_1, simp,
 end
 
+lemma lead_tm_eq_notin_supp
+    : Π {a b: mv_polynomial ℕ α},
+    leading_term a = leading_term b
+    → a.leading_term' ≠ 0
+    → a.leading_term' ∉ (a - b).support :=
+λ a b eql neq0 insub,
+begin
+    unfold leading_term at eql,
+    have coeff_neq_z := leading_term_ne_zero_coeff neq0,
+    have lead_tm_eq := finsupp.single_inj1 coeff_neq_z eql,
+    have lead_coeff_eq := finsupp.single_inj2 eql,
+    rw finsupp.mem_support_iff at insub,
+    apply insub,
+    change (a - b).to_fun (leading_term' a) = 0,
+    unfold has_sub.sub algebra.sub,
+    rw [←finsupp.coe_f, finsupp.add_apply],
+    simp, unfold leading_coeff at lead_coeff_eq,
+    rw [←finsupp.coe_f] at lead_coeff_eq,
+    rw [lead_coeff_eq, finsupp.coe_f, lead_tm_eq],
+    apply add_right_neg,
+end
+lemma sub_support: Π (a b: mv_polynomial ℕ α), (a - b).support ⊆ a.support ∪ b.support :=
+λ a b,
+begin
+    unfold has_sub.sub algebra.sub, 
+    have m := @finsupp.support_add _ _ _ _ _ a (-b),
+    rw finsupp.support_neg at m, assumption,
+end
+
+lemma sub_sup: Π (a b : finset (ℕ →₀ ℕ)), a ⊆ b → a.sup id ≤ b.sup id :=
+λ a b asubb,
+begin
+    --revert a,
+    --apply finset.induction_on b; intros,
+    --sorry, simp,
+    unfold has_subset.subset at asubb,
+end
+
+
 lemma sub_dec : Π (a b : mv_polynomial ℕ α),
     a.leading_term = b.leading_term 
     → a.leading_term' ≠ 0
     → (a - b).leading_term' < a.leading_term' :=
 begin
     intros a b eql neq0,
-    unfold leading_term' at *,
-    by_cases finset.sort finsupp.le (a.support) = list.nil,
-    rw logic.dite_true' h at neq0,
-    apply false.elim, apply neq0, trivial,
-    rw logic.dite_false' h,
-    by_cases finset.sort finsupp.le ((a - b).support) = list.nil,
-    tactic.unfreeze_local_instances,
-    dedup,
-    rw logic.dite_true' h_1,
-    rw logic.dite_false' h at neq0,
-    generalize n : list.last (finset.sort finsupp.le (a.support)) h = x,
-    rw n at *,
-    apply finsupp.neq_zero_gt_zero, assumption, tactic.unfreeze_local_instances,
-    dedup,
-    rw logic.dite_false' h_1,
-    unfold leading_term at *,
-    rw logic.dite_false' h at neq0 eql,
-    by_cases finset.sort finsupp.le (b.support) = list.nil,
-    rw logic.dite_true' h at eql, simp at eql,
-    unfold C monomial at eql,
-    apply false.elim, apply neq0,
-    apply finsupp.single_inj1, 
-        --(list.last (finset.sort finsupp.le (a.support)) (by assumption)) (0 : ℕ →₀ ℕ)
-        --    (a.to_fun (list.last (finset.sort finsupp.le (a.support)) (by assumption)))
-        --    (b.to_fun 0),
-    dedup,
-    have q : list.last (finset.sort finsupp.le (a.support)) h ∈ a.support ↔
-        a.to_fun (list.last (finset.sort finsupp.le (a.support)) h) ≠ 0:= @finsupp.mem_support_iff _ _ _
-                    a (list.last (finset.sort finsupp.le (a.support)) h),
-    rw [←q],
-    apply finset_sorted_support,
-    apply last_mem, assumption,
-    simp at eql, rw logic.dite_false' h at eql,
-
-    
-
-
+    unfold leading_term',
+    unfold leading_term at eql,
+    have coeff_neq_z := leading_term_ne_zero_coeff neq0,
+    have lead_tm_eq := finsupp.single_inj1 coeff_neq_z eql,
+    have lead_coeff_eq := finsupp.single_inj2 eql,
+    have a_sup_in_a := finset.mem_of_sup_id (support_ne_empty_of_leading_term' neq0),
+    have a_sup_in_b := finset.mem_of_sup_id (support_ne_empty_of_leading_term neq0 lead_tm_eq),
+    unfold leading_term' at lead_tm_eq,
+    rw ←lead_tm_eq at a_sup_in_b,
+    have sup_a_u_b : finset.sup (a.support ∪ b.support) id = finset.sup (a.support) id,
+    rw [finset.sup_union, ←lead_tm_eq, lattice.sup_idem],
+    have a_sub_b_in_a_u_b := sub_support a b,
+    have not_in_a_sub_b := lead_tm_eq_notin_supp eql neq0,
+    have ab_le := sub_sup _ _ a_sub_b_in_a_u_b,
+    rw le_iff_lt_or_eq at ab_le, cases ab_le,
+    rw ←sup_a_u_b, assumption,
+    unfold leading_term' at not_in_a_sub_b,
+    rw ←sup_a_u_b at not_in_a_sub_b,
+    rw ←ab_le at not_in_a_sub_b,
+    by_cases (a - b).support = ∅,
+    swap,
+    apply absurd (finset.mem_of_sup_id h) not_in_a_sub_b,
+    rw h at *, simp at *,
+    apply finsupp.neq_zero_gt_zero,
+    assumption,
     /-
-    def largest_elem a = list.last (finset.sort finsupp.le a) ??
-    largest_elem (a - b) < largest_elem a = largest_elem b
-    1. list.last (finset.sort finsupp.le (a.support)) h ∉ finset.sort finsupp.le ((a - b).support)
-    1. list.last (finset.sort finsupp.le (b.support)) h ∉ finset.sort finsupp.le ((a - b).support)
-    2. finset.sort finsupp.le ((a - b).support)
-         ⊂ finset.sort finsupp.le a.support ++ finset.sort finsupp.le b.support
-    3.
-    list.last (finset.sort finsupp.le ((a - b).support)) h_1 ≤ 
-    list.last (finset.sort finsupp.le ((a + b).support.erase last_elem)) h_1
-    < last_elem
+        finset.sup (a.support) id ∈ a.support
+        finset.sup (a.support) id ∈ b.support
+        finset.sup (a.support ∪ b.support) id 
+                = finset.sup (a.support) id
+        finset.sup (a.support) id ∉ (a - b).support
+        (a - b).support ⊆ (a.support ∪ b.support)
+            → finset.sup (a - b).support id ≤ 
+                finset.sup (a.support ∪ b.support) id
+        
     -/
-
 end
 
 def div : Π (a b : mv_polynomial ℕ α),
