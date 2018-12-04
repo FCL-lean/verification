@@ -7,15 +7,52 @@ variables {α : Type*} {β : Type*} {γ : Type*} {δ : Type*} {ι : Type*}
 variables [discrete_field α]
 variables [decidable_eq α] [decidable_linear_order α]
 --variables [comm_ring (mv_polynomial ℕ α)]
-variables [has_zero γ] [has_zero δ] [decidable_eq γ] [decidable_eq δ]
+
+namespace finsupp
+
+section general
+variables [has_zero γ] [has_zero δ] [decidable_eq γ] [decidable_eq δ] [add_monoid δ]
+
+lemma in_not (a : γ →₀ δ) : ∀ x : γ, x ∈ a.support ∨ x ∉ a.support := 
+    by intro; apply classical.or_not
+
+def single_inj1 : Π {a b: δ} {c d: γ}, (c ≠ 0) → single a c = single b d → a = b :=
+begin
+    intros, unfold single at *, simp at a_1,
+    by_cases c = 0, rw h at *, simp at *,
+    apply false.elim; assumption,
+    simp [a_1] at a_2,
+    by_cases d = 0, rw h at *, simp at *,
+    apply false.elim; assumption,
+    simp [a_1, h] at a_2,
+    cases a_2, rw finset.singleton_inj at a_2_left,
+    assumption,
+end
+
+def single_inj2 : Π (a b: δ) (c d: γ), single a c = single b d → c = d :=
+begin
+    intros, unfold single at *, simp at a_1,
+    by_cases c = 0; rw h at *;
+    by_cases d = 0; rw h at *,
+    simp [h] at *, cases a_1, 
+    unfold finset.singleton has_emptyc.emptyc finset.empty at a_1_left,
+    simp at a_1_left, apply false.elim, assumption,
+    tactic.unfreeze_local_instances, dedup, simp [h] at a_1,
+    apply false.elim, assumption,
+    tactic.unfreeze_local_instances, dedup, simp [h, h_1] at a_1,
+    cases a_1, rw finset.singleton_inj at a_1_left,
+    rw a_1_left at *, let m := congr_fun a_1_right b,
+    simp at m, assumption,
+end
+
+def coe_f : Π (a : δ →₀ γ) (n : δ), a n = a.to_fun n := λ a n, rfl
+
+end general
 
 class is_monomial_order (α : Type*) (r : α → α → Prop) extends has_add α, is_linear_order α r :=
     (mono_order : ∀ a b w : α, (r a b) → r (a + w) (b + w) )
 
-namespace finsupp
-
-lemma in_not (a : γ →₀ δ) : ∀ x : γ, x ∈ a.support ∨ x ∉ a.support := 
-    by intro; apply classical.or_not
+section nat
 
 def le_aux : (ℕ →₀ ℕ) → (ℕ →₀ ℕ) → ℕ → Prop
 | a b 0 := a 0 ≤ b 0
@@ -401,7 +438,7 @@ begin
     cases ne,
     by_cases (b.support = ∅),
     unfold finsupp.max_ab, rw h, rw finset.union_empty,
-    left, apply finset.nat.mem_of_sup_id, assumption,
+    left, apply finset.mem_of_sup_id, assumption,
     all_goals { apply finset.nat.union_sup_in_a_or_b, assumption, },
 end
 
@@ -424,7 +461,7 @@ begin
         end
         else by assumption,
     have h : (nat.succ i) ∈ (a.support ∪ b.support), 
-        have h' := (finset.nat.mem_of_sup_id h_nempty), rw eqi at h', assumption,
+        have h' := (finset.mem_of_sup_id h_nempty), rw eqi at h', assumption,
     apply absurd h hab,
 end
 
@@ -515,30 +552,6 @@ instance : lattice.semilattice_sup_bot (ℕ →₀ ℕ) := {
     sup_le := λ a b c, max_le
 }
 
-lemma mem_of_sup_id' : ∀ {a : finset (ℕ →₀ ℕ)}, a ≠ ∅ → a.sup id ∈ a
-| a := finset.induction_on a (λ a, false.elim (a (refl _)))
-    (λ x y notin ih notempty, begin 
-        rw [finset.insert_eq, finset.sup_union, finset.mem_union, finset.sup_singleton],
-        simp,
-        from if h₁ : y = ∅ 
-        then begin
-            left,
-            rw [h₁, finset.sup_empty, lattice.sup_bot_eq],
-        end
-        else begin
-            from if h₂ : x < y.sup id
-            then begin
-                right, 
-                rw [lattice.sup_of_le_right (le_of_lt h₂)],
-                apply ih h₁,
-            end
-            else begin
-                left,                
-                rw [lattice.sup_of_le_left (le_of_not_lt h₂)],
-            end
-        end
-    end)
-
 def neq_zero_gt_zero : Π (x : ℕ →₀ ℕ), x ≠ 0 → 0 < x :=
 begin
     intros,
@@ -547,37 +560,5 @@ begin
     apply a, trivial,
 end
 
-def single_inj1 : Π {a b: δ} {c d: γ}, (c ≠ 0) → single a c = single b d → a = b :=
-begin
-    intros, unfold single at *, simp at a_1,
-    by_cases c = 0, rw h at *, simp at *,
-    apply false.elim; assumption,
-    simp [a_1] at a_2,
-    by_cases d = 0, rw h at *, simp at *,
-    apply false.elim; assumption,
-    simp [a_1, h] at a_2,
-    cases a_2, rw finset.singleton_inj at a_2_left,
-    assumption,
-end
-
-def single_inj2 : Π {a b: δ} {c d: γ}, single a c = single b d → c = d :=
-begin
-    intros, unfold single at *, simp at a_1,
-    by_cases c = 0; rw h at *;
-    by_cases d = 0; rw h at *,
-    simp [h] at *, cases a_1, 
-    unfold finset.singleton has_emptyc.emptyc finset.empty at a_1_left,
-    simp at a_1_left, apply false.elim, assumption,
-    tactic.unfreeze_local_instances, dedup, simp [h] at a_1,
-    apply false.elim, assumption,
-    tactic.unfreeze_local_instances, dedup, simp [h, h_1] at a_1,
-    cases a_1, rw finset.singleton_inj at a_1_left,
-    rw a_1_left at *, let m := congr_fun a_1_right b,
-    simp at m, assumption,
-end
-
-
-lemma coe_f : Π (a : δ →₀ γ) (n : δ), a n = a.to_fun n := λ a n, rfl
--- protected def wf_lt : well_founded (@finsupp.has_lt.1) := sorry
-
+end nat
 end finsupp

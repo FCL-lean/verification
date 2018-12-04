@@ -39,12 +39,6 @@ begin
     simp, apply finset.mem_insert_of_mem, assumption
 end
 
-lemma mem_of_sup_id : Π {a : finset ℕ}, a ≠ ∅ → a.sup id ∈ a
-| a' := finset.induction_on a' (λ a, false.elim (a (refl _)))
-    (λ a b notin ih notempty, 
-        dite (b = ∅) (λ emp, begin rw emp, simp, end) 
-            (λ not_emp, sup_id_insert _ _ (ih not_emp)))
-
 lemma union_sup_in_a_or_b : Π (a b : finset ℕ),
     b ≠ ∅ →
     (a ∪ b).sup id ∈ a
@@ -67,7 +61,7 @@ end
 
 end nat
 
-section 
+section general
 parameters {α : Type*}
 
 lemma ne_empty_iff_exists_mem {s : finset α} : s ≠ ∅ ↔ ∃ x, x ∈ s :=
@@ -76,11 +70,43 @@ begin
     apply @not_forall_not _ _ (classical.dec _),
 end
 
-end
+section semilattice
+parameters [lattice.semilattice_sup_bot α]
+lemma ne_empty_of_sup_ne_bot {s : finset α} : s.sup id ≠ ⊥ → s ≠ ∅ := λ h₀ h₁, by simp [h₁, sup_empty] at h₀; exact h₀
 
-section
+end semilattice
 
-variables {α : Type*}
+section decidable_semilattice
+parameters [lattice.decidable_semilattice_sup_bot α]
+
+lemma mem_of_sup_id : ∀ {a : finset α}, a ≠ ∅ → a.sup id ∈ a
+| a := finset.induction_on a (λ a, false.elim (a (refl _)))
+    (λ x y notin ih notempty, begin 
+        rw [finset.insert_eq, finset.sup_union, finset.mem_union, finset.sup_singleton],
+        simp,
+        from if h₁ : y = ∅ 
+        then begin
+            left,
+            rw [h₁, finset.sup_empty, lattice.sup_bot_eq],
+        end
+        else begin
+            from if h₂ : x < y.sup id
+            then begin
+                right, 
+                rw [lattice.sup_of_le_right (le_of_lt h₂)],
+                apply ih h₁,
+            end
+            else begin
+                left,                
+                rw [lattice.sup_of_le_left (le_of_not_lt h₂)],
+            end
+        end
+    end)
+
+end decidable_semilattice
+
+section sort
+
 variables [decidable_eq α]
 variables (r : α → α → Prop) [decidable_rel r] [is_trans α r] [is_antisymm α r] [is_total α r]
 
@@ -105,6 +131,8 @@ lemma sort_ne_empty_ne_nil {s : finset α} : s ≠ ∅ → sort r s ≠ [] :=
     apply absurd hss hs,
 end
 
-end
+end sort
+
+end general
 
 end finset
