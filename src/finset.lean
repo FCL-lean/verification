@@ -77,7 +77,8 @@ lemma ne_empty_of_sup_ne_bot {s : finset α} : s.sup id ≠ ⊥ → s ≠ ∅ :=
 end semilattice
 
 section decidable_semilattice
-parameters [lattice.decidable_semilattice_sup_bot α]
+variables [lattice.semilattice_sup_bot α] [decidable_rel ((≤) : α → α → Prop)] [is_total α (≤)]
+
 
 lemma mem_of_sup_id : ∀ {a : finset α}, a ≠ ∅ → a.sup id ∈ a
 | a := finset.induction_on a (λ a, false.elim (a (refl _)))
@@ -97,7 +98,9 @@ lemma mem_of_sup_id : ∀ {a : finset α}, a ≠ ∅ → a.sup id ∈ a
                 apply ih h₁,
             end
             else begin
-                left,                
+                left, 
+                  letI : linear_order α :=
+                    { le_total := is_total.total (≤), .. _inst_1 },               
                 rw [lattice.sup_of_le_left (le_of_not_lt h₂)],
             end
         end
