@@ -4,19 +4,19 @@ import ring_theory.ideals
 import tactic.find
 import util
 variables {α : Type*} {β : Type*} {γ : Type*} {δ : Type*} {ι : Type*}
-variables [discrete_field α]
-variables [decidable_eq α] [decidable_linear_order α]
---variables [comm_ring (mv_polynomial ℕ α)]
 
 namespace finsupp
 
 section general
-variables [has_zero γ] [has_zero δ] [decidable_eq γ] [decidable_eq δ] [add_monoid δ]
+variables [decidable_eq α] [decidable_eq β]
 
-lemma in_not (a : γ →₀ δ) : ∀ x : γ, x ∈ a.support ∨ x ∉ a.support := 
+section has_zero
+variables [has_zero β] 
+
+lemma in_not (a : α →₀ β) : ∀ x : α, x ∈ a.support ∨ x ∉ a.support := 
     by intro; apply classical.or_not
 
-def single_inj1 : Π {a b: δ} {c d: γ}, (c ≠ 0) → single a c = single b d → a = b :=
+def single_inj1 : Π {a b: α} {c d: β}, (c ≠ 0) → single a c = single b d → a = b :=
 begin
     intros, unfold single at *, simp at a_1,
     by_cases c = 0, rw h at *, simp at *,
@@ -29,7 +29,7 @@ begin
     assumption,
 end
 
-def single_inj2 : Π {a b: δ} {c d: γ}, single a c = single b d → c = d :=
+def single_inj2 : Π {a b: α} {c d: β}, single a c = single b d → c = d :=
 begin
     intros, unfold single at *, simp at a_1,
     by_cases c = 0; rw h at *;
@@ -45,14 +45,46 @@ begin
     simp at m, assumption,
 end
 
-def coe_f : Π (a : δ →₀ γ) (n : δ), a n = a.to_fun n := λ a n, rfl
+def coe_f : Π (a : α →₀ β) (n : α), a n = a.to_fun n := λ a n, rfl
+end has_zero
 
+section canonically_ordered_monoid
+variables [canonically_ordered_monoid β]
+
+lemma support_contain_a (a b : α →₀ β) : a.support ⊆ (a + b).support :=
+begin
+    unfold has_subset.subset,
+    intros a_1 h,
+    let ha := (a.mem_support_to_fun a_1).elim_left h,
+    have hab : (a + b).to_fun a_1 ≠ 0,
+    rw ←coe_f at *,
+    simp, intro ha',
+    apply (absurd ha' ha),
+    apply ((a + b).mem_support_to_fun a_1).elim_right hab,
+end
+
+lemma support_contain_b (a b : α →₀ β) : b.support ⊆ (a + b).support := by rw add_comm; apply support_contain_a
+
+lemma union_support_contain (a b : α →₀ β) : a.support ∪ b.support ⊆ (a + b).support :=
+begin
+    have ha := support_contain_a a b,
+    have hb := support_contain_b a b,
+    intros elem p,
+    have lem := finset.mem_union.elim_left p,
+    cases lem,
+    exact ha lem,
+    exact hb lem,
+end
+
+end canonically_ordered_monoid
 end general
 
 class is_monomial_order (α : Type*) (r : α → α → Prop) extends has_add α, is_linear_order α r :=
     (mono_order : ∀ a b w : α, (r a b) → r (a + w) (b + w) )
 
 section nat
+variables [discrete_field α]
+variables [decidable_eq α] [decidable_linear_order α]
 
 def le_aux : (ℕ →₀ ℕ) → (ℕ →₀ ℕ) → ℕ → Prop
 | a b 0 := a 0 ≤ b 0
@@ -332,6 +364,7 @@ begin
     apply (gt_max_not_in b x h₅ h₂),
 end
 
+/-
 lemma support_contain_a (a b : ℕ →₀ ℕ) : a.support ⊆ (a + b).support :=
 begin
     unfold has_subset.subset,
@@ -357,6 +390,7 @@ begin
     exact ha lem,
     exact hb lem,
 end
+-/
 
 lemma max_ab_lt_add (a b w : ℕ →₀ ℕ) : finsupp.max_ab a b ≤ finsupp.max_ab (a + w) (b + w) :=
 begin
@@ -366,7 +400,7 @@ begin
     rw [ finset.union_assoc, finset.union_comm b.support w.support ],
     rw [←finset.union_assoc w.support, finset.union_idempotent, 
          finset.union_comm w.support, ←finset.union_assoc],
-    apply finset.nat.max_le,
+    apply finset.max_le,
 end
 
 lemma le_of_succ_eq (a b : ℕ →₀ ℕ) (i  : ℕ) (hlei : le_aux a b i) 
@@ -429,20 +463,21 @@ instance : is_monomial_order (ℕ →₀ ℕ) finsupp.le :=
     mono_order := mono_order_lem,
 }
 
-lemma finsupp.max_ab_in_a_sup_or_b_sup : Π (a b : ℕ →₀ ℕ),
+lemma max_ab_in_a_sup_or_b_sup : Π (a b : ℕ →₀ ℕ),
     a.support ≠ ∅ ∨ b.support ≠ ∅ →
     finsupp.max_ab a b ∈ a.support 
     ∨ finsupp.max_ab a b ∈ b.support
-| a b ne :=
-begin
+:=
+λ a b ne, begin
     cases ne,
     by_cases (b.support = ∅),
-    unfold finsupp.max_ab, rw h, rw finset.union_empty,
-    left, apply finset.mem_of_sup_id, assumption,
-    all_goals { apply finset.union_sup_in_a_or_b, assumption, },
+    unfold finsupp.max_ab, rw [h, finset.union_empty],
+    left, exact finset.mem_of_sup_id ne,
+    all_goals {unfold finsupp.max_ab, 
+    apply finset.union_sup_in_a_or_b},
 end
 
-lemma eq_zero_not_finsupp.max_ab : Π (a b : ℕ →₀ ℕ) (i : ℕ),
+lemma eq_zero_not_max_ab : Π (a b : ℕ →₀ ℕ) (i : ℕ),
     a (nat.succ i) = 0 → b (nat.succ i) = 0 → finsupp.max_ab a b ≠ (nat.succ i) 
 | a b i eqa eqb eqi:=
 begin
@@ -505,11 +540,11 @@ begin
     have b_not := finsupp.not_mem_support_iff.elim_right le_left,
     exact absurd h_1 b_not,
     apply false.elim,
-    apply eq_zero_not_finsupp.max_ab a b x;
+    apply eq_zero_not_max_ab a b x;
     rw h at *; try { rw ←finsupp.not_mem_support_iff }; try { assumption },
     have h' : finset.sup (a.support ∪ b.support) id = 0 := h,
-    have q := finset.nat.max_le a.support b.support,
-    have q' := finset.nat.max_le b.support a.support,
+    have q := finset.max_le a.support b.support,
+    have q' := finset.max_le b.support a.support,
     rw finset.union_comm at q',
     rw h' at *, 
     have eq1 := nat.le_antisymm q (nat.zero_le _),
