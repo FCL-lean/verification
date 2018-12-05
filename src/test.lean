@@ -185,38 +185,41 @@ begin
     -/
 end
 
-def div : Π (a b : mv_polynomial ℕ α), b ≠ 0 →
-                 Σ'q r, (¬ leading_term_le' b r) ∧ a = b * q + r
-| a b bneqz :=
+lemma poly_lead_coeff_z {p : mv_polynomial ℕ α}: 
+    p.leading_coeff = 0 → p = 0 :=
+λ coeffz,
 begin
-    by_cases (leading_term_le' b a),
-    let sub := leading_term_sub a.leading_term' b.leading_term' h,
-    let q' := (finsupp.single sub (a.leading_coeff / b.leading_coeff)),
-    generalize h : a - b * q' = r',
-    let tt' : r'.leading_term' < a.leading_term', 
-    rw ←h,
-    exact sub_dec a (b * q') sorry sorry,
-    have result := div r' b bneqz,
-    cases result with r_q, cases result_snd with r_r,
-    apply psigma.mk (q' + r_q),
-    apply psigma.mk r_r,
-    apply and.intro,
-    exact result_snd_snd.left,
-    have prf : a = b * q' + r',
-    rw [←h],simp, 
-    cases result_snd_snd,
-    rw [prf, result_snd_snd_right],
-    simp,
-    rw left_distrib,
-    apply psigma.mk (0 : mv_polynomial ℕ α),
-    apply psigma.mk a,
-    apply and.intro, assumption,
-    simp,
+    unfold leading_coeff leading_term' at coeffz,
+    rw [←finsupp.coe_f, ←finsupp.not_mem_support_iff] at coeffz,
+    have h: p.support = ∅,
+    by_cases p.support = ∅,
+    assumption,
+    apply false.elim, apply coeffz,
+    apply finset.mem_of_sup_id, assumption,
+    rw finsupp.support_eq_empty at h,
+    assumption,
 end
-using_well_founded { rel_tac := λ _ _, `[exact ⟨_, inv_image.wf psigma.fst (inv_image.wf leading_term' lt_wellfounded)⟩] 
-                   , dec_tac := tactic.assumption }
+
+lemma poly_lead_tm_neqz {p : mv_polynomial ℕ α}: p ≠ 0 → p.leading_term ≠ 0 :=
+λ pneqz eqz,
+begin 
+    apply pneqz,
+    unfold leading_term at eqz,
+    have eqz' := finsupp.single_eqz eqz,
+    exact poly_lead_coeff_z eqz',
+end
+
+lemma lead_tm_eq {a b: mv_polynomial ℕ α}{sub : ℕ →₀ ℕ} {h}:
+    b ≠ 0 →
+    leading_term_sub a.leading_term' b.leading_term' h = sub →
+    leading_term a = leading_term (b * finsupp.single sub 
+                        (leading_coeff a / leading_coeff b)) :=
+begin
+    sorry
+end
+
 def mv_trichotomy (p : mv_polynomial ℕ α) : psum (p = mv_polynomial.C 0) 
-            (psum (Σ'a : α, p = mv_polynomial.C a) ((Σ'a : α, p = mv_polynomial.C a) → false)):= 
+            (psum (Σ'a : α, pprod (a ≠ 0) (p = mv_polynomial.C a)) ((Σ'a : α, p = mv_polynomial.C a) → false)):= 
 if h₀ : p.support = ∅ 
     then
     begin
@@ -233,6 +236,8 @@ else if h₁ : p.support = {0}
             right, left,
             unfold C monomial,
             apply (psigma.mk (p.to_fun 0)),
+            apply pprod.mk,
+            rw [←finsupp.coe_f, ←finsupp.mem_support_iff, h₁], simp,
             apply finsupp.ext, intro,
             change p.to_fun a = (finsupp.single 0 (p.to_fun 0)).to_fun a,
             unfold finsupp.single, simp,
@@ -256,6 +261,106 @@ else if h₁ : p.support = {0}
         rw (if_neg h) at h₁,
         apply (ne_self_iff_false (finset.singleton 0)).mp h₁,
     end
+
+def mv_is_const_aux : Π (p : mv_polynomial ℕ α), (psum (p = mv_polynomial.C 0) 
+            (psum (Σ'a : α, pprod (a ≠ 0) (p = mv_polynomial.C a)) ((Σ'a : α, p = mv_polynomial.C a) → false))) → Prop
+| p (psum.inl lp) := true
+| p (psum.inr (psum.inl lp)) := true
+| p (psum.inr (psum.inr rp)) := false
+
+def mv_is_const (p : mv_polynomial ℕ α): Prop := mv_is_const_aux p (mv_trichotomy p)
+
+def mv_is_const_neqz {p : mv_polynomial ℕ α}:
+    mv_is_const p → p ≠ 0 → (Σ'a : α, pprod (a ≠ 0) (p = mv_polynomial.C a)) :=
+begin
+    intros, unfold mv_is_const at a,
+    generalize h : mv_trichotomy p = m,
+end
+
+def ne_mv_is_const {p : mv_polynomial ℕ α}:
+    ¬ mv_is_const p → (Σ'a : α, p = mv_polynomial.C a) → false :=
+begin
+    intros,
+    generalize j : mv_trichotomy p = m,
+    cases h:m, unfold mv_is_const at a,
+    rw [j, h] at a, unfold mv_is_const_aux at a,
+    apply a, trivial,
+    cases h1:val, unfold mv_is_const at a,
+    rw [j, h, h1] at a, unfold mv_is_const_aux at a,
+    apply a, trivial, apply val_1, assumption,
+end
+
+instance (p : mv_polynomial ℕ α): decidable (mv_is_const p) :=
+begin
+    generalize t : mv_trichotomy p = m,
+    cases h: m, apply is_true, rw val, simp,
+    cases h: val, apply is_true, rw val_1.snd.snd, simp,
+    unfold mv_is_const mv_is_const_aux,
+    cases val_1, rw ←val_1_snd.snd, rw t,
+    tactic.unfreeze_local_instances, dedup, 
+    rw [h, h_1], unfold mv_is_const_aux,
+    apply is_false, unfold mv_is_const,
+    rw [t], tactic.unfreeze_local_instances, dedup,
+    rw [h, h_1], unfold mv_is_const_aux, simp,
+end
+
+def lead_tm'_eqz_const {a : mv_polynomial ℕ α}:
+    a.leading_term' = 0 
+    → Σ' (c : α), a = C c := sorry
+
+def lead_tm_lez {a b : mv_polynomial ℕ α}:
+    a.leading_term' = 0 → leading_term_le' b a
+    → b.leading_term' = 0 := sorry
+
+def div_const : Π (a b : mv_polynomial ℕ α), b ≠ 0 →
+                mv_is_const b →
+                Σ' (q r : mv_polynomial ℕ α), b.leading_term' = r.leading_term'
+                        ∧ a = b * q + r
+| a b bneqz bconst :=
+begin
+    
+end
+def div : Π (a b : mv_polynomial ℕ α), b ≠ 0 →
+                ¬ mv_is_const b →
+                 Σ'q r, ¬ leading_term_le' b r 
+                        ∧ a = b * q + r
+| a b bneqz bnconst :=
+begin
+    by_cases (leading_term_le' b a),
+    generalize subeq : leading_term_sub a.leading_term' b.leading_term' h = sub,
+    generalize q'eq : finsupp.single sub (a.leading_coeff / b.leading_coeff) = q',
+    generalize h : a - b * q' = r',
+    by_cases alt'eqz: a.leading_term' = 0,
+    let atmeqz := lead_tm'_eqz_const alt'eqz, 
+    tactic.unfreeze_local_instances, dedup,
+    let btmeqz := lead_tm'_eqz_const (lead_tm_lez alt'eqz h),
+    have atmeqzp := atmeqz.snd,
+    have btmeqzp := btmeqz.snd,
+    apply false.elim, apply ne_mv_is_const bnconst, assumption,
+    let tt' : r'.leading_term' < a.leading_term', 
+    rw ←h,
+    exact sub_dec a (b * q') 
+        (begin rw ←q'eq, exact lead_tm_eq bneqz subeq end) 
+        alt'eqz,
+    have result := div r' b bneqz bnconst,
+    cases result with r_q, cases result_snd with r_r,
+    apply psigma.mk (q' + r_q),
+    apply psigma.mk r_r,
+    apply and.intro,
+    exact result_snd_snd.left,
+    have prf : a = b * q' + r',
+    rw [←h],simp, 
+    cases result_snd_snd,
+    rw [prf, result_snd_snd_right],
+    simp,
+    rw left_distrib,
+    apply psigma.mk (0 : mv_polynomial ℕ α),
+    apply psigma.mk a,
+    apply and.intro, assumption,
+    simp,
+end
+using_well_founded { rel_tac := λ _ _, `[exact ⟨_, inv_image.wf psigma.fst (inv_image.wf leading_term' lt_wellfounded)⟩] 
+                   , dec_tac := tactic.assumption }
 
 
 def leading_term_lcm (p q : mv_polynomial ℕ α) : mv_polynomial ℕ α := 
@@ -286,11 +391,6 @@ begin
     end
 end
 
-def poly_lead_tm_neqz {p : mv_polynomial ℕ α}: p ≠ 0 → p.leading_term ≠ 0 :=
-λ pneqz eqz,
-begin 
-    sorry
-end
 def s_poly (p q : mv_polynomial ℕ α) : 
     p ≠ 0 → q ≠ 0 → mv_polynomial ℕ α :=
 λ pneqz qneqz,
@@ -378,7 +478,7 @@ lemma div_list_mem_span {s : set (mv_polynomial ℕ α)}:
     have hdiv : (div a hd).snd.fst ∈ ideal.span s, 
         exact div_mem_span ha hhd,
     have hb' : tl.to_finset.to_set ⊆ ↑(ideal.span s), 
-        intros b hbtl, rw ←list.mem_to_set at hbtl, exact hb b (list.mem_cons_of_mem hd hbtl),
+        intros b hbtl, rw ←list.mem_to_set at hbtl9, exact hb b (list.mem_cons_of_mem hd hbtl),
     apply div_list_mem_span (div a hd).snd.fst tl hdiv hb',
 end
 
