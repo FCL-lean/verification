@@ -70,7 +70,13 @@ end
 end decidable_eq
 
 section decidable_linear_order
-variables [decidable_rel ((≤) : α → α → Prop)] [is_total α (≤)]
+variables [decidable_rel ((≤) : α → α → Prop)] [is_total α (≤)] [decidable_eq α]
+
+instance : decidable_linear_order α := 
+    { decidable_le := _inst_2,
+      decidable_eq := _inst_4,
+      le_total := is_total.total (≤),
+    .. _inst_1 }
 
 lemma mem_of_sup_id : ∀ {a : finset α}, a ≠ ∅ → a.sup id ∈ a
 | a := finset.induction_on a (λ a, false.elim (a (refl _)))
@@ -91,7 +97,6 @@ lemma mem_of_sup_id : ∀ {a : finset α}, a ≠ ∅ → a.sup id ∈ a
             end
             else begin
                 left,
-                letI : linear_order α := { le_total := is_total.total (≤), .. _inst_1 },
                 rw [lattice.sup_of_le_left (le_of_not_lt h₂)],
             end
         end
