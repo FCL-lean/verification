@@ -306,7 +306,12 @@ end
 
 def lead_tm'_eqz_const {a : mv_polynomial ℕ α}:
     a.leading_term' = 0 
-    → Σ' (c : α), a = C c := sorry
+    → Σ' (c : α), a = C c :=
+λ eqz,
+begin 
+    unfold leading_term' at eqz,
+
+end
 
 def lead_tm_lez {a b : mv_polynomial ℕ α}:
     a.leading_term' = 0 → leading_term_le' b a
@@ -477,15 +482,6 @@ lemma div_list_mem_span {s : finset (mv_polynomial ℕ α)} :
 | a (hd :: tl) := λ ha hb, begin
     rw ideal.list_subset at hb,
     unfold div_list,
-<<<<<<< HEAD
-    have hhd : hd ∈ ideal.span s, 
-        apply hb hd, simp,
-    have hdiv : (div a hd).snd.fst ∈ ideal.span s, 
-        exact div_mem_span ha hhd,
-    have hb' : tl.to_finset.to_set ⊆ ↑(ideal.span s), 
-        intros b hbtl, rw ←list.mem_to_set at hbtl9, exact hb b (list.mem_cons_of_mem hd hbtl),
-    apply div_list_mem_span (div a hd).snd.fst tl hdiv hb',
-=======
     have hhd : hd.fst ∈ ideal.span s.to_set, 
         apply hb hd.fst, simp,
     have hdiv : (div a hd.fst hd.snd).snd.fst ∈ ideal.span s.to_set, 
@@ -493,7 +489,6 @@ lemma div_list_mem_span {s : finset (mv_polynomial ℕ α)} :
     have hb' : (tl.map psigma.fst).to_finset.to_set ⊆ ↑(ideal.span s.to_set), 
         intros b hbtl, rw ←list.mem_to_set at hbtl, apply hb b, rw list.map_cons, exact list.mem_cons_of_mem hd.fst hbtl,
     apply div_list_mem_span (div a hd.fst hd.snd).snd.fst tl hdiv hb',
->>>>>>> 8ef73a106b34ab4f7f081e836731c1ac7e354eab
 end
 
 lemma s_poly_mem_span {a b : mv_polynomial ℕ α} {s : set (mv_polynomial ℕ α)} : a ∈ s → b ∈ s → s_poly a b ∈ (ideal.span s) := 
