@@ -473,8 +473,8 @@ lemma max_ab_in_a_sup_or_b_sup : Π (a b : ℕ →₀ ℕ),
     by_cases (b.support = ∅),
     unfold finsupp.max_ab, rw [h, finset.union_empty],
     left, exact finset.mem_of_sup_id ne,
-    all_goals {unfold finsupp.max_ab, 
-    apply finset.union_sup_in_a_or_b},
+    unfold finsupp.max_ab, 
+    let h' := finset.union_sup_in_a_or_b a.support b.support h, exact h',
 end
 
 lemma eq_zero_not_max_ab : Π (a b : ℕ →₀ ℕ) (i : ℕ),

@@ -353,33 +353,37 @@ using_well_founded { rel_tac := λ _ _, `[exact ⟨_, buch_lt_wf⟩]
 def buchberger_correct₂ (l l': list (mv_polynomial ℕ α)) (h: list.perm l l') 
     (d : mv_polynomial ℕ α): div_list d l = div_list d l' := sorry
 
-lemma div_mem_span {a b : mv_polynomial ℕ α} {s : set (mv_polynomial ℕ α)}: a ∈ ideal.span s → b ∈ ideal.span s → (div a b).snd.fst ∈ ideal.span s := 
-λ ha hb, begin
-    have h := (div a b).snd.snd.right, revert h,
-    generalize hr : (div a b).snd.fst = r,
-    generalize hq : (div a b).fst = q,
+lemma div_mem_span {a b : mv_polynomial ℕ α} {s : finset (mv_polynomial ℕ α)} 
+    (ha : a ∈ ideal.span s.to_set) (hb : b ∈ ideal.span (s.to_set)) (hbne : b ≠ 0) : (div a b hbne).snd.fst ∈ ideal.span (s.to_set) := 
+begin
+    have h := (div a b hbne).snd.snd.right, revert h,
+    generalize hr : (div a b hbne).snd.fst = r,
+    generalize hq : (div a b hbne).fst = q,
     intro h,
     have h' : a - b * q = r, rw add_comm at h, exact sub_eq_of_eq_add h,
     simp at h', rw ←h',
-    apply ideal.add_mem (ideal.span s) ha,
+    apply ideal.add_mem (ideal.span s.to_set) ha,
     rw [mul_comm, neg_mul_eq_neg_mul q b],
-    apply ideal.mul_mem_left (ideal.span s) hb,
+    apply ideal.mul_mem_left (ideal.span s.to_set) hb,
 end
 
 set_option trace.simplify.rewrite true
-lemma div_list_mem_span {s : set (mv_polynomial ℕ α)}: 
-    ∀ (a : mv_polynomial ℕ α) (l : list (mv_polynomial ℕ α)), a ∈ ideal.span s → (l.to_finset.to_set ⊆ ↑(ideal.span s)) → div_list a l ∈ ideal.span s
+def list_fst (l : list (Σ' (p: mv_polynomial ℕ α), p ≠ 0)) : list (mv_polynomial ℕ α) := l.map psigma.fst 
+
+lemma div_list_mem_span {s : finset (mv_polynomial ℕ α)} :
+    ∀ (a : mv_polynomial ℕ α) (l : list (Σ' (p: mv_polynomial ℕ α), p ≠ 0)),
+    a ∈ ideal.span (s.to_set) → ((l.map psigma.fst).to_finset.to_set ⊆ ↑(ideal.span s.to_set)) → div_list a l ∈ ideal.span s.to_set
 | a [] := λ ha hb, by unfold div_list; assumption
 | a (hd :: tl) := λ ha hb, begin
     rw ideal.list_subset at hb,
     unfold div_list,
-    have hhd : hd ∈ ideal.span s, 
-        apply hb hd, simp,
-    have hdiv : (div a hd).snd.fst ∈ ideal.span s, 
-        exact div_mem_span ha hhd,
-    have hb' : tl.to_finset.to_set ⊆ ↑(ideal.span s), 
-        intros b hbtl, rw ←list.mem_to_set at hbtl, exact hb b (list.mem_cons_of_mem hd hbtl),
-    apply div_list_mem_span (div a hd).snd.fst tl hdiv hb',
+    have hhd : hd.fst ∈ ideal.span s.to_set, 
+        apply hb hd.fst, simp,
+    have hdiv : (div a hd.fst hd.snd).snd.fst ∈ ideal.span s.to_set, 
+        exact div_mem_span ha hhd hd.snd,
+    have hb' : (tl.map psigma.fst).to_finset.to_set ⊆ ↑(ideal.span s.to_set), 
+        intros b hbtl, rw ←list.mem_to_set at hbtl, apply hb b, rw list.map_cons, exact list.mem_cons_of_mem hd.fst hbtl,
+    apply div_list_mem_span (div a hd.fst hd.snd).snd.fst tl hdiv hb',
 end
 
 lemma s_poly_mem_span {a b : mv_polynomial ℕ α} {s : set (mv_polynomial ℕ α)} : a ∈ s → b ∈ s → s_poly a b ∈ (ideal.span s) := 
