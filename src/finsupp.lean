@@ -587,6 +587,8 @@ instance : lattice.semilattice_sup_bot (ℕ →₀ ℕ) := {
     sup_le := λ a b c, max_le
 }
 
+lemma bot_eq_zero : (⊥ : ℕ →₀ ℕ) = (0 : ℕ →₀ ℕ) := rfl
+
 def neq_zero_gt_zero : Π (x : ℕ →₀ ℕ), x ≠ 0 → 0 < x :=
 begin
     intros,

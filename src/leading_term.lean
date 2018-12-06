@@ -19,7 +19,9 @@ namespace mv_polynomial
         (λ nprf, let g := list.last (p.support.sort finsupp.le) nprf 
                  in finsupp.single g (p.to_fun g))-/
 
-def leading_term' (p : mv_polynomial ℕ α) : ℕ →₀ ℕ := p.support.sup id
+def leading_term' (p : mv_polynomial ℕ α) : ℕ →₀ ℕ := if h : p.support = ∅ 
+                                                        then 0 
+                                                        else finset.max' p.support h
 
 def leading_coeff (p : mv_polynomial ℕ α) : α := p.to_fun p.leading_term'
 
@@ -33,6 +35,12 @@ def leading_term_le (a b : ℕ →₀ ℕ) : Prop := leading_term_le_aux a b (fi
 
 def leading_term_le' (a b : mv_polynomial ℕ α) : Prop := leading_term_le a.leading_term' b.leading_term'
 
+def leading_term_sub_aux (a b : ℕ →₀ ℕ) : ∀ (k: ℕ), (leading_term_le_aux b a k) → (ℕ →₀ ℕ)
+| 0 le := finsupp.single 0 (a 0 - b 0)
+| (nat.succ n) le :=  (finsupp.single (nat.succ n) (b (nat.succ n) - a (nat.succ n))) + leading_term_sub_aux n le.right
+
+def leading_term_sub (a b : ℕ →₀ ℕ) (h : leading_term_le b a) : (ℕ →₀ ℕ) := leading_term_sub_aux a b (finsupp.max_ab b a) (by unfold leading_term_le at h; assumption)
+def leading_term_sub' (a b : mv_polynomial ℕ α) (h : leading_term_le' b a) : (ℕ →₀ ℕ) := leading_term_sub a.leading_term' b.leading_term' (by unfold leading_term_le' at h; assumption)
 /-
 lemma le_imp_finsupp_le : ∀ a b : mv_polynomial ℕ α, a ≤ b → a.leading_term' ≤ b.leading_term' :=
 λ a b, 
@@ -124,31 +132,43 @@ begin
     else is_false begin intro h', apply (absurd h'.left h), end,
 end
 
-
-def leading_term_sub_aux (a b : ℕ →₀ ℕ) 
-   : Π (k: ℕ), (leading_term_le_aux b a k) → (ℕ →₀ ℕ) 
-| nat.zero le := finsupp.single 0 (a 0 - b 0)
-| (nat.succ n) le := begin cases le, exact leading_term_sub_aux n le_right end
-
-def leading_term_sub (a b : ℕ →₀ ℕ) : (leading_term_le b a) → (ℕ →₀ ℕ) 
-| le := leading_term_sub_aux a b (finsupp.max_ab b a) le
-
 constant lt_wellfounded : well_founded (@preorder.lt (ℕ →₀ ℕ) _)
 
 
 lemma support_empty {a : mv_polynomial ℕ α} : a.support = ∅ → a.leading_term' = 0 :=
 λ h, begin
-    unfold leading_term', rw [h], simp [finset.sort_nil finsupp.le], refl,
+    unfold leading_term', rw [h], simp,
 end
 
 lemma leading_coeff_not0 {a : mv_polynomial ℕ α} : a.support ≠ ∅ → a.leading_coeff ≠ 0 :=
 λ ha halc, begin
     unfold leading_coeff leading_term' at halc,
-    have h := finsupp.mem_support_iff.1 (finset.mem_of_sup_id ha),
+    simp [ha] at halc,
+    have h : (finset.max' (a.support) ha) ∈ a.support, apply finset.max'_mem,
+    rw a.mem_support_to_fun at h,
     apply absurd halc h,
 end
 
-lemma support_ne_empty_of_leading_term {a b : mv_polynomial ℕ α} : a.leading_term' ≠ 0 
+lemma leading_term_le_aux_zero (a : ℕ →₀ ℕ) : ∀ n m : ℕ, (leading_term_le_aux a 0 (n + m)) → a n = 0 
+| 0 0 := λ h, begin unfold leading_term_le_aux at h, simp at h, assumption, end
+| 0 (nat.succ m) := λ h, begin unfold leading_term_le_aux at h, apply leading_term_le_aux_zero 0 m h.right, end
+| (nat.succ n) 0 := λ h, begin unfold leading_term_le_aux at h, simp at h, exact h.left, end
+| (nat.succ n) (nat.succ m) := λ h, begin unfold leading_term_le_aux at h, simp at h, rw [add_comm] at h,
+    apply leading_term_le_aux_zero (nat.succ n) m h.right, end
+
+lemma zero_of_le_zero {a b : mv_polynomial ℕ α} : a.leading_term' = 0 → leading_term_le' b a → b.leading_term' = 0 :=
+λ ha hab, begin
+    unfold leading_term_le' at hab, rw ha at hab,
+    unfold leading_term_le at hab, simp at hab,
+    apply finsupp.ext, intro x, simp, 
+    cases (lt_trichotomy x (finsupp.max (leading_term' b))),
+    rw [←nat.add_sub_of_le (le_of_lt h)] at hab,
+    apply leading_term_le_aux_zero b.leading_term' x ((finsupp.max (leading_term' b)) - x) hab,
+    cases h, rw ←h at hab, apply leading_term_le_aux_zero b.leading_term' x 0 hab,
+    apply finsupp.gt_sup_eq_zero b.leading_term' x h,
+end
+
+lemma support_ne_empty_of_leading_term' {a b : mv_polynomial ℕ α} : a.leading_term' ≠ 0 
     → a.leading_term' = b.leading_term' 
     → b.support ≠ ∅ := 
 λ ha hab, begin
@@ -156,20 +176,22 @@ lemma support_ne_empty_of_leading_term {a b : mv_polynomial ℕ α} : a.leading_
     apply absurd (support_empty h) ha,
 end
 
-lemma support_ne_empty_of_leading_term' {a : mv_polynomial ℕ α} : 
+lemma support_ne_empty_of_leading_term {a : mv_polynomial ℕ α} : 
     a.leading_term' ≠ 0 
     → a.support ≠ ∅ := 
 begin
     intros neqz neqz2,
     apply absurd (support_empty neqz2) neqz,
 end
+
 lemma leading_term_ne_zero_coeff {a : mv_polynomial ℕ α} : 
     a.leading_term' ≠ 0 → a.leading_coeff ≠ 0 :=
 λ neqz eqa,
 begin
-    unfold leading_coeff at eqa, unfold leading_term' at neqz,
-    have h' : a.support ≠ ∅ := sorry,
-    have h := finset.mem_of_sup_id h',
+    unfold leading_coeff leading_term' at eqa, 
+    have h' : a.support ≠ ∅ := support_ne_empty_of_leading_term neqz,
+    simp [h'] at eqa,
+    have h := finset.max'_mem a.support h',
     rw [finsupp.mem_support_iff] at h,
     exact absurd eqa h,
 end

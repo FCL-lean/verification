@@ -104,6 +104,7 @@ begin
     rw [lead_coeff_eq, finsupp.coe_f, lead_tm_eq],
     apply add_right_neg,
 end
+
 lemma sub_support: Π (a b: mv_polynomial ℕ α), (a - b).support ⊆ a.support ∪ b.support :=
 λ a b,
 begin
@@ -140,7 +141,6 @@ begin
     apply sub_sup' _ _ sup_a_in_b,
 end
 
-
 lemma sub_dec : Π (a b : mv_polynomial ℕ α),
     a.leading_term = b.leading_term 
     → a.leading_term' ≠ 0
@@ -148,30 +148,40 @@ lemma sub_dec : Π (a b : mv_polynomial ℕ α),
 begin
     intros a b eql neq0,
     unfold leading_term',
-    unfold leading_term at eql,
-    have coeff_neq_z := leading_term_ne_zero_coeff neq0,
-    have lead_tm_eq := finsupp.single_inj1 coeff_neq_z eql,
-    have lead_coeff_eq := finsupp.single_inj2 eql,
-    have a_sup_in_a := finset.mem_of_sup_id (support_ne_empty_of_leading_term' neq0),
-    have a_sup_in_b := finset.mem_of_sup_id (support_ne_empty_of_leading_term neq0 lead_tm_eq),
-    unfold leading_term' at lead_tm_eq,
-    rw ←lead_tm_eq at a_sup_in_b,
-    have sup_a_u_b : finset.sup (a.support ∪ b.support) id = finset.sup (a.support) id,
-    rw [finset.sup_union, ←lead_tm_eq, lattice.sup_idem],
-    have a_sub_b_in_a_u_b := sub_support a b,
-    have not_in_a_sub_b := lead_tm_eq_notin_supp eql neq0,
-    have ab_le := sub_sup _ _ a_sub_b_in_a_u_b,
-    rw le_iff_lt_or_eq at ab_le, cases ab_le,
-    rw ←sup_a_u_b, assumption,
-    unfold leading_term' at not_in_a_sub_b,
-    rw ←sup_a_u_b at not_in_a_sub_b,
-    rw ←ab_le at not_in_a_sub_b,
-    by_cases (a - b).support = ∅,
-    swap,
-    apply absurd (finset.mem_of_sup_id h) not_in_a_sub_b,
-    rw h at *, simp at *,
-    apply finsupp.neq_zero_gt_zero,
-    assumption,
+    let ha : a.support ≠ ∅ := support_ne_empty_of_leading_term neq0,
+    let ma_not_in_a_sub_b := lead_tm_eq_notin_supp eql neq0,
+    unfold leading_term' at ma_not_in_a_sub_b,
+    rw logic.dite_false' ha at ma_not_in_a_sub_b,
+    --simp [support_ne_empty_of_leading_term neq0],
+    
+    from if h : (a - b).support = ∅ 
+    then begin 
+        rw [h], simp [ha],
+        unfold leading_term' at neq0, simp [ha] at neq0,
+        apply finsupp.neq_zero_gt_zero (finset.max' a.support ha) neq0,
+    end 
+    else begin
+        simp [h, ha],
+        unfold leading_term at eql,
+        let eql' := finsupp.single_inj1 (leading_term_ne_zero_coeff neq0) eql,
+        let hb : b.support ≠ ∅ := support_ne_empty_of_leading_term' neq0 eql',
+        unfold leading_term' at eql' ma_not_in_a_sub_b,
+        simp [ha, hb] at eql',
+        let a_le := finset.le_max' a.support ha,
+        let b_le := finset.le_max' b.support hb,
+        generalize hma : finset.max' (a.support) ha = ma,         
+        rw hma at a_le ma_not_in_a_sub_b, rw [←eql', hma] at b_le,
+        let hab_le : ∀ x : (ℕ →₀ ℕ), x ∈ (a.support ∪ b.support) → x ≤ ma,
+            intros x hx, rw finset.mem_union at hx, cases hx, 
+            exact a_le x hx, exact b_le x hx,
+        have a_sub_b_sup := sub_support a b, unfold has_subset.subset at a_sub_b_sup,
+        have hm_a_sub_b : (finset.max' (a - b).support h) ∈ (a - b).support, 
+            apply finset.max'_mem (a - b).support h,
+        generalize hmab : finset.max' ((a - b).support) h = mab, rw hmab at hm_a_sub_b,
+        let mab_le_ma : mab ≤ ma := hab_le mab (a_sub_b_sup hm_a_sub_b),
+        have mab_ne_ma : mab ≠ ma, intro, rw a_1 at hm_a_sub_b, apply absurd hm_a_sub_b ma_not_in_a_sub_b,
+        exact lt_of_le_of_ne mab_le_ma mab_ne_ma,
+    end
     /-
         finset.sup (a.support) id ∈ a.support
         finset.sup (a.support) id ∈ b.support
@@ -183,6 +193,38 @@ begin
                 finset.sup (a.support ∪ b.support) id
         
     -/
+end
+
+lemma lead_tm_mul {a b : mv_polynomial ℕ α} : a.leading_term * b.leading_term = (a * b).leading_term :=
+begin   
+    unfold leading_term, rw finsupp.single_mul_single,
+    have p1 : leading_term' a + leading_term' b = leading_term' (a * b), 
+    {
+        revert b,
+        apply mv_polynomial.induction_on a, sorry, sorry,
+        intros p n hp, rw [←@hp (mv_polynomial.X n)],
+
+    },
+    have p2 : leading_coeff a * leading_coeff b = leading_coeff (a * b), sorry,
+    rw [p1, p2], 
+    --unfold has_mul.mul finsupp.sum, simp [finset.sum_eq_fold],
+end
+
+lemma lead_tm_eq {a b : mv_polynomial ℕ α} (hb : b ≠ 0) (hab : leading_term_le' b a) : 
+    a.leading_term = leading_term (b * monomial (leading_term_sub' a b hab) (a.leading_coeff / b.leading_coeff)) :=
+begin
+    unfold leading_term,
+    have h₀ : a.leading_term' = (leading_term' (b * monomial (leading_term_sub' a b hab) (leading_coeff a / leading_coeff b))),
+    have hb : b.support ≠ ∅, intro h, rw finsupp.support_eq_empty at h, apply absurd h hb,
+    from if ha_lt0 : a.leading_term' = 0
+    then begin
+        let hb_lt0 := zero_of_le_zero ha_lt0 hab,
+        unfold leading_term_sub' leading_term_sub, simp [ha_lt0, hb_lt0],
+        unfold finsupp.max, simp, 
+        change (0 = leading_term' (b * monomial (leading_term_sub_aux 0 0 0 _) (leading_coeff a / leading_coeff b))),
+        unfold leading_term_sub_aux, simp,
+    end
+    else 
 end
 
 def div : Π (a b : mv_polynomial ℕ α), b ≠ 0 →
