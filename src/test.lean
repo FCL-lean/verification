@@ -275,6 +275,11 @@ def mv_is_const_neqz {p : mv_polynomial ℕ α}:
 begin
     intros, unfold mv_is_const at a,
     generalize h : mv_trichotomy p = m,
+    rw h at a,
+    cases m, rw m at a_1, apply false.elim, apply a_1, simp,
+    cases m, assumption,
+    unfold mv_is_const_aux at a,
+    apply false.elim, assumption,
 end
 
 def ne_mv_is_const {p : mv_polynomial ℕ α}:
@@ -310,20 +315,27 @@ def lead_tm'_eqz_const {a : mv_polynomial ℕ α}:
 λ eqz,
 begin 
     unfold leading_term' at eqz,
-
 end
 
 def lead_tm_lez {a b : mv_polynomial ℕ α}:
     a.leading_term' = 0 → leading_term_le' b a
     → b.leading_term' = 0 := sorry
-
+-- set_option trace.check true
 def div_const : Π (a b : mv_polynomial ℕ α), b ≠ 0 →
                 mv_is_const b →
                 Σ' (q r : mv_polynomial ℕ α), b.leading_term' = r.leading_term'
                         ∧ a = b * q + r
 | a b bneqz bconst :=
 begin
-    
+    have m := mv_is_const_neqz bconst bneqz,
+    apply psigma.mk (a * C (m.fst / a.leading_coeff)),
+    apply psigma.mk (0: mv_polynomial ℕ α),
+    apply and.intro,
+    rw m.snd.snd,
+    unfold leading_term' C monomial finsupp.single, 
+    simp [m.snd.fst], trivial,
+    simp, have n : b = C m.fst,
+    exact m.snd.snd, revert n,
 end
 def div : Π (a b : mv_polynomial ℕ α), b ≠ 0 →
                 ¬ mv_is_const b →
