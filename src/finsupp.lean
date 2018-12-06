@@ -45,6 +45,18 @@ begin
     simp at m, assumption,
 end
 
+def single_eqz : Π {a : α} {b : β}, single a b = 0 → b = 0 :=
+begin
+    intros a b sin,
+    unfold single at sin,
+    by_cases b = 0,
+    assumption,
+    simp [h] at sin,
+    apply false.elim,
+    have m := congr_arg finsupp.support sin, simp at m,
+    assumption,
+end
+
 def coe_f : Π (a : α →₀ β) (n : α), a n = a.to_fun n := λ a n, rfl
 end has_zero
 
@@ -84,7 +96,7 @@ class is_monomial_order (α : Type*) (r : α → α → Prop) extends has_add α
 
 section nat
 variables [discrete_field α]
-variables [decidable_eq α] [decidable_linear_order α]
+variables [decidable_linear_order α]
 
 def le_aux : (ℕ →₀ ℕ) → (ℕ →₀ ℕ) → ℕ → Prop
 | a b 0 := a 0 ≤ b 0
@@ -473,8 +485,9 @@ lemma max_ab_in_a_sup_or_b_sup : Π (a b : ℕ →₀ ℕ),
     by_cases (b.support = ∅),
     unfold finsupp.max_ab, rw [h, finset.union_empty],
     left, exact finset.mem_of_sup_id ne,
-    unfold finsupp.max_ab, 
-    let h' := finset.union_sup_in_a_or_b a.support b.support h, exact h',
+    all_goals {unfold finsupp.max_ab, 
+    apply finset.union_sup_in_a_or_b,
+    assumption},
 end
 
 lemma eq_zero_not_max_ab : Π (a b : ℕ →₀ ℕ) (i : ℕ),
