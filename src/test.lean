@@ -328,14 +328,17 @@ def div_const : Π (a b : mv_polynomial ℕ α), b ≠ 0 →
 | a b bneqz bconst :=
 begin
     have m := mv_is_const_neqz bconst bneqz,
-    apply psigma.mk (a * C (m.fst / a.leading_coeff)),
+    apply psigma.mk (a * C (1 / m.fst)),
     apply psigma.mk (0: mv_polynomial ℕ α),
     apply and.intro,
     rw m.snd.snd,
     unfold leading_term' C monomial finsupp.single, 
     simp [m.snd.fst], trivial,
     simp, have n : b = C m.fst,
-    exact m.snd.snd, revert n,
+    exact m.snd.snd, generalize j : C (m.fst)⁻¹ = k,
+    rw n, rw ←j, rw mul_comm, rw mul_assoc,
+    rw ←C_mul, rw discrete_field.inv_mul_cancel,
+    simp, exact m.snd.fst,
 end
 def div : Π (a b : mv_polynomial ℕ α), b ≠ 0 →
                 ¬ mv_is_const b →
