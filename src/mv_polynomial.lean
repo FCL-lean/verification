@@ -40,6 +40,55 @@ else if h₁ : p.support = {0}
         by_cases h_fst = 0; simp [h, h_snd] at *; assumption, 
     end
 
+def mv_is_const_aux : Π (p : mv_polynomial σ α), (psum (p = mv_polynomial.C 0) 
+            (psum (Σ'a : α, pprod (a ≠ 0) (p = mv_polynomial.C a)) 
+                ((Σ'a : α, p = mv_polynomial.C a) → false))) → Prop
+| p (psum.inl lp) := true
+| p (psum.inr (psum.inl lp)) := true
+| p (psum.inr (psum.inr rp)) := false
+
+def mv_is_const (p : mv_polynomial σ α): Prop := mv_is_const_aux p (mv_trichotomy p)
+
+
+def mv_is_const_neqz {p : mv_polynomial σ α}:
+    mv_is_const p → p ≠ 0 → (Σ'a : α, pprod (a ≠ 0) (p = mv_polynomial.C a)) :=
+begin
+    intros, unfold mv_is_const at a,
+    generalize h : mv_trichotomy p = m,
+    rw h at a,
+    cases m, rw m at a_1, apply false.elim, apply a_1, simp,
+    cases m, assumption,
+    unfold mv_is_const_aux at a,
+    apply false.elim, assumption,
+end
+
+def ne_mv_is_const {p : mv_polynomial σ α}:
+    ¬ mv_is_const p → (Σ'a : α, p = mv_polynomial.C a) → false :=
+begin
+    intros,
+    generalize j : mv_trichotomy p = m,
+    cases h:m, unfold mv_is_const at a,
+    rw [j, h] at a, unfold mv_is_const_aux at a,
+    apply a, trivial,
+    cases h1:val, unfold mv_is_const at a,
+    rw [j, h, h1] at a, unfold mv_is_const_aux at a,
+    apply a, trivial, apply val_1, assumption,
+end
+
+instance (p : mv_polynomial σ α): decidable (mv_is_const p) :=
+begin
+    generalize t : mv_trichotomy p = m,
+    cases h: m, apply is_true, rw val, simp,
+    cases h: val, apply is_true, rw val_1.snd.snd, simp,
+    unfold mv_is_const mv_is_const_aux,
+    cases val_1, rw ←val_1_snd.snd, rw t,
+    tactic.unfreeze_local_instances, dedup, 
+    rw [h, h_1], unfold mv_is_const_aux,
+    apply is_false, unfold mv_is_const,
+    rw [t], tactic.unfreeze_local_instances, dedup,
+    rw [h, h_1], unfold mv_is_const_aux, simp,
+end
+
 section semilattice
 variables [lattice.semilattice_sup_bot (σ →₀ ℕ)]
 
@@ -50,6 +99,13 @@ def leading_term (a: mv_polynomial σ α): mv_polynomial σ α
 
 def leading_coeff (a: mv_polynomial σ α): α := a.to_fun (a.support.sup id)
 
+def lead_monomial_eqz_const {a : mv_polynomial σ α}:
+    a.leading_monomial = 0 
+    → Σ' (c : α), a = C c :=
+λ eqz,
+begin 
+    sorry
+end
 
 section decidable_linear_order
 variables [decidable_linear_order α]
