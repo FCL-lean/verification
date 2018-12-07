@@ -1,4 +1,5 @@
 import data.finsupp
+import util
 variables {α : Type*} {β : Type*} {γ : Type*} {δ : Type*} {ι : Type*}
 namespace finsupp
 
@@ -87,6 +88,11 @@ end canonically_ordered_monoid
 end general
 
 section fin_n
+variable {n : ℕ}
+include n
+def le_aux : ((fin n) →₀ ℕ) → ((fin n) →₀ ℕ) → ℕ → Prop := sorry
+protected def le: rel ((fin n) →₀ ℕ) := λ a b, le_aux a b (n - 1)
+
 end fin_n
 
 end finsupp
