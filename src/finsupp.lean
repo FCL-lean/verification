@@ -103,7 +103,19 @@ def le_aux : ((fin $ n + 1) →₀ ℕ) → ((fin $ n + 1) →₀ ℕ) → ℕ �
 
 protected def le: rel ((fin $ n + 1) →₀ ℕ) := λ a b, le_aux a b n
 
-lemma le_refl : ∀ a : (fin $ n + 1) →₀ ℕ, finsupp.le a a := sorry
+lemma le_refl_aux (m : ℕ): ∀ a : (fin $ n + 1) →₀ ℕ, le_aux a a m :=
+begin
+    intros, induction m,
+    unfold le_aux,
+    unfold le_aux, right,
+    apply and.intro, refl, exact m_ih,
+end
+
+lemma le_refl : ∀ a : (fin $ n + 1) →₀ ℕ, finsupp.le a a :=
+begin
+    intro a, unfold finsupp.le,
+    apply le_refl_aux,
+end
 
 omit n
 
