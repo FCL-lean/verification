@@ -135,6 +135,24 @@ def leading_term_sub (a b : ℕ →₀ ℕ) : (leading_term_le b a) → (ℕ →
 
 constant lt_wellfounded : well_founded (@preorder.lt (ℕ →₀ ℕ) _)
 
+lemma leading_term_le_aux_zero (a : ℕ →₀ ℕ) : ∀ n m : ℕ, (leading_term_le_aux a 0 (n + m)) → a n = 0 
+| 0 0 := λ h, begin unfold leading_term_le_aux at h, simp at h, assumption, end
+| 0 (nat.succ m) := λ h, begin unfold leading_term_le_aux at h, apply leading_term_le_aux_zero 0 m h.right, end
+| (nat.succ n) 0 := λ h, begin unfold leading_term_le_aux at h, simp at h, exact h.left, end
+| (nat.succ n) (nat.succ m) := λ h, begin unfold leading_term_le_aux at h, simp at h, rw [add_comm] at h,
+    apply leading_term_le_aux_zero (nat.succ n) m h.right, end
+
+lemma zero_of_le_zero {a b : mv_polynomial ℕ α} : a.leading_term' = 0 → leading_term_le' b a → b.leading_term' = 0 :=
+λ ha hab, begin
+    unfold leading_term_le' at hab, rw ha at hab,
+    unfold leading_term_le at hab, simp at hab,
+    apply finsupp.ext, intro x, simp, 
+    cases (lt_trichotomy x (finsupp.max (leading_term' b))),
+    rw [←nat.add_sub_of_le (le_of_lt h)] at hab,
+    apply leading_term_le_aux_zero b.leading_term' x ((finsupp.max (leading_term' b)) - x) hab,
+    cases h, rw ←h at hab, apply leading_term_le_aux_zero b.leading_term' x 0 hab,
+    apply finsupp.gt_sup_eq_zero b.leading_term' x h,
+end
 
 lemma support_empty {a : mv_polynomial ℕ α} : a.support = ∅ → a.leading_term' = 0 :=
 λ h, begin

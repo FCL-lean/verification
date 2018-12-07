@@ -27,4 +27,12 @@ begin
     intros h a ha, rw list.mem_to_set at ha, apply h ha,
     intros h a ha, rw ←list.mem_to_set at ha, exact h a ha,
 end
+
+lemma subset_of_set_subset {s₁ s₂ : set α} {I : ideal α} : s₁ ⊆ s₂ → s₂ ⊆ I → s₁ ⊆ I :=
+λ s12 s2i, begin
+    let hs12 := span_mono s12, 
+    rw ←span_le at *,
+    exact le_trans hs12 s2i,
+end
+
 end ideal

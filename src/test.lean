@@ -209,13 +209,24 @@ begin
     exact poly_lead_coeff_z eqz',
 end
 
-lemma lead_tm_eq {a b: mv_polynomial ℕ α}{sub : ℕ →₀ ℕ} {h}:
+lemma leading_term_hom {a b : mv_polynomial ℕ α} : a.leading_term' * b.leading_term' = (a * b).leading_term' :=
+begin
+    unfold leading_term', apply finsupp.ext, intro x,
+end 
+
+lemma lead_tm_eq {a b: mv_polynomial ℕ α} {sub : ℕ →₀ ℕ} {h}:
     b ≠ 0 →
     leading_term_sub a.leading_term' b.leading_term' h = sub →
-    leading_term a = leading_term (b * finsupp.single sub 
-                        (leading_coeff a / leading_coeff b)) :=
-begin
-    sorry
+    leading_term a = leading_term (b * finsupp.single sub (leading_coeff a / leading_coeff b)) :=
+λ hbne hsub, begin
+    unfold leading_term,
+    have h₁ : a.leading_term' = leading_term' (b * finsupp.single sub (leading_coeff a / leading_coeff b)), {
+        unfold has_mul.mul finsupp.sum,
+    },
+    have h₂ : a.leading_coeff = leading_coeff (b * finsupp.single sub (leading_coeff a / leading_coeff b)), {
+        sorry
+    },
+    rw [←h₁, ←h₂], 
 end
 
 def mv_trichotomy (p : mv_polynomial ℕ α) : psum (p = mv_polynomial.C 0) 
@@ -315,12 +326,11 @@ def lead_tm'_eqz_const {a : mv_polynomial ℕ α}:
 λ eqz,
 begin 
     unfold leading_term' at eqz,
+    sorry
 end
 
-def lead_tm_lez {a b : mv_polynomial ℕ α}:
-    a.leading_term' = 0 → leading_term_le' b a
-    → b.leading_term' = 0 := sorry
 -- set_option trace.check true
+/-
 def div_const : Π (a b : mv_polynomial ℕ α), b ≠ 0 →
                 mv_is_const b →
                 Σ' (q r : mv_polynomial ℕ α), b.leading_term' = r.leading_term'
@@ -340,44 +350,61 @@ begin
     rw ←C_mul, rw discrete_field.inv_mul_cancel,
     simp, exact m.snd.fst,
 end
+-/
 def div : Π (a b : mv_polynomial ℕ α), b ≠ 0 →
-                ¬ mv_is_const b →
-                 Σ'q r, ¬ leading_term_le' b r 
+                 Σ'q r, ((¬ leading_term_le' b r) ∨ (b.leading_term' = r.leading_term'))
                         ∧ a = b * q + r
-| a b bneqz bnconst :=
+| a b bneqz :=
 begin
-    by_cases (leading_term_le' b a),
-    generalize subeq : leading_term_sub a.leading_term' b.leading_term' h = sub,
-    generalize q'eq : finsupp.single sub (a.leading_coeff / b.leading_coeff) = q',
-    generalize h : a - b * q' = r',
-    by_cases alt'eqz: a.leading_term' = 0,
-    let atmeqz := lead_tm'_eqz_const alt'eqz, 
-    tactic.unfreeze_local_instances, dedup,
-    let btmeqz := lead_tm'_eqz_const (lead_tm_lez alt'eqz h),
-    have atmeqzp := atmeqz.snd,
-    have btmeqzp := btmeqz.snd,
-    apply false.elim, apply ne_mv_is_const bnconst, assumption,
-    let tt' : r'.leading_term' < a.leading_term', 
-    rw ←h,
-    exact sub_dec a (b * q') 
-        (begin rw ←q'eq, exact lead_tm_eq bneqz subeq end) 
-        alt'eqz,
-    have result := div r' b bneqz bnconst,
-    cases result with r_q, cases result_snd with r_r,
-    apply psigma.mk (q' + r_q),
-    apply psigma.mk r_r,
-    apply and.intro,
-    exact result_snd_snd.left,
-    have prf : a = b * q' + r',
-    rw [←h],simp, 
-    cases result_snd_snd,
-    rw [prf, result_snd_snd_right],
-    simp,
-    rw left_distrib,
-    apply psigma.mk (0 : mv_polynomial ℕ α),
-    apply psigma.mk a,
-    apply and.intro, assumption,
-    simp,
+    from if hbconst : mv_is_const b
+    then begin 
+        have m := mv_is_const_neqz hbconst bneqz,
+        apply psigma.mk (a * C (1 / m.fst)),
+        apply psigma.mk (0: mv_polynomial ℕ α),
+        apply and.intro, right,
+        rw m.snd.snd,
+        unfold leading_term' C monomial finsupp.single, 
+        simp [m.snd.fst], trivial,
+        simp, have n : b = C m.fst,
+        exact m.snd.snd, generalize j : C (m.fst)⁻¹ = k,
+        rw n, rw ←j, rw mul_comm, rw mul_assoc,
+        rw ←C_mul, rw discrete_field.inv_mul_cancel,
+        simp, exact m.snd.fst,
+    end
+    else begin
+        by_cases (leading_term_le' b a),
+        generalize subeq : leading_term_sub a.leading_term' b.leading_term' h = sub,
+        generalize q'eq : finsupp.single sub (a.leading_coeff / b.leading_coeff) = q',
+        generalize h : a - b * q' = r',
+        by_cases alt'eqz: a.leading_term' = 0,
+        let atmeqz := lead_tm'_eqz_const alt'eqz, 
+        tactic.unfreeze_local_instances, dedup,
+        let btmeqz := lead_tm'_eqz_const (zero_of_le_zero alt'eqz h),
+        have atmeqzp := atmeqz.snd,
+        have btmeqzp := btmeqz.snd,
+        apply false.elim, apply ne_mv_is_const hbconst, assumption,
+        let tt' : r'.leading_term' < a.leading_term', 
+        rw ←h,
+        exact sub_dec a (b * q') 
+            (begin rw ←q'eq, exact lead_tm_eq bneqz subeq end) 
+            alt'eqz,
+        have result := div r' b bneqz,
+        cases result with r_q, cases result_snd with r_r,
+        apply psigma.mk (q' + r_q),
+        apply psigma.mk r_r,
+        apply and.intro,
+        exact result_snd_snd.left,
+        have prf : a = b * q' + r',
+        rw [←h], simp, 
+        cases result_snd_snd,
+        rw [prf, result_snd_snd_right],
+        simp,
+        rw left_distrib,
+        apply psigma.mk (0 : mv_polynomial ℕ α),
+        apply psigma.mk a,
+        apply and.intro, apply or.inl h,
+        simp,
+    end
 end
 using_well_founded { rel_tac := λ _ _, `[exact ⟨_, inv_image.wf psigma.fst (inv_image.wf leading_term' lt_wellfounded)⟩] 
                    , dec_tac := tactic.assumption }
@@ -462,11 +489,11 @@ def buchberger : list (Σ' (p: mv_polynomial ℕ α), p ≠ 0) → list (Σ' (p:
     let result := buch_div_result s $ filter_non_zero $ buch_s_polys $ buch_pairs s
         in if s = result then s else 
                 begin
-                    let h : buch_lt result s := buch_lt_lt s sorry,
+                    --let h : buch_lt result s := buch_lt_lt s sorry,
                     exact buchberger result
                 end
-using_well_founded { rel_tac := λ _ _, `[exact ⟨_, buch_lt_wf⟩] 
-                   , dec_tac := tactic.assumption }
+--using_well_founded { rel_tac := λ _ _, `[exact ⟨_, buch_lt_wf⟩] 
+--                   , dec_tac := tactic.assumption }
 
 
 
@@ -506,71 +533,108 @@ lemma div_list_mem_span {s : finset (mv_polynomial ℕ α)} :
     apply div_list_mem_span (div a hd.fst hd.snd).snd.fst tl hdiv hb',
 end
 
-lemma s_poly_mem_span {a b : mv_polynomial ℕ α} {s : set (mv_polynomial ℕ α)} : a ∈ s → b ∈ s → s_poly a b ∈ (ideal.span s) := 
+lemma mem_sigma : ∀ {a : Σ' (p : mv_polynomial ℕ α), p ≠ 0} {s : list (Σ' (p: mv_polynomial ℕ α), p ≠ 0)}, 
+    a ∈ s → a.fst ∈ (s.map psigma.fst) :=
+λ a s ha, begin
+    rw [list.mem_map],
+    apply exists.intro a, simp [ha],
+end
+
+lemma s_poly_mem_span {a b : mv_polynomial ℕ α} {s : finset (mv_polynomial ℕ α)} (ha : a ≠ 0) (hb : b ≠ 0) : a ∈ s → b ∈ s → s_poly a b ha hb ∈ (ideal.span s.to_set) := 
 λ ha hb, begin
     unfold s_poly, simp,
-    generalize hx : (div (leading_term_lcm a b) (leading_term a)).fst = x,
-    generalize hy : (div (leading_term_lcm a b) (leading_term b)).fst = y,
+    generalize hx : (div (leading_term_lcm a b) (leading_term a) _).fst = x,
+    generalize hy : (div (leading_term_lcm a b) (leading_term b) _).fst = y,
     rw neg_mul_eq_neg_mul y b,
     exact ideal.linear_combine_mem x (-y) ha hb,
 end
 
 set_option trace.simplify.rewrite true
-lemma buch_s_poly_subset_span (s : list (mv_polynomial ℕ α)) : (buch_s_polys (buch_pairs s)).to_finset.to_set ⊆ ↑(ideal.span s.to_finset.to_set) :=
+lemma buch_s_poly_subset_span (s : list (Σ' (p: mv_polynomial ℕ α), p ≠ 0)) :
+     (buch_s_polys (buch_pairs s)).to_finset.to_set ⊆ ↑(ideal.span (s.map psigma.fst).to_finset.to_set) :=
 begin
     rw ideal.list_subset,
     intros x hx,
     unfold buch_s_polys buch_pairs at hx,
     simp at hx,
-    cases hx with a, cases hx_h with b,
-    cases hx_h_h.left with a', cases h.right with b',
+    cases hx with h₁, cases hx_h with h₂,
+    cases h₂ with a', cases h₂_h with ha', cases h₂_h_right with b',
     from if hab : a' = b'
     then begin 
-        simp [hab] at h_1,
-        revert h_1, 
+        simp [hab] at h₂_h_right_h,
+        revert h₂_h_right_h, 
         simp only [false_implies_iff],
     end
     else begin
-        simp [hab] at h_1,
-        rw [list.mem_to_set] at h h_1,
-        rw [←hx_h_h.right, h_1.right.right, h_1.right.left],
-        apply s_poly_mem_span h.left h_1.left,
+        simp [hab] at h₂_h_right_h,
+        rw [←hx_h_right, h₂_h_right_h.right], simp,
+        apply s_poly_mem_span a'.snd b'.snd (list.mem_to_finset.2 (mem_sigma ha')) (list.mem_to_finset.2 (mem_sigma h₂_h_right_h.left)),
     end
 end
 
-lemma buch_div_subset_span : ∀ {s s' s_polys : list (mv_polynomial ℕ α)},
-    (s'.to_finset.to_set ⊆ ↑(ideal.span s.to_finset.to_set))
-    → (s_polys.to_finset.to_set ⊆ ↑(ideal.span s.to_finset.to_set))
-    → (buch_div_result s' s_polys).to_finset.to_set ⊆ ↑(ideal.span (s.to_finset.to_set))
-|s s' [] := λ hs' hsp, by unfold buch_div_result; simp; assumption
-|s s' (hd :: tl) := λ hs' hsp, begin
-    unfold buch_div_result, simp,
-    have hsp' : (tl.to_finset.to_set ⊆ ↑(ideal.span s.to_finset.to_set)),
-        intros a ha, rw ←list.mem_to_set at ha, apply (ideal.list_subset.1 hsp) a (list.mem_cons_of_mem hd ha),
-    from if h : div_list hd s' ∈ s'
-    then begin
-        simp [h], 
-        apply buch_div_subset_span hs' hsp',
+lemma filter_non_zero_subset_span : ∀ {s : list (mv_polynomial ℕ α)} {i : ideal (mv_polynomial ℕ α)},
+    s.to_finset.to_set ⊆ ↑i → ((filter_non_zero s).map psigma.fst).to_finset.to_set ⊆ ↑i
+| [] i := begin unfold filter_non_zero, simp, end
+| (hd :: tl) i := begin
+    unfold filter_non_zero,
+    from if h : hd = 0
+    then begin 
+        simp [h], intro h0tl,
+        have h0tl' : ((↑tl.to_finset) : set (mv_polynomial ℕ α)) ⊆ insert (0 : mv_polynomial ℕ α) ↑(list.to_finset tl),
+        simp, 
+        apply filter_non_zero_subset_span (ideal.subset_of_set_subset h0tl' h0tl),
     end
     else begin
-        simp [h], 
-        have hs'_ : (list.cons (div_list hd s') s').to_finset.to_set ⊆ ↑(ideal.span (s.to_finset.to_set)),
-            intros a ha, rw [←list.mem_to_set, list.mem_cons_iff] at ha,
-            cases ha, rw ha,
-            have hhd : hd ∈ ideal.span (finset.to_set (list.to_finset s)), apply (ideal.list_subset.1 hsp) hd, simp,
-            apply div_list_mem_span hd s' hhd hs', exact (ideal.list_subset.1 hs') a ha,
-        apply buch_div_subset_span hs'_ hsp',
+        simp [h], intro ihdtl, rw [set.insert_subset] at *, apply and.intro, exact ihdtl.left,
+        apply filter_non_zero_subset_span ihdtl.right,
+    end
+end
+
+lemma buch_div_subset_span : ∀ {s s' s_polys : list (Σ' (p: mv_polynomial ℕ α), p ≠ 0)},
+    ((s'.map psigma.fst).to_finset.to_set ⊆ ↑(ideal.span (s.map psigma.fst).to_finset.to_set))
+    → ((s_polys.map psigma.fst).to_finset.to_set ⊆ ↑(ideal.span (s.map psigma.fst).to_finset.to_set))
+    → ((buch_div_result s' s_polys).map psigma.fst).to_finset.to_set ⊆ ↑(ideal.span ((s.map psigma.fst).to_finset.to_set))
+|s s' [] := λ hs' hsp, by unfold buch_div_result; simp; assumption
+|s s' (hd :: tl) := λ hs' hsp, begin
+    unfold buch_div_result, simp [-list.mem_map],
+    have hsp' : ((tl.map psigma.fst).to_finset.to_set ⊆ ↑(ideal.span (s.map psigma.fst).to_finset.to_set)),
+        intros a ha, rw ←list.mem_to_set at ha, rw list.map_cons at hsp, apply (ideal.list_subset.1 hsp) a (list.mem_cons_of_mem hd.fst ha),
+    from if h₀ : div_list hd.fst s' ∈ s'.map psigma.fst
+    then begin
+        simp [h₀], 
+        have h' := buch_div_subset_span hs' hsp', unfold buch_div_result at h', simp at h', assumption,
+    end
+    else begin
+        --simp [h], 
+        from if h₁ : div_list hd.fst s' ≠ 0
+        then begin 
+            simp [h₀, h₁],
+            have hs'_ : ((list.cons (@psigma.mk _ (λ x, x ≠ (0 : mv_polynomial ℕ α)) (div_list hd.fst s') h₁) s').map psigma.fst).to_finset.to_set 
+                ⊆ ↑(ideal.span ((s.map psigma.fst).to_finset.to_set)),
+            intros a ha, rw [←list.mem_to_set, list.map_cons] at ha,
+            cases ha, rw ha, simp,
+            have hhd : hd.fst ∈ ideal.span (finset.to_set (list.to_finset (list.map psigma.fst s))),
+                apply (ideal.list_subset.1 hsp) hd.fst, simp,
+            apply div_list_mem_span hd.fst s' hhd hs', simp,
+            exact (ideal.list_subset.1 hs') a ha,
+            have h' := buch_div_subset_span hs'_ hsp', unfold buch_div_result at h', simp at h', assumption,
+        end
+        else begin
+            simp [h₀, h₁],
+            have h' := buch_div_subset_span hs' hsp', unfold buch_div_result at h', simp at h', assumption, 
+        end
     end
 end
 
 --set_option trace.class_instances true
 set_option trace.simp_lemmas true
-lemma buch_subset_span : ∀ {s : list (mv_polynomial ℕ α)}, (buchberger s).to_finset.to_set ⊆ ↑(ideal.span (s.to_finset.to_set))
+lemma buch_subset_span : ∀ {s : list (Σ' (p: mv_polynomial ℕ α), p ≠ 0)}, 
+    ((buchberger s).map psigma.fst).to_finset.to_set ⊆ ↑(ideal.span ((s.map psigma.fst).to_finset.to_set))
 | s := begin
     unfold buchberger, 
-    have h :  (buch_div_result s (buch_s_polys (buch_pairs s))).to_finset.to_set ⊆ ↑(ideal.span (s.to_finset.to_set)),
-    apply buch_div_subset_span, apply ideal.subset_span, apply buch_s_poly_subset_span s,
-    generalize hs : buch_div_result s (buch_s_polys (buch_pairs s)) = s', rw hs at h,
+    have h :  ((buch_div_result s (filter_non_zero (buch_s_polys (buch_pairs s)))).map psigma.fst).to_finset.to_set ⊆ ↑(ideal.span (s.map psigma.fst).to_finset.to_set),
+    apply buch_div_subset_span, apply ideal.subset_span, apply filter_non_zero_subset_span (buch_s_poly_subset_span s),
+    generalize hs : buch_div_result s (filter_non_zero (buch_s_polys (buch_pairs s))) = s', rw hs at h,
     from if hss' : s = s' 
     then begin
         simp [hss'], exact ideal.subset_span,
@@ -578,37 +642,49 @@ lemma buch_subset_span : ∀ {s : list (mv_polynomial ℕ α)}, (buchberger s).t
     else begin
         simp [hss'], apply ideal.span_le.1 (le_trans (ideal.span_le.2 (@buch_subset_span s')) (ideal.span_le.2 h)),
     end
-    
 end
 
-lemma buch_div_contain : ∀ {s s' s_poly : list (mv_polynomial ℕ α)}, 
-    s.to_finset.to_set ⊆ s'.to_finset.to_set
-    → s.to_finset.to_set ⊆ (buch_div_result s' s_poly).to_finset.to_set
+lemma buch_div_contain : ∀ {s s' s_poly : list (Σ' (p: mv_polynomial ℕ α), p ≠ 0)}, 
+    (s.map psigma.fst).to_finset.to_set ⊆ (s'.map psigma.fst).to_finset.to_set
+    → (s.map psigma.fst).to_finset.to_set ⊆ ((buch_div_result s' s_poly).map psigma.fst).to_finset.to_set
 | s s' [] := begin unfold buch_div_result, simp, end
 | s s' (hd :: tl) := λ hs, begin
-    unfold buch_div_result, simp,
-    from if h : div_list hd s' ∈ s'
+    unfold buch_div_result, simp [-list.mem_map],
+    from if h : div_list hd.fst s' ∈ (s'.map psigma.fst)
     then begin
-        simp [h], exact buch_div_contain hs,
+        have h' := @buch_div_contain _ _ tl hs, unfold buch_div_result at h',
+        simp [h, h'] at *, assumption, 
     end
     else begin
-        simp [h], 
-        have hs' : s' ⊆ (div_list hd s' :: s'), simp, rw list.subset_to_set at hs',
-        exact buch_div_contain (set.subset.trans hs hs'),
+        have hs' : (s'.map psigma.fst) ⊆ (div_list hd.fst s' :: (s'.map psigma.fst)), simp, rw list.subset_to_set at hs',
+        from if h' : div_list (hd.fst) s' ≠ 0
+        then begin 
+            have h_sub := set.subset.trans hs hs', rw ←list.map_cons psigma.fst (@psigma.mk _ (λ x, x ≠ (0 : mv_polynomial ℕ α)) (div_list hd.fst s') h') at h_sub,
+            have h'' := @buch_div_contain _ _ tl h_sub, unfold buch_div_result at h'', simp [h, h'] at *, assumption,
+        end
+        else begin
+            have h'' := @buch_div_contain _ _ tl hs, unfold buch_div_result at h'',
+            simp [h, h'] at *, assumption, 
+        end
+        --exact buch_div_contain (set.subset.trans hs hs'),
     end
 end
 
-lemma buch_contain : ∀ {s : list (mv_polynomial ℕ α)}, s.to_finset.to_set ⊆ (buchberger s).to_finset.to_set
+lemma buch_contain : ∀ {s : list (Σ' (p: mv_polynomial ℕ α), p ≠ 0)}, (s.map psigma.fst).to_finset.to_set ⊆ ((buchberger s).map psigma.fst).to_finset.to_set
 | s := begin
     unfold buchberger,
-    generalize hs : buch_div_result s (buch_s_polys (buch_pairs s)) = s',
-    have hs' : s ⊆ s', rw [list.subset_to_set, ←hs], apply buch_div_contain, refl,
+    generalize hs : buch_div_result s (filter_non_zero (buch_s_polys (buch_pairs s))) = s',
+    have hs' : s ⊆ s', rw [list.subset_to_set, ←hs], 
+    sorry
+    /-
+    apply buch_div_contain, refl,
     from if h : s = s'
     then by simp [h]
     else begin
         simp [h],
         apply set.subset.trans (list.subset_to_set.1 hs') (@buch_contain s'),
     end
+    -/
 end
 
 theorem buchberger_correct : ∀ s : list (mv_polynomial ℕ α), ideal.span s.to_finset.to_set = ideal.span (buchberger s).to_finset.to_set := 

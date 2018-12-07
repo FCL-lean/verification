@@ -47,6 +47,8 @@ end nat
 section general
 parameters {α : Type*}
 
+@[simp] lemma coe_to_set {s : finset α} : s.to_set = ↑s := rfl
+
 lemma ne_empty_iff_exists_mem {s : finset α} : s ≠ ∅ ↔ ∃ x, x ∈ s :=
 begin
     simp [eq_empty_iff_forall_not_mem],
