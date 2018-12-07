@@ -1,8 +1,9 @@
 finsupp       -- general
              |-- fin_n : le, monomial_order, well_founded
+                    |-- leading_term : le
 
 mv_polynomial : ((fin n) →₀ ℕ) →₀ α
 
-mv_polynomial -- general : leading_term, div, lt_mul_hom
+mv_polynomial -- general : leading_term, div, lt_mul_hom, mv_trichotomy
 
 
