@@ -59,7 +59,7 @@ begin
     assumption,
 end
 
-def coe_f : Π (a : α →₀ β) (n : α), a n = a.to_fun n := λ a n, rfl
+lemma coe_f : Π (a : α →₀ β) (n : α), a n = a.to_fun n := λ a n, rfl
 end has_zero
 
 section canonically_ordered_monoid
@@ -96,8 +96,16 @@ end general
 section fin_n
 variable {n : ℕ}
 include n
-def le_aux : ((fin n) →₀ ℕ) → ((fin n) →₀ ℕ) → ℕ → Prop := sorry
-protected def le: rel ((fin n) →₀ ℕ) := λ a b, le_aux a b (n - 1)
+
+def le_aux : ((fin $ n + 1) →₀ ℕ) → ((fin $ n + 1) →₀ ℕ) → ℕ → Prop
+| a b 0 := a 0 ≤ b 0
+| a b (m + 1) := a (m + 1) < b (m + 1) ∨ (a m = b m ∧ le_aux a b m)
+
+protected def le: rel ((fin $ n + 1) →₀ ℕ) := λ a b, le_aux a b n
+
+lemma le_refl : ∀ a : (fin $ n + 1) →₀ ℕ, finsupp.le a a := sorry
+
+omit n
 
 end fin_n
 

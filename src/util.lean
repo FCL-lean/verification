@@ -1,6 +1,13 @@
 import data.set.lattice
 import data.finset
 
+section classes
+
+class monomial_order (α : Type*) extends has_add α, linear_order α := 
+    (mono_order : ∀ a b w : α, (a ≤ b) → (a + w) ≤ (b + w))
+
+end classes
+
 namespace nat
 
 lemma lt_lt_antisym : ∀ {a b : ℕ}, a < b → b < a → false

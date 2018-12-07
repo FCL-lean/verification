@@ -44,11 +44,34 @@ section semilattice
 variables [lattice.semilattice_sup_bot (σ →₀ ℕ)]
 
 def leading_monomial (a: mv_polynomial σ α): σ →₀ ℕ := a.support.sup id
+
 def leading_term (a: mv_polynomial σ α): mv_polynomial σ α 
     := finsupp.single (a.support.sup id) (a.to_fun (a.support.sup id))
 
 def leading_coeff (a: mv_polynomial σ α): α := a.to_fun (a.support.sup id)
 
+
+section decidable_linear_order
+variables [decidable_linear_order α]
+
+def leading_term_lcm (p q : mv_polynomial σ α) : mv_polynomial σ α := 
+begin
+    have hp := mv_trichotomy p,
+    have hq := mv_trichotomy q,
+    cases hp, exact mv_polynomial.C 0,
+    cases hq, exact mv_polynomial.C 0,
+    cases hp, all_goals {cases hq},
+    exact mv_polynomial.C (max hp.fst hq.fst),
+    exact monomial q.leading_monomial (max hp.fst (q.to_fun (q.leading_monomial))),
+    exact monomial p.leading_monomial (max hq.fst (p.to_fun (p.leading_monomial))),
+    begin
+        let coeff := max (p.to_fun (p.leading_monomial)) (q.to_fun (q.leading_monomial)),
+        let supp := finsupp.zip_with max (max_self 0) p.leading_monomial q.leading_monomial,
+        exact monomial supp coeff,
+    end
+end
+
+end decidable_linear_order
 end semilattice
 
 end comm_semiring
