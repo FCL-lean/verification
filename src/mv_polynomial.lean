@@ -40,6 +40,17 @@ else if h₁ : p.support = {0}
         by_cases h_fst = 0; simp [h, h_snd] at *; assumption, 
     end
 
+section semilattice
+variables [lattice.semilattice_sup_bot (σ →₀ ℕ)]
+
+def leading_monomial (a: mv_polynomial σ α): σ →₀ ℕ := a.support.sup id
+def leading_term (a: mv_polynomial σ α): mv_polynomial σ α 
+    := finsupp.single (a.support.sup id) (a.to_fun (a.support.sup id))
+
+def leading_coeff (a: mv_polynomial σ α): α := a.to_fun (a.support.sup id)
+
+end semilattice
+
 end comm_semiring
 end general
 
