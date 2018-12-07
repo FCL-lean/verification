@@ -11,6 +11,12 @@ variables [has_zero β]
 lemma in_not (a : α →₀ β) : ∀ x : α, x ∈ a.support ∨ x ∉ a.support := 
     by intro; apply classical.or_not
 
+lemma support_singleton_neq_zero {a : α →₀ β} {x : α} (h : a.support = {x}) : a x ≠ 0 :=
+by apply (a.mem_support_to_fun x).1; simp [h]
+
+lemma support_singleton_eq_zero {a : α →₀ β} {x y : α} (h₁ : x ≠ y) (h₂ : a.support = {y}) : a x = 0 :=
+by rw [←not_mem_support_iff]; simp [h₁, h₂]
+
 def single_inj1 : Π {a b: α} {c d: β}, (c ≠ 0) → single a c = single b d → a = b :=
 begin
     intros, unfold single at *, simp at a_1,
