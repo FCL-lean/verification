@@ -50,7 +50,6 @@ def mv_is_const_aux : Π (p : mv_polynomial σ α), (psum (p = mv_polynomial.C 0
 
 def mv_is_const (p : mv_polynomial σ α): Prop := mv_is_const_aux p (mv_trichotomy p)
 
-
 def mv_is_const_neqz {p : mv_polynomial σ α}:
     mv_is_const p → p ≠ 0 → (Σ'a : α, pprod (a ≠ 0) (p = mv_polynomial.C a)) :=
 begin
@@ -102,6 +101,7 @@ def leading_term (a: mv_polynomial σ α): mv_polynomial σ α
 
 
 def leading_coeff (a: mv_polynomial σ α): α := a.to_fun (a.support.sup id)
+
 def lead_monomial_eqz_const {a : mv_polynomial σ α}:
     a.leading_monomial = 0 
     → Σ' (c : α), a = C c :=
@@ -114,27 +114,28 @@ lemma support_empty {a : mv_polynomial σ α} : a.support = ∅ → a.leading_mo
 λ h, begin
     unfold leading_monomial, rw [h], simp,
 end
+
 section finite_s
 variable [fins: finite σ]
 include fins
-def leading_term_le' (a b: mv_polynomial σ α): Prop
+
+def leading_term_le (a b: mv_polynomial σ α): Prop
     := finsupp.leading_term_le a.leading_monomial b.leading_monomial
 
-instance leading_term_le'_dec (a b: mv_polynomial σ α): decidable (leading_term_le' a b) :=
+instance leading_term_le_dec (a b: mv_polynomial σ α): decidable (leading_term_le a b) :=
 begin
     sorry
 end
 
 lemma zero_of_le_zero {a b : mv_polynomial σ α} : a.leading_monomial = 0
-     → leading_term_le' b a → b.leading_monomial = 0 := sorry
+     → leading_term_le b a → b.leading_monomial = 0 := sorry
 
 omit fins
 end finite_s
+
 lemma leading_term_ne_zero_coeff {a : mv_polynomial σ α} : 
     a.leading_monomial ≠ 0 → a.leading_coeff ≠ 0 :=
 λ neqz eqa, sorry
-
-
 
 lemma support_ne_empty_of_leading_term {a b : mv_polynomial σ α} : a.leading_monomial ≠ ⊥ 
     → a.leading_monomial = b.leading_monomial 
@@ -143,6 +144,7 @@ lemma support_ne_empty_of_leading_term {a b : mv_polynomial σ α} : a.leading_m
     rw hab at ha, intro h,
     apply absurd (support_empty h) ha,
 end
+
 lemma support_ne_empty_of_leading_term' {a : mv_polynomial σ α} : 
     a.leading_monomial ≠ ⊥
     → a.support ≠ ∅ := 
@@ -176,26 +178,23 @@ end semilattice
 
 lemma const_support_zero {a : α} : (C a : mv_polynomial σ α).support = {0} := sorry
 
-
-
-def leading_term_sub' {n} (a b: mv_polynomial (fin n) α) 
-    (h: leading_term_le' b a) : (fin n) →₀ ℕ
-     := finsupp.leading_term_sub a.leading_monomial b.leading_monomial
+def leading_term_sub' {n} (a b: mv_polynomial (fin (n + 1)) α) 
+    (h: leading_term_le b a) : (fin (n + 1)) →₀ ℕ
+     := finsupp.fin_n.leading_term_sub a.leading_monomial b.leading_monomial
             h
-
-
 
 end comm_semiring
 end general
 
+namespace fin_n
 section div
 
 variables {n : ℕ}
 
 variables [discrete_field α]
-variables [lt_wellfounded: @well_founded (fin n →₀ ℕ) (<)]
+variables [lt_wellfounded: @well_founded (fin (n + 1) →₀ ℕ) (<)]
 
-lemma sub_dec : Π (a b : mv_polynomial (fin n) α),
+lemma sub_dec : Π (a b : mv_polynomial (fin (n + 1)) α),
     a.leading_term = b.leading_term 
     → a.leading_monomial ≠ 0
 → (a - b).leading_monomial < a.leading_monomial :=
@@ -203,27 +202,30 @@ begin
     sorry
 end
 
-lemma lead_tm_eq {a b : mv_polynomial (fin n) α} (hb : b ≠ 0) (hab : leading_term_le' b a) : 
+lemma lead_tm_eq {a b : mv_polynomial (fin (n + 1)) α} (hb : b ≠ 0) (hab : leading_term_le b a) : 
     a.leading_term = leading_term (b * finsupp.single (leading_term_sub' a b hab) 
                 (a.leading_coeff / b.leading_coeff)) := sorry
-lemma nempty_of_const (a : α) : (a ≠ 0) → ((C a) : mv_polynomial (fin n) α).support ≠ ∅ := sorry
 
-def div_const : Π (a b : mv_polynomial (fin n) α), b ≠ 0 →
+lemma nempty_of_const (a : α) : (a ≠ 0) → ((C a) : mv_polynomial (fin (n + 1)) α).support ≠ ∅ := sorry
+
+def div_const : Π (a b : mv_polynomial (fin (n + 1)) α), b ≠ 0 →
                 mv_is_const b →
-                Σ' (q r : mv_polynomial (fin n) α), b.leading_monomial = r.leading_monomial
+                Σ' (q r : mv_polynomial (fin (n + 1)) α), b.leading_monomial = r.leading_monomial
                         ∧ a = b * q + r
 | a b bneqz bconst :=
 begin
     sorry
 end
+
 include lt_wellfounded
-def div : Π (a b : mv_polynomial (fin n) α),
+
+def div : Π (a b : mv_polynomial (fin (n + 1)) α),
                 ¬ mv_is_const b →
-                 Σ'q r, ¬ leading_term_le' b r 
+                 Σ'q r, ¬ leading_term_le b r 
                         ∧ a = b * q + r
 | a b bnconst :=
 begin
-    by_cases (leading_term_le' b a),
+    by_cases (leading_term_le b a),
     generalize subeq : leading_term_sub' a b h = sub,
     generalize q'eq : finsupp.single sub (a.leading_coeff / b.leading_coeff) = q',
     generalize h : a - b * q' = r',
@@ -251,7 +253,7 @@ begin
     rw [prf, result_snd_snd_right],
     simp,
     rw left_distrib,
-    apply psigma.mk (0 : mv_polynomial (fin n) α),
+    apply psigma.mk (0 : mv_polynomial (fin (n + 1)) α),
     apply psigma.mk a,
     apply and.intro, assumption,
     simp,
@@ -260,7 +262,10 @@ using_well_founded
 { rel_tac := λ _ _, 
 `[exact ⟨_, inv_image.wf psigma.fst (inv_image.wf leading_monomial lt_wellfounded)⟩] 
 , dec_tac := tactic.assumption }
+
 omit lt_wellfounded
+
 end div
+namespace fin_n
 
 end mv_polynomial

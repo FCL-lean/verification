@@ -110,21 +110,21 @@ end general
 
 namespace fin_n
 variable {n : ℕ}
-include n
 
 lemma leading_term_le_all (a b: fin n →₀ ℕ): leading_term_le a b →
     ∀ (x : fin n), a x ≤ b x :=
 begin
-    sorry
+    intros, unfold leading_term_le at a_1,
 end
-omit n
-def leading_term_sub_aux : Π {n : ℕ}(a b: fin n →₀ ℕ),
+
+def leading_term_sub_aux : Π {n : ℕ} (a b: fin n →₀ ℕ),
      (∀ x, b x ≤ a x) → Π (m : ℕ), m < n → (fin n →₀ ℕ)
 | 0 a b prf m prf2 := 0
-| (nat.succ n) a b prf 0 prf2 := single 0 (a 0 + b 0)
+| (nat.succ n) a b prf 0 prf2 := single 0 (a ⟨0, prf2⟩ - b ⟨0, prf2⟩)
 | (nat.succ n) a b prf (nat.succ m) prf2 
     := single (nat.succ m) (a ⟨nat.succ m, prf2⟩ - b ⟨nat.succ m, prf2⟩) 
        + leading_term_sub_aux a b prf m (nat.lt_of_succ_lt prf2)
+
 def leading_term_sub (a b: fin n →₀ ℕ) 
     : leading_term_le b a → (fin n →₀ ℕ) := 
 λ ltle,
@@ -134,16 +134,24 @@ begin
     exact leading_term_sub_aux a b le_all n (by constructor),
 end
 
-instance : lattice.has_bot (fin n →₀ ℕ) := ⟨(0: fin n →₀ ℕ)⟩
+def leading_term_le_aux' : ∀ m < (n + 1), (fin (n + 1) →₀ ℕ) → (fin (n + 1) →₀ ℕ) → Prop
+| 0 h := λ a b, a ⟨0, h⟩ ≤ b ⟨0, h⟩
+| (m + 1) h := λ a b, a ⟨m + 1, h⟩ ≤ b ⟨m + 1, h⟩ ∧ leading_term_le_aux' m (nat.lt_of_succ_lt h) a b
+
+def leading_term_le' (a b : fin (n + 1) →₀ ℕ) : Prop := leading_term_le_aux' n (nat.lt_succ_self n) a b
+
+def leading_term_sub_aux' (a b : fin (n + 1) →₀ ℕ) : ∀ m < n + 1, leading_term_le_aux' m H b a → (fin (n + 1) →₀ ℕ)
+| 0 le ltle := single 0 (a ⟨0, le⟩ - b ⟨0, le⟩)
+| (m + 1) le ltle := single (m + 1) (a ⟨m + 1, le⟩ - b ⟨m + 1, le⟩) + leading_term_sub_aux' m (nat.lt_of_succ_lt le) ltle.right
+
+def leading_term_sub' (a b : fin (n + 1) →₀ ℕ) (h : leading_term_le' b a) : (fin (n + 1) →₀ ℕ) :=
+    leading_term_sub_aux' a b n (nat.lt_succ_self n) h
 
 def le_aux : ∀ m < (n + 1), ((fin $ n + 1) →₀ ℕ) → ((fin $ n + 1) →₀ ℕ) → Prop
 | 0 h := λ a b, a ⟨0, h⟩ ≤ b ⟨0, h⟩
 | (m + 1) h := λ a b, a ⟨m + 1, h⟩ < b ⟨m + 1, h⟩ ∨ (a ⟨m + 1, h⟩ = b ⟨m + 1, h⟩ ∧ le_aux m (nat.lt_of_succ_lt h) a b)
 
 protected def le: rel ((fin $ n + 1) →₀ ℕ) := λ a b, le_aux n (nat.lt_succ_self n) a b
-
-instance : has_le (fin n →₀ ℕ) := ⟨finsupp.le⟩
-instance : is_total (fin n →₀ ℕ) (≤) := sorry
 
 lemma le_refl_aux (m : ℕ) (h : m < n + 1) : ∀ a : (fin $ n + 1) →₀ ℕ, le_aux m h a a :=
 λ a, begin
@@ -261,14 +269,11 @@ instance : decidable_monomial_order ((fin $ n + 1) →₀ ℕ) := {
     mono_order := le_mono_order,
 }
 
-
-
-instance : decidable_linear_order (fin n →₀ ℕ) := sorry
-instance : lattice.semilattice_sup_bot (fin n →₀ ℕ) := {
+instance : lattice.semilattice_sup_bot (fin (n + 1) →₀ ℕ) := {
     bot := 0,
-    le := finsupp.le,
-    le_refl := le_refl,
-    le_trans := le_trans,
+    le := preorder.le,
+    le_refl := preorder.le_refl,
+    le_trans := preorder.le_trans,
     le_antisymm := le_antisymm,
     bot_le := zero_le,
     sup := max,
