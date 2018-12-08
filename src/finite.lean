@@ -23,4 +23,21 @@ begin
     exact m fina.val a x (in_val x),
 end
 
+lemma finite_fold_and': Π {P : α → Prop},
+    (Π (x : α), P x) → fina.val.fold (∧) true P :=
+begin
+    intros P all,
+    have m: (∀ (t : finset α), finset.fold and true P t),
+    intro t, apply finset.induction_on t,
+    simp,
+    intros, simp,
+    apply and.intro (all a) a_2,
+    apply m,
+end
+
+lemma finite_fold_add_iff : Π {P : α → Prop},
+    fina.val.fold (∧) true P ↔ Π (x : α), P x 
+        := λ P, iff.intro (@finite_fold_and α _ _ P) 
+                          (@finite_fold_and' α _ _ P)
+
 end finite
