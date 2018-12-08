@@ -266,6 +266,6 @@ using_well_founded
 omit lt_wellfounded
 
 end div
-namespace fin_n
+end fin_n
 
 end mv_polynomial
