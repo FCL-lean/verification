@@ -178,8 +178,8 @@ end semilattice
 
 lemma const_support_zero {a : α} : (C a : mv_polynomial σ α).support = {0} := sorry
 
-def leading_term_sub' {n} (a b: mv_polynomial (fin (n + 1)) α) 
-    (h: leading_term_le b a) : (fin (n + 1)) →₀ ℕ
+def leading_term_sub' {n} (a b: mv_polynomial (fin n) α) 
+    (h: leading_term_le b a) : (fin n) →₀ ℕ
      := finsupp.fin_n.leading_term_sub a.leading_monomial b.leading_monomial
             h
 
@@ -192,9 +192,9 @@ section div
 variables {n : ℕ}
 
 variables [discrete_field α]
-variables [lt_wellfounded: @well_founded (fin (n + 1) →₀ ℕ) (<)]
+variables [lt_wellfounded: @well_founded (fin n →₀ ℕ) (<)]
 
-lemma sub_dec : Π (a b : mv_polynomial (fin (n + 1)) α),
+lemma sub_dec : Π (a b : mv_polynomial (fin n) α),
     a.leading_term = b.leading_term 
     → a.leading_monomial ≠ 0
 → (a - b).leading_monomial < a.leading_monomial :=
@@ -202,15 +202,15 @@ begin
     sorry
 end
 
-lemma lead_tm_eq {a b : mv_polynomial (fin (n + 1)) α} (hb : b ≠ 0) (hab : leading_term_le b a) : 
+lemma lead_tm_eq {a b : mv_polynomial (fin n) α} (hb : b ≠ 0) (hab : leading_term_le b a) : 
     a.leading_term = leading_term (b * finsupp.single (leading_term_sub' a b hab) 
                 (a.leading_coeff / b.leading_coeff)) := sorry
 
-lemma nempty_of_const (a : α) : (a ≠ 0) → ((C a) : mv_polynomial (fin (n + 1)) α).support ≠ ∅ := sorry
+lemma nempty_of_const (a : α) : (a ≠ 0) → ((C a) : mv_polynomial (fin n) α).support ≠ ∅ := sorry
 
-def div_const : Π (a b : mv_polynomial (fin (n + 1)) α), b ≠ 0 →
+def div_const : Π (a b : mv_polynomial (fin n) α), b ≠ 0 →
                 mv_is_const b →
-                Σ' (q r : mv_polynomial (fin (n + 1)) α), b.leading_monomial = r.leading_monomial
+                Σ' (q r : mv_polynomial (fin n) α), b.leading_monomial = r.leading_monomial
                         ∧ a = b * q + r
 | a b bneqz bconst :=
 begin
@@ -219,7 +219,7 @@ end
 
 include lt_wellfounded
 
-def div : Π (a b : mv_polynomial (fin (n + 1)) α),
+def div : Π (a b : mv_polynomial (fin n) α),
                 ¬ mv_is_const b →
                  Σ'q r, ¬ leading_term_le b r 
                         ∧ a = b * q + r
@@ -253,7 +253,7 @@ begin
     rw [prf, result_snd_snd_right],
     simp,
     rw left_distrib,
-    apply psigma.mk (0 : mv_polynomial (fin (n + 1)) α),
+    apply psigma.mk (0 : mv_polynomial (fin n) α),
     apply psigma.mk a,
     apply and.intro, assumption,
     simp,
