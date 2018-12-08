@@ -1,6 +1,7 @@
 import linear_algebra.multivariate_polynomial
 import finsupp
-
+import finset
+import fin
 variables {σ : Type*} {α : Type*} {β : Type*} {γ : Type*} {δ : Type*} {ι : Type*}
 
 namespace mv_polynomial
@@ -89,6 +90,8 @@ begin
     rw [h, h_1], unfold mv_is_const_aux, simp,
 end
 
+
+
 section semilattice
 variables [lattice.semilattice_sup_bot (σ →₀ ℕ)]
 
@@ -97,14 +100,55 @@ def leading_monomial (a: mv_polynomial σ α): σ →₀ ℕ := a.support.sup id
 def leading_term (a: mv_polynomial σ α): mv_polynomial σ α 
     := finsupp.single (a.support.sup id) (a.to_fun (a.support.sup id))
 
-def leading_coeff (a: mv_polynomial σ α): α := a.to_fun (a.support.sup id)
 
+def leading_coeff (a: mv_polynomial σ α): α := a.to_fun (a.support.sup id)
 def lead_monomial_eqz_const {a : mv_polynomial σ α}:
     a.leading_monomial = 0 
     → Σ' (c : α), a = C c :=
 λ eqz,
 begin 
     sorry
+end
+
+lemma support_empty {a : mv_polynomial σ α} : a.support = ∅ → a.leading_monomial = ⊥ :=
+λ h, begin
+    unfold leading_monomial, rw [h], simp,
+end
+section finite_s
+variable [fins: finite σ]
+include fins
+def leading_term_le' (a b: mv_polynomial σ α): Prop
+    := finsupp.leading_term_le a.leading_monomial b.leading_monomial
+
+instance leading_term_le'_dec (a b: mv_polynomial σ α): decidable (leading_term_le' a b) :=
+begin
+    sorry
+end
+
+lemma zero_of_le_zero {a b : mv_polynomial σ α} : a.leading_monomial = 0
+     → leading_term_le' b a → b.leading_monomial = 0 := sorry
+
+omit fins
+end finite_s
+lemma leading_term_ne_zero_coeff {a : mv_polynomial σ α} : 
+    a.leading_monomial ≠ 0 → a.leading_coeff ≠ 0 :=
+λ neqz eqa, sorry
+
+
+
+lemma support_ne_empty_of_leading_term {a b : mv_polynomial σ α} : a.leading_monomial ≠ ⊥ 
+    → a.leading_monomial = b.leading_monomial 
+    → b.support ≠ ∅ := 
+λ ha hab, begin
+    rw hab at ha, intro h,
+    apply absurd (support_empty h) ha,
+end
+lemma support_ne_empty_of_leading_term' {a : mv_polynomial σ α} : 
+    a.leading_monomial ≠ ⊥
+    → a.support ≠ ∅ := 
+begin
+    intros neqz neqz2,
+    apply absurd (support_empty neqz2) neqz,
 end
 
 section decidable_linear_order
@@ -130,7 +174,93 @@ end
 end decidable_linear_order
 end semilattice
 
+lemma const_support_zero {a : α} : (C a : mv_polynomial σ α).support = {0} := sorry
+
+
+
+def leading_term_sub' {n} (a b: mv_polynomial (fin n) α) 
+    (h: leading_term_le' b a) : (fin n) →₀ ℕ
+     := finsupp.leading_term_sub a.leading_monomial b.leading_monomial
+            h
+
+
+
 end comm_semiring
 end general
+
+section div
+
+variables {n : ℕ}
+
+variables [discrete_field α]
+variables [lt_wellfounded: @well_founded (fin n →₀ ℕ) (<)]
+
+lemma sub_dec : Π (a b : mv_polynomial (fin n) α),
+    a.leading_term = b.leading_term 
+    → a.leading_monomial ≠ 0
+→ (a - b).leading_monomial < a.leading_monomial :=
+begin
+    sorry
+end
+
+lemma lead_tm_eq {a b : mv_polynomial (fin n) α} (hb : b ≠ 0) (hab : leading_term_le' b a) : 
+    a.leading_term = leading_term (b * finsupp.single (leading_term_sub' a b hab) 
+                (a.leading_coeff / b.leading_coeff)) := sorry
+lemma nempty_of_const (a : α) : (a ≠ 0) → ((C a) : mv_polynomial ℕ α).support ≠ ∅ := sorry
+
+def div_const : Π (a b : mv_polynomial (fin n) α), b ≠ 0 →
+                mv_is_const b →
+                Σ' (q r : mv_polynomial (fin n) α), b.leading_monomial = r.leading_monomial
+                        ∧ a = b * q + r
+| a b bneqz bconst :=
+begin
+    sorry
+end
+include lt_wellfounded
+def div : Π (a b : mv_polynomial (fin n) α),
+                ¬ mv_is_const b →
+                 Σ'q r, ¬ leading_term_le' b r 
+                        ∧ a = b * q + r
+| a b bnconst :=
+begin
+    by_cases (leading_term_le' b a),
+    generalize subeq : leading_term_sub' a b h = sub,
+    generalize q'eq : finsupp.single sub (a.leading_coeff / b.leading_coeff) = q',
+    generalize h : a - b * q' = r',
+    by_cases alt'eqz: a.leading_monomial = 0,
+    let atmeqz := lead_monomial_eqz_const alt'eqz, 
+    tactic.unfreeze_local_instances, dedup,
+    let btmeqz := lead_monomial_eqz_const (zero_of_le_zero alt'eqz h),
+    have atmeqzp := atmeqz.snd,
+    have btmeqzp := btmeqz.snd,
+    apply false.elim, apply ne_mv_is_const bnconst, assumption,
+    let tt' : r'.leading_monomial < a.leading_monomial, 
+    rw ←h,
+    tactic.unfreeze_local_instances, dedup,
+    apply sub_dec a (b * q'),
+    rw [←q'eq, ←subeq], apply lead_tm_eq sorry h, assumption,
+    have result := div r' b bnconst,
+    cases result with r_q, cases result_snd with r_r,
+    apply psigma.mk (q' + r_q),
+    apply psigma.mk r_r,
+    apply and.intro,
+    exact result_snd_snd.left,
+    have prf : a = b * q' + r',
+    rw [←h],simp, 
+    cases result_snd_snd,
+    rw [prf, result_snd_snd_right],
+    simp,
+    rw left_distrib,
+    apply psigma.mk (0 : mv_polynomial (fin n) α),
+    apply psigma.mk a,
+    apply and.intro, assumption,
+    simp,
+end
+using_well_founded 
+{ rel_tac := λ _ _, 
+`[exact ⟨_, inv_image.wf psigma.fst (inv_image.wf leading_monomial lt_wellfounded)⟩] 
+, dec_tac := tactic.assumption }
+omit lt_wellfounded
+end div
 
 end mv_polynomial

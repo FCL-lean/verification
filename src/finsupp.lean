@@ -1,6 +1,7 @@
 import data.finsupp
 import util
 import finite
+import fin
 variables {α : Type*} {β : Type*} {γ : Type*} {δ : Type*} {ι : Type*}
 namespace finsupp
 
@@ -12,14 +13,14 @@ variables [has_zero β]
 
 section finite_dom
 variables [fina: finite α]
-section linear_order
-variables [linear_order β]
+section has_le
+variables [has_le β]
 
 
 def leading_term_le (a b: α →₀ β): Prop 
     := fina.val.fold (∧) true (λ elem, a elem ≤ b elem)
 
-end linear_order
+end has_le
 end finite_dom
 
 lemma in_not (a : α →₀ β) : ∀ x : α, x ∈ a.support ∨ x ∉ a.support := 
@@ -110,12 +111,38 @@ section fin_n
 variable {n : ℕ}
 include n
 
+lemma leading_term_le_all (a b: fin n →₀ ℕ): leading_term_le a b →
+    ∀ (x : fin n), a x ≤ b x :=
+begin
+    sorry
+end
+omit n
+def leading_term_sub_aux : Π {n : ℕ}(a b: fin n →₀ ℕ),
+     (∀ x, b x ≤ a x) → Π (m : ℕ), m < n → (fin n →₀ ℕ)
+| 0 a b prf m prf2 := 0
+| (nat.succ n) a b prf 0 prf2 := single 0 (a 0 + b 0)
+| (nat.succ n) a b prf (nat.succ m) prf2 
+    := single (nat.succ m) (a ⟨nat.succ m, prf2⟩ - b ⟨nat.succ m, prf2⟩) 
+       + leading_term_sub_aux a b prf m (nat.lt_of_succ_lt prf2)
+def leading_term_sub (a b: fin n →₀ ℕ) 
+    : leading_term_le b a → (fin n →₀ ℕ) := 
+λ ltle,
+begin
+    have le_all := leading_term_le_all b a ltle,
+    cases n, exact 0,
+    exact leading_term_sub_aux a b le_all n (by  constructor),
+end
 def le_aux : ((fin $ n + 1) →₀ ℕ) → ((fin $ n + 1) →₀ ℕ) → ℕ → Prop
 | a b 0 := a 0 ≤ b 0
 | a b (m + 1) := a (m + 1) < b (m + 1) ∨ (a m = b m ∧ le_aux a b m)
 
-protected def le: rel ((fin $ n + 1) →₀ ℕ) := λ a b, le_aux a b n
+protected def le : Π {n} (a b: fin n →₀ ℕ), Prop 
+| 0 a b := true
+| (nat.succ n) a b := le_aux a b n
 
+instance : has_le (fin n →₀ ℕ) := ⟨finsupp.le⟩
+instance : is_total (fin n →₀ ℕ) (≤) := sorry
+instance : lattice.has_bot (fin n →₀ ℕ) := ⟨(0: fin n →₀ ℕ)⟩
 lemma le_refl_aux (m : ℕ): ∀ a : (fin $ n + 1) →₀ ℕ, le_aux a a m :=
 begin
     intros, induction m,
@@ -124,14 +151,32 @@ begin
     apply and.intro, refl, exact m_ih,
 end
 
-lemma le_refl : ∀ a : (fin $ n + 1) →₀ ℕ, finsupp.le a a :=
+lemma le_refl : ∀ a : (fin n) →₀ ℕ, finsupp.le a a :=
 begin
-    intro a, unfold finsupp.le,
+    intro a, cases n; unfold finsupp.le,
     apply le_refl_aux,
 end
 
-omit n
+lemma le_trans : ∀ a b c : (fin n) →₀ ℕ, a ≤ b → b ≤ c → a ≤ c := sorry
 
+lemma le_antisymm : ∀ (a b : fin n →₀ ℕ), a ≤ b → b ≤ a → a = b := sorry
+
+
+lemma zero_le : ∀ (a : fin n →₀ ℕ), ⊥ ≤ a := sorry
+
+instance : decidable_linear_order (fin n →₀ ℕ) := sorry
+instance : lattice.semilattice_sup_bot (fin n →₀ ℕ) := {
+    bot := 0,
+    le := finsupp.le,
+    le_refl := le_refl,
+    le_trans := le_trans,
+    le_antisymm := le_antisymm,
+    bot_le := zero_le,
+    sup := max,
+    le_sup_left := sorry,
+    le_sup_right := sorry,
+    sup_le := λ a b c, sorry
+}
 end fin_n
 
 end finsupp
