@@ -297,7 +297,7 @@ instance : lattice.semilattice_sup_bot (fin n →₀ ℕ) := {
     le_antisymm := le_antisymm,
     bot_le := zero_le,
     sup := max,
-    le_sup_left := le_max_left,,
+    le_sup_left := le_max_left,
     le_sup_right := le_max_right,
     sup_le := λ a b c, max_le
 }

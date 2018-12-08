@@ -123,6 +123,15 @@ lemma sup_id_insert : Π (a : finset α) (b : α), a.sup id ∈ a
     end
 end
 
+lemma sup_bot : Π (a : finset α), a.sup id = ⊥ → a = ∅ ∨ a = {⊥} :=
+λ a, begin
+    apply finset.induction_on a; intros,
+    left, refl,
+    right, simp at a_4, cases a_4,
+    have h: s = ∅ ∨ s = {⊥}, from a_3 a_4_right,
+    cases h; rw [a_4_left, h]; simp [insert_eq],
+end
+
 lemma union_sup_in_a_or_b : Π (a b : finset α),
     b ≠ ∅ →
     (a ∪ b).sup id ∈ a
