@@ -113,8 +113,10 @@ variable {n : ℕ}
 
 lemma leading_term_le_all (a b: fin n →₀ ℕ): leading_term_le a b →
     ∀ (x : fin n), a x ≤ b x :=
-begin
-    intros, unfold leading_term_le at a_1,
+λ hle, begin
+    unfold leading_term_le at hle, 
+    rw finite.finite_fold_add_iff at hle, 
+    assumption
 end
 
 def leading_term_sub_aux : Π {n : ℕ} (a b: fin n →₀ ℕ),
