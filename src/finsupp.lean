@@ -1,5 +1,6 @@
 import data.finsupp
 import util
+import finite
 variables {α : Type*} {β : Type*} {γ : Type*} {δ : Type*} {ι : Type*}
 namespace finsupp
 
@@ -8,6 +9,18 @@ variables [decidable_eq α] [decidable_eq β]
 
 section has_zero
 variables [has_zero β] 
+
+section finite_dom
+variables [fina: finite α]
+section linear_order
+variables [linear_order β]
+
+
+def leading_term_le (a b: α →₀ β): Prop 
+    := fina.val.fold (∧) true (λ elem, a elem ≤ b elem)
+
+end linear_order
+end finite_dom
 
 lemma in_not (a : α →₀ β) : ∀ x : α, x ∈ a.support ∨ x ∉ a.support := 
     by intro; apply classical.or_not
