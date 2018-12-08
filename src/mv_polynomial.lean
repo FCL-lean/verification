@@ -206,7 +206,7 @@ end
 lemma lead_tm_eq {a b : mv_polynomial (fin n) α} (hb : b ≠ 0) (hab : leading_term_le' b a) : 
     a.leading_term = leading_term (b * finsupp.single (leading_term_sub' a b hab) 
                 (a.leading_coeff / b.leading_coeff)) := sorry
-lemma nempty_of_const (a : α) : (a ≠ 0) → ((C a) : mv_polynomial ℕ α).support ≠ ∅ := sorry
+lemma nempty_of_const (a : α) : (a ≠ 0) → ((C a) : mv_polynomial (fin n) α).support ≠ ∅ := sorry
 
 def div_const : Π (a b : mv_polynomial (fin n) α), b ≠ 0 →
                 mv_is_const b →
