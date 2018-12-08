@@ -179,7 +179,7 @@ end semilattice
 lemma const_support_zero {a : α} : (C a : mv_polynomial σ α).support = {0} := sorry
 
 def leading_term_sub' {n} (a b: mv_polynomial (fin n) α) 
-    (h: leading_term_le b a) : (fin n) →₀ ℕ
+    (h: leading_term_le b a) : fin n →₀ ℕ
      := finsupp.fin_n.leading_term_sub a.leading_monomial b.leading_monomial
             h
 

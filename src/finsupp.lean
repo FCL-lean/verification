@@ -155,7 +155,7 @@ def le_aux : ∀ m < (n + 1), ((fin $ n + 1) →₀ ℕ) → ((fin $ n + 1) →�
 | 0 h := λ a b, a ⟨0, h⟩ ≤ b ⟨0, h⟩
 | (m + 1) h := λ a b, a ⟨m + 1, h⟩ < b ⟨m + 1, h⟩ ∨ (a ⟨m + 1, h⟩ = b ⟨m + 1, h⟩ ∧ le_aux m (nat.lt_of_succ_lt h) a b)
 
-protected def le: rel ((fin n) →₀ ℕ) := λ a b, begin 
+protected def le: rel (fin n →₀ ℕ) := λ a b, begin 
     cases n, exact true,
     apply le_aux n (nat.lt_succ_self n) a b,
 end
@@ -167,7 +167,7 @@ lemma le_refl_aux (m : ℕ) (h : m < n + 1) : ∀ a : (fin $ n + 1) →₀ ℕ, 
     apply and.intro rfl (m_ih (nat.lt_of_succ_lt h)),
 end
 
-lemma le_refl : ∀ a : (fin n) →₀ ℕ, finsupp.fin_n.le a a := 
+lemma le_refl : ∀ a : fin n →₀ ℕ, finsupp.fin_n.le a a := 
 λ a, by cases n; simp [fin_n.le]; apply le_refl_aux
 
 lemma le_trans_aux (m : ℕ) (h : m < n + 1) : ∀ a b c : (fin $ n + 1) →₀ ℕ, le_aux m h a b → le_aux m h b c → le_aux m h a c :=
@@ -180,11 +180,11 @@ lemma le_trans_aux (m : ℕ) (h : m < n + 1) : ∀ a b c : (fin $ n + 1) →₀ 
     right, apply and.intro (eq.trans hab.left hbc.left) (m_ih (nat.lt_of_succ_lt h) hab.right hbc.right),
 end
 
-lemma le_trans : ∀ a b c : (fin n) →₀ ℕ, 
+lemma le_trans : ∀ a b c : fin n →₀ ℕ, 
     finsupp.fin_n.le a b → finsupp.fin_n.le b c → finsupp.fin_n.le a c := 
 λ a b c, by cases n; simp [fin_n.le]; apply le_trans_aux
 
-instance : preorder ((fin n) →₀ ℕ) :=
+instance : preorder (fin n →₀ ℕ) :=
 {
     le := finsupp.fin_n.le,
     le_refl := le_refl,
@@ -208,7 +208,7 @@ lemma le_antisymm_aux (m₁ m₂ : ℕ) (h : m₁ + m₂ < n + 1) : ∀ a b : (f
 end
 
 set_option trace.check true
-lemma le_antisymm : ∀ a b : (fin n) →₀ ℕ, a ≤ b → b ≤ a → a = b := 
+lemma le_antisymm : ∀ a b : fin n →₀ ℕ, a ≤ b → b ≤ a → a = b := 
 λ a b, begin
     cases n;
     intros hab hba, 
@@ -231,7 +231,7 @@ lemma le_total_aux (m : ℕ) (h : m < n + 1) : ∀ a b : (fin $ n + 1) →₀ �
     apply or.inr (or.inl h_1),
 end
 
-lemma le_total : ∀ a b : (fin n) →₀ ℕ, a ≤ b ∨ b ≤ a :=
+lemma le_total : ∀ a b : fin n →₀ ℕ, a ≤ b ∨ b ≤ a :=
 λ a b, by cases n; simp [has_le.le, preorder.le, fin_n.le]; apply le_total_aux n
 
 instance decidable_le_aux (m : ℕ) (h : m < n + 1) : decidable_rel (le_aux m h) :=
@@ -252,7 +252,7 @@ instance decidable_le_aux (m : ℕ) (h : m < n + 1) : decidable_rel (le_aux m h)
     end
 end
 
-instance : decidable_rel ((≤) : rel ((fin n) →₀ ℕ)) := λ a b,
+instance : decidable_rel ((≤) : rel (fin n →₀ ℕ)) := λ a b,
 by cases n; unfold has_le.le preorder.le finsupp.fin_n.le; apply_instance
 
 lemma le_mono_order_aux (m : ℕ) (h : m < n + 1) : ∀ a b w : (fin $ n + 1) →₀ ℕ, le_aux m h a b →  le_aux m h (a + w) (b + w) :=
@@ -264,10 +264,10 @@ lemma le_mono_order_aux (m : ℕ) (h : m < n + 1) : ∀ a b w : (fin $ n + 1) �
     exact or.inr (and.intro hab.left (m_ih (nat.lt_of_succ_lt h) hab.right)),
 end
 
-lemma le_mono_order : ∀ (a b w : (fin n) →₀ ℕ), (a ≤ b) → ((a + w) ≤ (b + w)) := 
+lemma le_mono_order : ∀ (a b w : fin n →₀ ℕ), (a ≤ b) → ((a + w) ≤ (b + w)) := 
 λ a b w, by cases n; simp[has_le.le, preorder.le, fin_n.le]; apply le_mono_order_aux
 
-instance : decidable_monomial_order ((fin n) →₀ ℕ) := {
+instance : decidable_monomial_order (fin n →₀ ℕ) := {
     le := preorder.le,
     le_refl := preorder.le_refl,
     le_trans := preorder.le_trans,
@@ -278,6 +278,17 @@ instance : decidable_monomial_order ((fin n) →₀ ℕ) := {
     mono_order := le_mono_order,
 }
 
+lemma zero_le_aux : ∀ (m < n + 1) (a : fin (n + 1) →₀ ℕ), le_aux m H 0 a
+| 0 H a := by simp [le_aux]
+|(m + 1) H a := by simp [le_aux]; 
+                from if h : 0 < a ⟨m + 1, H⟩ 
+                    then by simp [h]
+                    else by exact or.inr (and.intro (nat.eq_zero_of_le_zero (le_of_not_lt h)).symm
+                                (zero_le_aux m (nat.lt_of_succ_lt H) a))
+
+lemma zero_le : ∀ a : fin n →₀ ℕ, 0 ≤ a :=
+λ a, by cases n; simp [has_le.le, preorder.le, fin_n.le, zero_le_aux]
+
 instance : lattice.semilattice_sup_bot (fin n →₀ ℕ) := {
     bot := 0,
     le := preorder.le,
@@ -286,10 +297,11 @@ instance : lattice.semilattice_sup_bot (fin n →₀ ℕ) := {
     le_antisymm := le_antisymm,
     bot_le := zero_le,
     sup := max,
-    le_sup_left := sorry,
-    le_sup_right := sorry,
-    sup_le := λ a b c, sorry
+    le_sup_left := le_max_left,,
+    le_sup_right := le_max_right,
+    sup_le := λ a b c, max_le
 }
+
 end fin_n
 
 end finsupp
