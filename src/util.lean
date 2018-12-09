@@ -35,6 +35,14 @@ begin
     rw not_le at *, apply false.elim, dedup, apply nat.lt_lt_antisym h h_1,
 end
 
+lemma zero_of_add {a b : ℕ} : a + b = a → b = 0 :=
+λ h, if h₁ : b > 0 
+    then begin 
+        have h₂ : a + b > a := nat.lt_add_of_pos_right h₁, rw h at h₂,
+        apply absurd h₂ (not_lt_of_le (le_of_eq rfl)),
+    end
+    else by simp at h₁; assumption
+
 end nat
 
 namespace logic

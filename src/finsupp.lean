@@ -302,6 +302,31 @@ instance : lattice.semilattice_sup_bot (fin n →₀ ℕ) := {
     sup_le := λ a b c, max_le
 }
 
+lemma lt_zero_aux {a : fin (n + 1) →₀ ℕ} : 
+    ∀ m < n + 1, le_aux m H a 0 ∧ ¬le_aux m H 0 a → false
+| 0 H := λ h, by simp [le_aux] at h; assumption
+|(m + 1) H := λ h, begin 
+    simp [le_aux] at h, cases h, simp [not_or_distrib] at h_right,
+    cases h_left, cases h_left,
+    apply lt_zero_aux m (nat.lt_of_succ_lt H) (and.intro h_left.right (h_right.right h_right.left.symm)),
+end
+
+/-
+lemma wf : well_founded (@preorder.lt (fin n →₀ ℕ) _) :=
+begin
+    apply well_founded.intro, intro a,
+    cases n, 
+    apply acc.intro, intros b h, simp [preorder.lt, fin_n.le] at h, 
+    revert h, simp,
+    apply a.induction,
+    apply acc.intro, intros b hb, 
+    simp [preorder.lt, fin_n.le] at hb,
+    have hb' := lt_zero_aux n (nat.lt_succ_self n) hb, revert hb', simp,
+
+    intros x m b x_nin_b m_n_0 acb,
+    sorry
+end
+-/
 end fin_n
 
 end finsupp
