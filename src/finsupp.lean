@@ -117,7 +117,7 @@ lemma leading_term_le_all (a b: fin n →₀ ℕ): leading_term_le a b →
     ∀ (x : fin n), a x ≤ b x :=
 λ hle, begin
     unfold leading_term_le at hle, 
-    rw finite.finite_fold_add_iff at hle, 
+    rw finite.finite_fold_and_iff at hle, 
     assumption
 end
 

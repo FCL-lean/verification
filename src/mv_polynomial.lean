@@ -131,6 +131,19 @@ begin
     end
 end
 
+lemma leading_term_ne_zero_coeff {a : mv_polynomial σ α} : 
+    a.leading_monomial ≠ 0 → a.leading_coeff ≠ 0 :=
+λ neqz eqa, begin
+    unfold leading_monomial at neqz,
+    unfold leading_coeff at eqa,
+    rw [←finsupp.coe_f, ←finsupp.not_mem_support_iff] at eqa,
+    apply eqa, apply finset.mem_of_sup_id,
+    intro eqe, rw eqe at *,
+    simp at neqz,
+    apply neqz, rw _inst_5.zero_bot,
+end
+
+
 end is_total
 lemma support_empty {a : mv_polynomial σ α} : a.support = ∅ → a.leading_monomial = ⊥ :=
 λ h, begin
@@ -146,7 +159,9 @@ def leading_term_le (a b: mv_polynomial σ α): Prop
 
 instance leading_term_le_dec (a b: mv_polynomial σ α): decidable (leading_term_le a b) :=
 begin
-    sorry
+    unfold leading_term_le finsupp.leading_term_le,
+    apply finite.finite_fold_dec,
+    intro, apply_instance,
 end
 
 lemma zero_of_le_zero {a b : mv_polynomial σ α} : a.leading_monomial = 0
@@ -155,9 +170,6 @@ lemma zero_of_le_zero {a b : mv_polynomial σ α} : a.leading_monomial = 0
 omit fins
 end finite_s
 
-lemma leading_term_ne_zero_coeff {a : mv_polynomial σ α} : 
-    a.leading_monomial ≠ 0 → a.leading_coeff ≠ 0 :=
-λ neqz eqa, sorry
 
 lemma support_ne_empty_of_leading_term {a b : mv_polynomial σ α} : a.leading_monomial ≠ ⊥ 
     → a.leading_monomial = b.leading_monomial 
