@@ -117,7 +117,7 @@ lemma leading_term_le_all (a b: fin n →₀ ℕ): leading_term_le a b →
     ∀ (x : fin n), a x ≤ b x :=
 λ hle, begin
     unfold leading_term_le at hle, 
-    rw finite.finite_fold_add_iff at hle, 
+    rw finite.finite_fold_and_iff at hle, 
     assumption
 end
 
@@ -297,7 +297,7 @@ instance : lattice.semilattice_sup_bot (fin n →₀ ℕ) := {
     le_antisymm := le_antisymm,
     bot_le := zero_le,
     sup := max,
-    le_sup_left := le_max_left,,
+    le_sup_left := le_max_left,
     le_sup_right := le_max_right,
     sup_le := λ a b c, max_le
 }

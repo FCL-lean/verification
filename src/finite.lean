@@ -35,9 +35,24 @@ begin
     apply m,
 end
 
-lemma finite_fold_add_iff : Π {P : α → Prop},
+lemma finite_fold_and_iff : Π {P : α → Prop},
     fina.val.fold (∧) true P ↔ Π (x : α), P x 
         := λ P, iff.intro (@finite_fold_and α _ _ P) 
                           (@finite_fold_and' α _ _ P)
+
+def finite_fold_dec : Π {P : α → Prop}, (∀ x : α, decidable (P x))
+    → decidable (fina.val.fold (∧) true P) :=
+λ P, begin
+    rw finite_fold_and_iff,
+    introI,
+    apply decidable_of_iff (∀ a ∈ fina.val, P a),
+    apply iff.intro; intros,
+    begin
+        apply a_1, apply fina.is_finite,
+    end,
+    begin
+        apply a_1,
+    end,
+end
 
 end finite

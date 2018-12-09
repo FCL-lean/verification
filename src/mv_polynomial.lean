@@ -2,6 +2,7 @@ import linear_algebra.multivariate_polynomial
 import finsupp
 import finset
 import fin
+import bot_zero
 variables {σ : Type*} {α : Type*} {β : Type*} {γ : Type*} {δ : Type*} {ι : Type*}
 
 namespace mv_polynomial
@@ -93,7 +94,7 @@ end
 
 section semilattice
 variables [lattice.semilattice_sup_bot (σ →₀ ℕ)]
-
+variables [bot_zero σ ℕ]
 def leading_monomial (a: mv_polynomial σ α): σ →₀ ℕ := a.support.sup id
 
 def leading_term (a: mv_polynomial σ α): mv_polynomial σ α 
@@ -102,14 +103,48 @@ def leading_term (a: mv_polynomial σ α): mv_polynomial σ α
 
 def leading_coeff (a: mv_polynomial σ α): α := a.to_fun (a.support.sup id)
 
+section is_total
+variables [is_total (σ →₀ ℕ) has_le.le] [@decidable_rel (σ →₀ ℕ) has_le.le]
+set_option trace.check true
 def lead_monomial_eqz_const {a : mv_polynomial σ α}:
-    a.leading_monomial = 0 
+    a.leading_monomial = ⊥ 
     → Σ' (c : α), a = C c :=
 λ eqz,
 begin 
-    sorry
+    unfold leading_monomial at eqz,
+    have h: a.support = ∅ ∨ a.support = {⊥}, from finset.sup_bot a.support eqz,
+    apply psigma.mk (a.to_fun ⊥),
+    cases h,
+    begin
+        rw finsupp.support_eq_empty at h,
+        rw [←finsupp.coe_f, h], simpa,
+    end,
+    begin
+        simp [C, monomial, finsupp.single], apply finsupp.ext,
+        intro val, simp [finsupp.coe_f],
+        by_cases 0 = val; simp [h], rw [←h],
+        apply congr_arg, rw _inst_5.zero_bot,
+        rw [←finsupp.coe_f, ←finsupp.not_mem_support_iff],
+        tactic.unfreeze_local_instances, dedup,
+        rw h, simp, rw ←_inst_5.zero_bot,
+        intro neq, apply h_1, symmetry, assumption,
+    end
 end
 
+lemma leading_term_ne_zero_coeff {a : mv_polynomial σ α} : 
+    a.leading_monomial ≠ 0 → a.leading_coeff ≠ 0 :=
+λ neqz eqa, begin
+    unfold leading_monomial at neqz,
+    unfold leading_coeff at eqa,
+    rw [←finsupp.coe_f, ←finsupp.not_mem_support_iff] at eqa,
+    apply eqa, apply finset.mem_of_sup_id,
+    intro eqe, rw eqe at *,
+    simp at neqz,
+    apply neqz, rw _inst_5.zero_bot,
+end
+
+
+end is_total
 lemma support_empty {a : mv_polynomial σ α} : a.support = ∅ → a.leading_monomial = ⊥ :=
 λ h, begin
     unfold leading_monomial, rw [h], simp,
@@ -124,7 +159,9 @@ def leading_term_le (a b: mv_polynomial σ α): Prop
 
 instance leading_term_le_dec (a b: mv_polynomial σ α): decidable (leading_term_le a b) :=
 begin
-    sorry
+    unfold leading_term_le finsupp.leading_term_le,
+    apply finite.finite_fold_dec,
+    intro, apply_instance,
 end
 
 lemma zero_of_le_zero {a b : mv_polynomial σ α} : a.leading_monomial = 0
@@ -133,9 +170,6 @@ lemma zero_of_le_zero {a b : mv_polynomial σ α} : a.leading_monomial = 0
 omit fins
 end finite_s
 
-lemma leading_term_ne_zero_coeff {a : mv_polynomial σ α} : 
-    a.leading_monomial ≠ 0 → a.leading_coeff ≠ 0 :=
-λ neqz eqa, sorry
 
 lemma support_ne_empty_of_leading_term {a b : mv_polynomial σ α} : a.leading_monomial ≠ ⊥ 
     → a.leading_monomial = b.leading_monomial 
@@ -177,8 +211,7 @@ end decidable_linear_order
 end semilattice
 
 lemma const_support_zero {a : α} : (C a : mv_polynomial σ α).support = {0} := sorry
-
-def leading_term_sub' {n} (a b: mv_polynomial (fin n) α) 
+def leading_term_sub' {n} (a b: mv_polynomial (fin n) α) [bot_zero (fin n) ℕ]
     (h: leading_term_le b a) : fin n →₀ ℕ
      := finsupp.fin_n.leading_term_sub a.leading_monomial b.leading_monomial
             h
@@ -193,7 +226,7 @@ variables {n : ℕ}
 
 variables [discrete_field α]
 variables [lt_wellfounded: @well_founded (fin n →₀ ℕ) (<)]
-
+variable [bot_zero (fin n) ℕ]
 lemma sub_dec : Π (a b : mv_polynomial (fin n) α),
     a.leading_term = b.leading_term 
     → a.leading_monomial ≠ 0
