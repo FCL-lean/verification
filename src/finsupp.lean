@@ -311,6 +311,12 @@ lemma lt_zero_aux {a : fin (n + 1) →₀ ℕ} :
     apply lt_zero_aux m (nat.lt_of_succ_lt H) (and.intro h_left.right (h_right.right h_right.left.symm)),
 end
 
+
+
+end fin_n
+
+end finsupp
+
 /-
 lemma wf : well_founded (@preorder.lt (fin n →₀ ℕ) _) :=
 begin
@@ -318,15 +324,8 @@ begin
     cases n, 
     apply acc.intro, intros b h, simp [preorder.lt, fin_n.le] at h, 
     revert h, simp,
-    apply a.induction,
-    apply acc.intro, intros b hb, 
-    simp [preorder.lt, fin_n.le] at hb,
-    have hb' := lt_zero_aux n (nat.lt_succ_self n) hb, revert hb', simp,
+    apply acc.intro, intros b lba,
 
-    intros x m b x_nin_b m_n_0 acb,
-    sorry
+
 end
 -/
-end fin_n
-
-end finsupp

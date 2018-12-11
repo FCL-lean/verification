@@ -104,6 +104,9 @@ lemma mem_of_sup_id : ∀ {a : finset α}, a ≠ ∅ → a.sup id ∈ a
         end
     end)
 
+lemma empty_of_sup_id_not_mem : ∀ {a : finset α}, a.sup id ∉ a → a = ∅:=
+λ a, by apply not_imp_comm.1 (@mem_of_sup_id _ _ _ _ _ a)
+
 lemma sup_id_insert : Π (a : finset α) (b : α), a.sup id ∈ a
     → (insert b a).sup id ∈ insert b a :=
 λ a b ha, begin

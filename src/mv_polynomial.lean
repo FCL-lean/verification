@@ -90,8 +90,6 @@ begin
     rw [h, h_1], unfold mv_is_const_aux, simp,
 end
 
-
-
 section semilattice
 variables [lattice.semilattice_sup_bot (σ →₀ ℕ)]
 variables [bot_zero σ ℕ]
@@ -131,6 +129,56 @@ begin
     end
 end
 
+lemma const_support_singleton {p : mv_polynomial σ α} (h : p.support = {0}) : Σ' a : α, p = C a :=
+begin
+    apply psigma.mk (p.to_fun 0), unfold C monomial finsupp.single,
+    apply finsupp.ext, intro a,
+    from if ha : a = 0
+    then by simp [finsupp.coe_f, ha.symm]
+    else begin 
+        rw [←ne.def] at ha,
+        simp [finsupp.coe_f, ne.symm ha],
+        rw [←finsupp.coe_f, ←finsupp.not_mem_support_iff, h],
+        apply finset.not_mem_singleton.2 ha,
+    end
+end
+
+lemma leading_term_nconst_of_nconst 
+    {p : mv_polynomial σ α} (h : ¬mv_is_const p): ¬ mv_is_const p.leading_term :=
+begin
+    intro h',
+    unfold mv_is_const at h',
+    have hp := ne_mv_is_const h,
+    generalize h_mv : mv_trichotomy p.leading_term = m,
+    cases m,
+    {
+        unfold leading_term at m, simp at m,
+        have m' := finsupp.single_eqz m,
+        rw [←finsupp.coe_f, ←finsupp.not_mem_support_iff] at m',
+        have p_empt := finset.empty_of_sup_id_not_mem m',
+        simp at p_empt,
+        apply hp,
+        apply psigma.mk (0 : α), simp [p_empt], refl,
+    },
+    cases m,
+    {
+        unfold leading_term at m,
+        have sup_eqz : (finset.sup (p.support) id) = ⊥,
+        rw [←_inst_5.zero_bot],
+        apply (finsupp.single_inj1 m.snd.fst m.snd.snd.symm).symm,
+        have sup_sing := finset.sup_bot p.support sup_eqz,
+        cases sup_sing,
+        simp at sup_sing,
+        apply hp, apply psigma.mk (0 : α), simp [sup_sing], refl,
+        simp at sup_sing, 
+        have sup_sing' : p.support = singleton 0, simp [_inst_5.zero_bot, sup_sing],
+        apply hp (const_support_singleton sup_sing'),
+    },
+    {
+        simp [h_mv, mv_is_const_aux] at h', assumption,
+    }
+end
+
 lemma leading_term_ne_zero_coeff {a : mv_polynomial σ α} : 
     a.leading_monomial ≠ 0 → a.leading_coeff ≠ 0 :=
 λ neqz eqa, begin
@@ -143,8 +191,8 @@ lemma leading_term_ne_zero_coeff {a : mv_polynomial σ α} :
     apply neqz, rw _inst_5.zero_bot,
 end
 
-
 end is_total
+
 lemma support_empty {a : mv_polynomial σ α} : a.support = ∅ → a.leading_monomial = ⊥ :=
 λ h, begin
     unfold leading_monomial, rw [h], simp,
@@ -220,13 +268,14 @@ end comm_semiring
 end general
 
 namespace fin_n
-section div
-
 variables {n : ℕ}
 
 variables [discrete_field α]
 variables [lt_wellfounded: @well_founded (fin n →₀ ℕ) (<)]
 variable [bot_zero (fin n) ℕ]
+
+section div
+
 lemma sub_dec : Π (a b : mv_polynomial (fin n) α),
     a.leading_term = b.leading_term 
     → a.leading_monomial ≠ 0
@@ -299,6 +348,23 @@ using_well_founded
 omit lt_wellfounded
 
 end div
+
+section buchberger
+variables [decidable_linear_order α]
+
+include lt_wellfounded
+
+def s_poly (p q : mv_polynomial (fin n) α) : 
+    ¬ mv_is_const p → ¬ mv_is_const q → mv_polynomial (fin n) α :=
+λ p_nconst q_nconst,
+begin
+    let fst := @div _ _ _ lt_wellfounded _ (leading_term_lcm p q) p.leading_term (leading_term_nconst_of_nconst p_nconst),
+    let snd := @div _ _ _ lt_wellfounded _ (leading_term_lcm p q) q.leading_term (leading_term_nconst_of_nconst q_nconst),
+    exact fst.fst * p - snd.fst * q,
+end
+
+
+end buchberger
 end fin_n
 
 end mv_polynomial
