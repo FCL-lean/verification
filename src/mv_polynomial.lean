@@ -95,14 +95,54 @@ variables [lattice.semilattice_sup_bot (σ →₀ ℕ)]
 variables [bot_zero σ ℕ]
 def leading_monomial (a: mv_polynomial σ α): σ →₀ ℕ := a.support.sup id
 
+def leading_coeff (a: mv_polynomial σ α): α := a.to_fun a.leading_monomial
+
 def leading_term (a: mv_polynomial σ α): mv_polynomial σ α 
-    := finsupp.single (a.support.sup id) (a.to_fun (a.support.sup id))
-
-
-def leading_coeff (a: mv_polynomial σ α): α := a.to_fun (a.support.sup id)
+    := finsupp.single a.leading_monomial a.leading_coeff
 
 section is_total
 variables [is_total (σ →₀ ℕ) has_le.le] [@decidable_rel (σ →₀ ℕ) has_le.le]
+
+lemma empty_of_leading_monomial_not_mem {p : mv_polynomial σ α} : p.leading_monomial ∉ p.support ↔ p = 0 :=
+begin
+    unfold leading_monomial,
+    apply iff.intro; intro h,
+    apply finsupp.support_eq_empty.1 (finset.empty_of_sup_id_not_mem h),
+    simp [h], apply finsupp.zero_apply,
+end
+
+lemma leading_monomial_const_iff {p : mv_polynomial σ α} : 
+    mv_is_const p.leading_term ↔ p.leading_monomial = ⊥ :=
+begin
+    unfold mv_is_const leading_term leading_coeff,
+    generalize h_mv : mv_trichotomy (finsupp.single p.leading_monomial (p.to_fun p.leading_monomial)) = m_tri,
+    apply iff.intro; intro h, 
+    cases m_tri,
+    {
+        simp at m_tri,
+        have p_c_z := finsupp.single_eqz m_tri,
+        rw [←finsupp.coe_f, ←finsupp.not_mem_support_iff, empty_of_leading_monomial_not_mem] at p_c_z,
+        simp [leading_monomial, p_c_z],
+        change finset.sup ∅ id = ⊥, exact finset.sup_empty,
+    },
+    cases m_tri,
+    {
+        unfold leading_monomial, rw [←_inst_5.zero_bot],
+        apply (finsupp.single_inj1 m_tri.snd.fst m_tri.snd.snd.symm).symm,
+    },
+    {
+        simp [h_mv, mv_is_const_aux] at h, revert h, simp,
+    },
+    cases m_tri,
+    unfold mv_is_const_aux,
+    cases m_tri,
+    unfold mv_is_const_aux,
+    unfold mv_is_const_aux,
+    have H : (Σ' (a : α), finsupp.single (leading_monomial p) (p.to_fun (leading_monomial p)) = C a),
+    rw [←_inst_5.zero_bot] at h, apply psigma.mk (p.to_fun 0), simp [C, monomial, h],
+    apply m_tri H,
+end
+
 set_option trace.check true
 def lead_monomial_eqz_const {a : mv_polynomial σ α}:
     a.leading_monomial = ⊥ 
@@ -147,36 +187,9 @@ lemma leading_term_nconst_of_nconst
     {p : mv_polynomial σ α} (h : ¬mv_is_const p): ¬ mv_is_const p.leading_term :=
 begin
     intro h',
-    unfold mv_is_const at h',
     have hp := ne_mv_is_const h,
-    generalize h_mv : mv_trichotomy p.leading_term = m,
-    cases m,
-    {
-        unfold leading_term at m, simp at m,
-        have m' := finsupp.single_eqz m,
-        rw [←finsupp.coe_f, ←finsupp.not_mem_support_iff] at m',
-        have p_empt := finset.empty_of_sup_id_not_mem m',
-        simp at p_empt,
-        apply hp,
-        apply psigma.mk (0 : α), simp [p_empt], refl,
-    },
-    cases m,
-    {
-        unfold leading_term at m,
-        have sup_eqz : (finset.sup (p.support) id) = ⊥,
-        rw [←_inst_5.zero_bot],
-        apply (finsupp.single_inj1 m.snd.fst m.snd.snd.symm).symm,
-        have sup_sing := finset.sup_bot p.support sup_eqz,
-        cases sup_sing,
-        simp at sup_sing,
-        apply hp, apply psigma.mk (0 : α), simp [sup_sing], refl,
-        simp at sup_sing, 
-        have sup_sing' : p.support = singleton 0, simp [_inst_5.zero_bot, sup_sing],
-        apply hp (const_support_singleton sup_sing'),
-    },
-    {
-        simp [h_mv, mv_is_const_aux] at h', assumption,
-    }
+    rw leading_monomial_const_iff at h',
+    apply hp (lead_monomial_eqz_const h'),
 end
 
 lemma leading_term_ne_zero_coeff {a : mv_polynomial σ α} : 
@@ -363,6 +376,46 @@ begin
     exact fst.fst * p - snd.fst * q,
 end
 
+def div_list : (mv_polynomial (fin n) α) → 
+    (list (Σ' (p: mv_polynomial (fin n) α), ¬ mv_is_const p)) → mv_polynomial (fin n) α
+| a [] := a
+| a (hd :: tl) := div_list (@div _ _ _ lt_wellfounded _ a hd.fst hd.snd).snd.fst tl
+
+def buch_pairs (s : list (Σ' (p: mv_polynomial (fin n) α), ¬ mv_is_const p)) 
+: list (Σ' (p: mv_polynomial (fin n) α × mv_polynomial (fin n) α), 
+                pprod (¬ mv_is_const p.1) (¬ mv_is_const p.2)) :=
+    do  x ← s,
+        y ← s,
+        if x = y
+        then []
+        else [⟨(x.fst, y.fst), ⟨x.snd, y.snd⟩⟩]
+
+def buch_s_polys (pairs : list (Σ' (p: mv_polynomial (fin n) α × mv_polynomial (fin n) α), 
+                pprod (¬ mv_is_const p.1) (¬ mv_is_const p.2))) : list (mv_polynomial (fin n) α) 
+    := pairs.map (λ a, @s_poly _ _ _ lt_wellfounded _ _ a.fst.fst a.fst.snd a.snd.fst a.snd.snd)
+
+def buch_div_result (s s_polys: list (Σ' (p: mv_polynomial (fin n) α), ¬ mv_is_const p))
+    := (list.foldl (λ a b, 
+    let div_result := @div_list _ _ _ lt_wellfounded _ _ (b: (Σ' (p: mv_polynomial (fin n) α), ¬ mv_is_const p)).fst a
+    in if div_result ∉ list.map psigma.fst a 
+        then (if h: ¬ mv_is_const div_result then ⟨div_result, h⟩ :: a else a) else a) s s_polys)
+
+def filter_non_const : list (mv_polynomial (fin n) α) →
+    list (Σ' (p: mv_polynomial (fin n) α), ¬ mv_is_const p)
+| [] := []
+| (x :: xs) := if h: mv_is_const x then filter_non_const xs else ⟨x, h⟩ :: filter_non_const xs
+
+def buchberger : list (Σ' (p: mv_polynomial (fin n) α), ¬ mv_is_const p) → 
+    list (Σ' (p: mv_polynomial (fin n) α), ¬ mv_is_const p)
+| s :=
+    let result := @buch_div_result _ _ _ lt_wellfounded _ _ s 
+        $ @filter_non_const _ _ _ lt_wellfounded _ _ 
+        $ @buch_s_polys _ _ _ lt_wellfounded _ _
+        $ @buch_pairs _ _ _ lt_wellfounded _ _ s
+        in if s = result then s else 
+                begin
+                    exact buchberger result
+                end
 
 end buchberger
 end fin_n
