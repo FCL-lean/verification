@@ -202,6 +202,31 @@ begin
     end
 end
 
+
+lemma poly_lead_coeff_z {p : mv_polynomial σ α}: 
+    p.leading_coeff = 0 → p = 0 :=
+λ coeffz,
+begin
+    unfold leading_coeff leading_monomial at coeffz,
+    rw [←finsupp.coe_f, ←finsupp.not_mem_support_iff] at coeffz,
+    have h: p.support = ∅,
+    by_cases p.support = ∅,
+    assumption,
+    apply false.elim, apply coeffz,
+    apply finset.mem_of_sup_id, assumption,
+    rw finsupp.support_eq_empty at h,
+    assumption,
+end
+
+lemma poly_lead_tm_neqz {p : mv_polynomial σ α}: p ≠ 0 → p.leading_term ≠ 0 :=
+λ pneqz eqz,
+begin 
+    apply pneqz,
+    unfold leading_term at eqz,
+    have eqz' := finsupp.single_eqz eqz,
+    exact poly_lead_coeff_z eqz',
+end
+
 lemma const_support_zero {a : α} (h : a ≠ 0) : (C a : mv_polynomial σ α).support = {0} := 
 by unfold C monomial finsupp.single; simp [h]
 
@@ -391,12 +416,23 @@ def div_const : Π (a b : mv_polynomial (fin n) α), b ≠ 0 →
                         ∧ a = b * q + r
 | a b bneqz bconst :=
 begin
-    sorry
+    have m := mv_is_const_neqz bconst bneqz,
+    apply psigma.mk (a * C (1 / m.fst)),
+    apply psigma.mk (0: mv_polynomial (fin n) α),
+    apply and.intro,
+    rw m.snd.snd,
+    unfold leading_monomial C monomial finsupp.single, 
+    simp [m.snd.fst], rw [←finset.singleton_eq_singleton, finset.sup_singleton], 
+    unfold has_zero.zero, simp, rw [←_inst_2.zero_bot], trivial,
+    simp, have n : b = C m.fst,
+    exact m.snd.snd, generalize j : C (m.fst)⁻¹ = k,
+    rw n, rw ←j, rw mul_comm, rw mul_assoc,
+    rw ←C_mul, rw discrete_field.inv_mul_cancel,
+    simp, exact m.snd.fst,
 end
-
 include lt_wellfounded
 
-def div : Π (a b : mv_polynomial (fin n) α),
+def div_not_const : Π (a b : mv_polynomial (fin n) α),
                 ¬ mv_is_const b →
                  Σ'q r, ¬ leading_term_le b r 
                         ∧ a = b * q + r
@@ -418,7 +454,7 @@ begin
     tactic.unfreeze_local_instances, dedup,
     apply sub_dec a (b * q'),
     rw [←q'eq, ←subeq], apply lead_tm_eq (nzero_of_ne_mv_is_const bnconst) h, assumption,
-    have result := div r' b bnconst,
+    have result := div_not_const r' b bnconst,
     cases result with r_q, cases result_snd with r_r,
     apply psigma.mk (q' + r_q),
     apply psigma.mk r_r,
@@ -440,6 +476,18 @@ using_well_founded
 `[exact ⟨_, inv_image.wf psigma.fst (inv_image.wf leading_monomial lt_wellfounded)⟩] 
 , dec_tac := tactic.assumption }
 
+
+
+def div : Π (a b : mv_polynomial (fin n) α),
+                 b ≠ 0 →
+                 Σ'q r, ((¬ mv_is_const b ∧ ¬ leading_term_le b r) 
+                            ∨ (mv_is_const b ∧ b.leading_monomial = r.leading_monomial))
+                        ∧ a = b * q + r :=
+    λ a b neqz, if h: mv_is_const b
+           then let r := div_const a b neqz h in ⟨r.1, r.2.1, or.inr (and.intro h r.2.2.1), r.2.2.2⟩ 
+           else let r := @div_not_const _ _ _ lt_wellfounded _ a b h 
+                in ⟨r.1, r.2.1, or.inl (and.intro h r.2.2.1), r.2.2.2⟩
+
 omit lt_wellfounded
 
 end div
@@ -450,22 +498,22 @@ variables [decidable_linear_order α]
 include lt_wellfounded
 
 def s_poly (p q : mv_polynomial (fin n) α) : 
-    ¬ mv_is_const p → ¬ mv_is_const q → mv_polynomial (fin n) α :=
-λ p_nconst q_nconst,
+    p ≠ 0 → q ≠ 0 → mv_polynomial (fin n) α :=
+λ p_nz q_nz,
 begin
-    let fst := @div _ _ _ lt_wellfounded _ (leading_term_lcm p q) p.leading_term (leading_term_nconst_of_nconst p_nconst),
-    let snd := @div _ _ _ lt_wellfounded _ (leading_term_lcm p q) q.leading_term (leading_term_nconst_of_nconst q_nconst),
+    let fst := @div _ _ _ lt_wellfounded _ (leading_term_lcm p q) p.leading_term (poly_lead_tm_neqz p_nz),
+    let snd := @div _ _ _ lt_wellfounded _ (leading_term_lcm p q) q.leading_term (poly_lead_tm_neqz q_nz),
     exact fst.fst * p - snd.fst * q,
 end
 
 def div_list : (mv_polynomial (fin n) α) → 
-    (list (Σ' (p: mv_polynomial (fin n) α), ¬ mv_is_const p)) → mv_polynomial (fin n) α
+    (list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0)) → mv_polynomial (fin n) α
 | a [] := a
 | a (hd :: tl) := div_list (@div _ _ _ lt_wellfounded _ a hd.fst hd.snd).snd.fst tl
 
-def buch_pairs (s : list (Σ' (p: mv_polynomial (fin n) α), ¬ mv_is_const p)) 
+def buch_pairs (s : list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0)) 
 : list (Σ' (p: mv_polynomial (fin n) α × mv_polynomial (fin n) α), 
-                pprod (¬ mv_is_const p.1) (¬ mv_is_const p.2)) :=
+                pprod (p.1 ≠ 0) (p.2 ≠ 0)) :=
     do  x ← s,
         y ← s,
         if x = y
@@ -473,22 +521,22 @@ def buch_pairs (s : list (Σ' (p: mv_polynomial (fin n) α), ¬ mv_is_const p))
         else [⟨(x.fst, y.fst), ⟨x.snd, y.snd⟩⟩]
 
 def buch_s_polys (pairs : list (Σ' (p: mv_polynomial (fin n) α × mv_polynomial (fin n) α), 
-                pprod (¬ mv_is_const p.1) (¬ mv_is_const p.2))) : list (mv_polynomial (fin n) α) 
+                pprod (p.1 ≠ 0) (p.2 ≠ 0))) : list (mv_polynomial (fin n) α) 
     := pairs.map (λ a, @s_poly _ _ _ lt_wellfounded _ _ a.fst.fst a.fst.snd a.snd.fst a.snd.snd)
 
-def buch_div_result (s s_polys: list (Σ' (p: mv_polynomial (fin n) α), ¬ mv_is_const p))
+def buch_div_result (s s_polys: list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0))
     := (list.foldl (λ a b, 
-    let div_result := @div_list _ _ _ lt_wellfounded _ _ (b: (Σ' (p: mv_polynomial (fin n) α), ¬ mv_is_const p)).fst a
+    let div_result := @div_list _ _ _ lt_wellfounded _ _ (b: (Σ' (p: mv_polynomial (fin n) α), p ≠ 0)).fst a
     in if div_result ∉ list.map psigma.fst a 
         then (if h: ¬ mv_is_const div_result then ⟨div_result, h⟩ :: a else a) else a) s s_polys)
 
 def filter_non_const : list (mv_polynomial (fin n) α) →
-    list (Σ' (p: mv_polynomial (fin n) α), ¬ mv_is_const p)
+    list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0)
 | [] := []
 | (x :: xs) := if h: mv_is_const x then filter_non_const xs else ⟨x, h⟩ :: filter_non_const xs
 
-def buchberger : list (Σ' (p: mv_polynomial (fin n) α), ¬ mv_is_const p) → 
-    list (Σ' (p: mv_polynomial (fin n) α), ¬ mv_is_const p)
+def buchberger : list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0) → 
+    list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0)
 | s :=
     let result := @buch_div_result _ _ _ lt_wellfounded _ _ s 
         $ @filter_non_const _ _ _ lt_wellfounded _ _ 
