@@ -1,6 +1,7 @@
 import linear_algebra.multivariate_polynomial
 import finsupp
 import finset
+import finite
 import fin
 import bot_zero
 variables {σ : Type*} {α : Type*} {β : Type*} {γ : Type*} {δ : Type*} {ι : Type*}
@@ -246,8 +247,12 @@ begin
     intro, apply_instance,
 end
 
-lemma zero_of_le_zero {a b : mv_polynomial σ α} : a.leading_monomial = 0
-     → leading_term_le b a → b.leading_monomial = 0 := sorry
+lemma leading_monomial_zero_of_le_zero {a b : mv_polynomial σ α} : a.leading_monomial = 0
+     → leading_term_le b a → b.leading_monomial = 0 := 
+λ ha hba, begin
+    simp [leading_term_le, finsupp.leading_term_le, ha, finite.finite_fold_and_iff] at hba,
+    apply finsupp.ext, simp [hba],
+end
 
 omit fins
 end finite_s
@@ -415,7 +420,7 @@ begin
     by_cases alt'eqz: a.leading_monomial = 0,
     let atmeqz := lead_monomial_eqz_const alt'eqz, 
     tactic.unfreeze_local_instances, dedup,
-    let btmeqz := lead_monomial_eqz_const (zero_of_le_zero alt'eqz h),
+    let btmeqz := lead_monomial_eqz_const (leading_monomial_zero_of_le_zero alt'eqz h),
     have atmeqzp := atmeqz.snd,
     have btmeqzp := btmeqz.snd,
     apply false.elim, apply ne_mv_is_const bnconst, assumption,
