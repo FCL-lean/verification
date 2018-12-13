@@ -82,7 +82,7 @@ lemma eq_mv_is_const' {p : mv_polynomial σ α} :
     simp [mv_is_const_aux], exact val h,
 end
 
-def ne_mv_is_const {p : mv_polynomial σ α}:
+lemma ne_mv_is_const {p : mv_polynomial σ α}:
     ¬ mv_is_const p → (Σ'a : α, p = mv_polynomial.C a) → false :=
 begin
     intros,
@@ -93,6 +93,14 @@ begin
     cases h1:val, unfold mv_is_const at a,
     rw [j, h, h1] at a, unfold mv_is_const_aux at a,
     apply a, trivial, apply val_1, assumption,
+end
+
+lemma nzero_of_ne_mv_is_const {p : mv_polynomial σ α} : 
+    ¬ mv_is_const p → p ≠ 0 :=
+λ h, begin
+    let ne_p := ne_mv_is_const h,
+    intro, apply ne_p,
+    apply psigma.mk (0 : α), simp [a],
 end
 
 instance (p : mv_polynomial σ α): decidable (mv_is_const p) :=
@@ -179,7 +187,7 @@ begin
     end
 end
 
-lemma const_support_singleton {p : mv_polynomial σ α} (h : p.support = {0}) : Σ' a : α, p = C a :=
+lemma const_of_support_singleton {p : mv_polynomial σ α} (h : p.support = {0}) : Σ' a : α, p = C a :=
 begin
     apply psigma.mk (p.to_fun 0), unfold C monomial finsupp.single,
     apply finsupp.ext, intro a,
@@ -192,6 +200,9 @@ begin
         apply finset.not_mem_singleton.2 ha,
     end
 end
+
+lemma const_support_zero {a : α} (h : a ≠ 0) : (C a : mv_polynomial σ α).support = {0} := 
+by unfold C monomial finsupp.single; simp [h]
 
 lemma leading_term_nconst_of_nconst 
     {p : mv_polynomial σ α} (h : ¬mv_is_const p): ¬ mv_is_const p.leading_term :=
@@ -281,11 +292,9 @@ end
 end decidable_linear_order
 end semilattice
 
-lemma const_support_zero {a : α} : (C a : mv_polynomial σ α).support = {0} := sorry
 def leading_term_sub' {n} (a b: mv_polynomial (fin n) α) [bot_zero (fin n) ℕ]
     (h: leading_term_le b a) : fin n →₀ ℕ
-     := finsupp.fin_n.leading_term_sub a.leading_monomial b.leading_monomial
-            h
+     := finsupp.fin_n.leading_term_sub a.leading_monomial b.leading_monomial h
 
 end comm_semiring
 end general
@@ -310,8 +319,6 @@ end
 lemma lead_tm_eq {a b : mv_polynomial (fin n) α} (hb : b ≠ 0) (hab : leading_term_le b a) : 
     a.leading_term = leading_term (b * finsupp.single (leading_term_sub' a b hab) 
                 (a.leading_coeff / b.leading_coeff)) := sorry
-
-lemma nempty_of_const (a : α) : (a ≠ 0) → ((C a) : mv_polynomial (fin n) α).support ≠ ∅ := sorry
 
 def div_const : Π (a b : mv_polynomial (fin n) α), b ≠ 0 →
                 mv_is_const b →
