@@ -158,6 +158,31 @@ lemma union_sup_in_a_or_b : Π (a b : finset α),
     end
 end
 
+
+
+lemma sub_sup': Π (a b : finset α), 
+    a.sup id ∈ b → a.sup id ≤ b.sup id :=
+λ a b ha,
+begin
+    revert ha,
+    apply finset.induction_on b; intros,
+    cases ha,
+    simp at ha, simp,
+    cases ha, rw ha,
+    simp,
+    apply lattice.le_sup_right_of_le,
+    exact a_3 ha,    
+end
+
+lemma sub_sup: Π {a b : finset α}, a ⊆ b → a.sup id ≤ b.sup id :=
+λ a b asubb,
+begin
+    unfold has_subset.subset at asubb,
+    by_cases a = ∅, rw h, simp,
+    have sup_a_in_b := asubb (finset.mem_of_sup_id h),
+    apply sub_sup' _ _ sup_a_in_b,
+end
+
 end decidable_linear_order
 end semilattice
 
