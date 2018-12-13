@@ -1,4 +1,5 @@
-import finite
+import fintype
+
 namespace fin
 def succ_lem: ∀ a val h, 
     Σ' b, fin.succ b = (⟨nat.succ a, h⟩: fin (nat.succ val)) :=
@@ -140,7 +141,7 @@ begin
     apply n_ih,
 end
 
-instance {n : ℕ} : finite (fin n) 
+instance {n : ℕ} : fintype (fin n) 
     := ⟨(enum n).to_finset, by simp; apply in_enum⟩
 
 

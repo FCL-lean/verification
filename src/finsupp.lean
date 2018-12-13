@@ -1,6 +1,6 @@
 import data.finsupp
 import util
-import finite
+import fintype
 import fin
 variables {α : Type*} {β : Type*} {γ : Type*} {δ : Type*} {ι : Type*}
 namespace finsupp
@@ -11,17 +11,17 @@ variables [decidable_eq α] [decidable_eq β]
 section has_zero
 variables [has_zero β] 
 
-section finite_dom
-variables [fina: finite α]
+section fintype_dom
+variables [fina: fintype α]
 section has_le
 variables [has_le β]
 
 
 def leading_term_le (a b: α →₀ β): Prop 
-    := fina.val.fold (∧) true (λ elem, a elem ≤ b elem)
+    := fina.elems.fold (∧) true (λ elem, a elem ≤ b elem)
 
 end has_le
-end finite_dom
+end fintype_dom
 
 lemma in_not (a : α →₀ β) : ∀ x : α, x ∈ a.support ∨ x ∉ a.support := 
     by intro; apply classical.or_not
@@ -117,7 +117,7 @@ lemma leading_term_le_all (a b: fin n →₀ ℕ): leading_term_le a b →
     ∀ (x : fin n), a x ≤ b x :=
 λ hle, begin
     unfold leading_term_le at hle, 
-    rw finite.finite_fold_and_iff at hle, 
+    rw fintype.fintype_fold_and_iff at hle, 
     assumption
 end
 

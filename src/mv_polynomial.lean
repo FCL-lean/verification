@@ -1,7 +1,7 @@
 import linear_algebra.multivariate_polynomial
 import finsupp
 import finset
-import finite
+import fintype
 import fin
 import bot_zero
 variables {σ : Type*} {α : Type*} {β : Type*} {γ : Type*} {δ : Type*} {ι : Type*}
@@ -131,7 +131,7 @@ def leading_term (a: mv_polynomial σ α): mv_polynomial σ α
 section is_total
 variables [is_total (σ →₀ ℕ) has_le.le] [@decidable_rel (σ →₀ ℕ) has_le.le]
 
-lemma empty_of_leading_monomial_not_mem {p : mv_polynomial σ α} : p.to_fun p.leading_monomial = 0 ↔ p = 0 :=
+lemma eq_zero_leading_monomial_not_mem_iff {p : mv_polynomial σ α} : p.to_fun p.leading_monomial = 0 ↔ p = 0 :=
 begin
     unfold leading_monomial,
     apply iff.intro; intro h;
@@ -150,7 +150,7 @@ begin
         from if hpcz :p.leading_coeff = 0
         then 
             begin 
-                simp [leading_coeff, empty_of_leading_monomial_not_mem] at hpcz, simp [leading_monomial, hpcz, _inst_5.zero_bot], 
+                simp [leading_coeff, eq_zero_leading_monomial_not_mem_iff] at hpcz, simp [leading_monomial, hpcz, _inst_5.zero_bot], 
                 change finset.sup ∅ id = ⊥, exact finset.sup_empty,
             end
         else by apply finsupp.single_inj1 hpcz h'.2
@@ -233,8 +233,8 @@ lemma support_empty {a : mv_polynomial σ α} : a.support = ∅ → a.leading_mo
     unfold leading_monomial, rw [h], simp,
 end
 
-section finite_s
-variable [fins: finite σ]
+section fintype_s
+variable [fins: fintype σ]
 include fins
 
 def leading_term_le (a b: mv_polynomial σ α): Prop
@@ -243,19 +243,19 @@ def leading_term_le (a b: mv_polynomial σ α): Prop
 instance leading_term_le_dec (a b: mv_polynomial σ α): decidable (leading_term_le a b) :=
 begin
     unfold leading_term_le finsupp.leading_term_le,
-    apply finite.finite_fold_dec,
+    apply fintype.fintype_fold_dec,
     intro, apply_instance,
 end
 
 lemma leading_monomial_zero_of_le_zero {a b : mv_polynomial σ α} : a.leading_monomial = 0
      → leading_term_le b a → b.leading_monomial = 0 := 
 λ ha hba, begin
-    simp [leading_term_le, finsupp.leading_term_le, ha, finite.finite_fold_and_iff] at hba,
+    simp [leading_term_le, finsupp.leading_term_le, ha, fintype.fintype_fold_and_iff] at hba,
     apply finsupp.ext, simp [hba],
 end
 
 omit fins
-end finite_s
+end fintype_s
 
 
 lemma support_ne_empty_of_leading_term {a b : mv_polynomial σ α} : a.leading_monomial ≠ ⊥ 
