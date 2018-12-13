@@ -202,6 +202,31 @@ begin
     end
 end
 
+
+lemma poly_lead_coeff_z {p : mv_polynomial σ α}: 
+    p.leading_coeff = 0 → p = 0 :=
+λ coeffz,
+begin
+    unfold leading_coeff leading_monomial at coeffz,
+    rw [←finsupp.coe_f, ←finsupp.not_mem_support_iff] at coeffz,
+    have h: p.support = ∅,
+    by_cases p.support = ∅,
+    assumption,
+    apply false.elim, apply coeffz,
+    apply finset.mem_of_sup_id, assumption,
+    rw finsupp.support_eq_empty at h,
+    assumption,
+end
+
+lemma poly_lead_tm_neqz {p : mv_polynomial σ α}: p ≠ 0 → p.leading_term ≠ 0 :=
+λ pneqz eqz,
+begin 
+    apply pneqz,
+    unfold leading_term at eqz,
+    have eqz' := finsupp.single_eqz eqz,
+    exact poly_lead_coeff_z eqz',
+end
+
 lemma const_support_zero {a : α} (h : a ≠ 0) : (C a : mv_polynomial σ α).support = {0} := 
 by unfold C monomial finsupp.single; simp [h]
 
@@ -474,10 +499,10 @@ include lt_wellfounded
 
 def s_poly (p q : mv_polynomial (fin n) α) : 
     p ≠ 0 → q ≠ 0 → mv_polynomial (fin n) α :=
-λ p_nconst q_nconst,
+λ p_nz q_nz,
 begin
-    let fst := @div _ _ _ lt_wellfounded _ (leading_term_lcm p q) p.leading_term (leading_term_nconst_of_nconst p_nconst),
-    let snd := @div _ _ _ lt_wellfounded _ (leading_term_lcm p q) q.leading_term (leading_term_nconst_of_nconst q_nconst),
+    let fst := @div _ _ _ lt_wellfounded _ (leading_term_lcm p q) p.leading_term (poly_lead_tm_neqz p_nz),
+    let snd := @div _ _ _ lt_wellfounded _ (leading_term_lcm p q) q.leading_term (poly_lead_tm_neqz q_nz),
     exact fst.fst * p - snd.fst * q,
 end
 
