@@ -1,6 +1,10 @@
 import data.set.lattice
 import data.finset
 
+universe u
+def not' : Type u → Prop := λ a, a → false
+notation `¬'` a := not' a
+
 section classes
 set_option old_structure_cmd true
 class monomial_order (α : Type*) extends has_add α, linear_order α := 

@@ -63,6 +63,25 @@ begin
     apply false.elim, assumption,
 end
 
+lemma eq_mv_is_const {p : mv_polynomial σ α} :
+    mv_is_const p → Σ'a : α, p = C a :=
+λ h, begin
+    generalize hp_tri : mv_trichotomy p = p_tri,
+    unfold mv_is_const at h, rw hp_tri at h,
+    cases p_tri, apply psigma.mk (0 : α), assumption,
+    cases p_tri, apply psigma.mk p_tri.1, exact p_tri.2.2,
+    unfold mv_is_const_aux at h, apply psigma.mk (0 : α), revert h, simp,
+end
+
+lemma eq_mv_is_const' {p : mv_polynomial σ α} :
+    (Σ' a : α, p = C a) → mv_is_const p :=
+λ h, begin
+    unfold mv_is_const,
+    cases mv_trichotomy p, simp [mv_is_const_aux],
+    cases val, simp [mv_is_const_aux],
+    simp [mv_is_const_aux], exact val h,
+end
+
 def ne_mv_is_const {p : mv_polynomial σ α}:
     ¬ mv_is_const p → (Σ'a : α, p = mv_polynomial.C a) → false :=
 begin
@@ -103,10 +122,11 @@ def leading_term (a: mv_polynomial σ α): mv_polynomial σ α
 section is_total
 variables [is_total (σ →₀ ℕ) has_le.le] [@decidable_rel (σ →₀ ℕ) has_le.le]
 
-lemma empty_of_leading_monomial_not_mem {p : mv_polynomial σ α} : p.leading_monomial ∉ p.support ↔ p = 0 :=
+lemma empty_of_leading_monomial_not_mem {p : mv_polynomial σ α} : p.to_fun p.leading_monomial = 0 ↔ p = 0 :=
 begin
     unfold leading_monomial,
-    apply iff.intro; intro h,
+    apply iff.intro; intro h;
+    rw [←finsupp.coe_f, ←finsupp.not_mem_support_iff] at *,
     apply finsupp.support_eq_empty.1 (finset.empty_of_sup_id_not_mem h),
     simp [h], apply finsupp.zero_apply,
 end
@@ -114,39 +134,29 @@ end
 lemma leading_monomial_const_iff {p : mv_polynomial σ α} : 
     mv_is_const p.leading_term ↔ p.leading_monomial = ⊥ :=
 begin
-    unfold mv_is_const leading_term leading_coeff,
-    generalize h_mv : mv_trichotomy (finsupp.single p.leading_monomial (p.to_fun p.leading_monomial)) = m_tri,
-    apply iff.intro; intro h, 
-    cases m_tri,
-    {
-        simp at m_tri,
-        have p_c_z := finsupp.single_eqz m_tri,
-        rw [←finsupp.coe_f, ←finsupp.not_mem_support_iff, empty_of_leading_monomial_not_mem] at p_c_z,
-        simp [leading_monomial, p_c_z],
-        change finset.sup ∅ id = ⊥, exact finset.sup_empty,
+    apply iff.intro; intro h,
+    rw ←_inst_5.zero_bot,
+    have h' := eq_mv_is_const h,
+    unfold leading_term C monomial at h', {
+        from if hpcz :p.leading_coeff = 0
+        then 
+            begin 
+                simp [leading_coeff, empty_of_leading_monomial_not_mem] at hpcz, simp [leading_monomial, hpcz, _inst_5.zero_bot], 
+                change finset.sup ∅ id = ⊥, exact finset.sup_empty,
+            end
+        else by apply finsupp.single_inj1 hpcz h'.2
     },
-    cases m_tri,
-    {
-        unfold leading_monomial, rw [←_inst_5.zero_bot],
-        apply (finsupp.single_inj1 m_tri.snd.fst m_tri.snd.snd.symm).symm,
-    },
-    {
-        simp [h_mv, mv_is_const_aux] at h, revert h, simp,
-    },
-    cases m_tri,
-    unfold mv_is_const_aux,
-    cases m_tri,
-    unfold mv_is_const_aux,
-    unfold mv_is_const_aux,
-    have H : (Σ' (a : α), finsupp.single (leading_monomial p) (p.to_fun (leading_monomial p)) = C a),
-    rw [←_inst_5.zero_bot] at h, apply psigma.mk (p.to_fun 0), simp [C, monomial, h],
-    apply m_tri H,
+    rw [←_inst_5.zero_bot] at h,
+    simp [leading_term, h],
+    change mv_is_const (C p.leading_coeff),
+    apply eq_mv_is_const',
+    apply psigma.mk p.leading_coeff,
+    refl,
 end
 
 set_option trace.check true
 def lead_monomial_eqz_const {a : mv_polynomial σ α}:
-    a.leading_monomial = ⊥ 
-    → Σ' (c : α), a = C c :=
+    a.leading_monomial = ⊥ → Σ' (c : α), a = C c :=
 λ eqz,
 begin 
     unfold leading_monomial at eqz,
