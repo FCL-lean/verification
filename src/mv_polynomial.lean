@@ -545,18 +545,18 @@ def buch_div_result (s s_polys: list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0
     := (list.foldl (λ a b, 
     let div_result := @div_list _ _ _ lt_wellfounded _ _ (b: (Σ' (p: mv_polynomial (fin n) α), p ≠ 0)).fst a
     in if div_result ∉ list.map psigma.fst a 
-        then (if h: ¬ mv_is_const div_result then ⟨div_result, h⟩ :: a else a) else a) s s_polys)
+        then (if h: div_result = 0 then a else ⟨div_result, h⟩ :: a ) else a) s s_polys)
 
-def filter_non_const : list (mv_polynomial (fin n) α) →
+def filter_non_zero : list (mv_polynomial (fin n) α) →
     list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0)
 | [] := []
-| (x :: xs) := if h: mv_is_const x then filter_non_const xs else ⟨x, h⟩ :: filter_non_const xs
+| (x :: xs) := if h: x = 0 then filter_non_zero xs else ⟨x, h⟩ :: filter_non_zero xs
 
 def buchberger : list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0) → 
     list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0)
 | s :=
     let result := @buch_div_result _ _ _ lt_wellfounded _ _ s 
-        $ @filter_non_const _ _ _ lt_wellfounded _ _ 
+        $ @filter_non_zero _ _ _ lt_wellfounded _ _ 
         $ @buch_s_polys _ _ _ lt_wellfounded _ _
         $ @buch_pairs _ _ _ lt_wellfounded _ _ s
         in if s = result then s else 
