@@ -3,6 +3,8 @@ import finsupp
 import finset
 import fintype
 import fin
+import noetherian
+import seq
 import bot_zero
 variables {σ : Type*} {α : Type*} {β : Type*} {γ : Type*} {δ : Type*} {ι : Type*}
 
@@ -10,6 +12,21 @@ namespace mv_polynomial
 
 section general
 variables [decidable_eq σ] [decidable_eq α]
+
+section discrete_field
+variable [discrete_field α]
+
+instance HBT : noetherian (mv_polynomial σ α) := sorry
+
+lemma m : no_inf_chain (ideal (mv_polynomial σ α)) (<) :=
+begin
+    intro ex,
+    let union := set.Union (λ (s: ℕ), (↑ (ex.1 s) : set (mv_polynomial σ α) )),
+    
+
+end
+
+end discrete_field
 
 section comm_semiring
 variables [comm_semiring α]
