@@ -17,13 +17,70 @@ section discrete_field
 variable [discrete_field α]
 
 instance HBT : noetherian (mv_polynomial σ α) := sorry
+-- set_option trace.simplify.rewrite true
 
-lemma m : no_inf_chain (ideal (mv_polynomial σ α)) (<) :=
+lemma seq_ideal_lt_trans' (ex: seqR.seq_R (ideal (mv_polynomial σ α)) (<))
+    : ∀ n i, ex.1 n < ex.1 (n + (nat.succ i)) :=
+begin
+    intros,
+    induction i,
+    exact ex.2 n,
+    apply lt_trans i_ih (ex.2 _),
+end
+
+lemma seq_ideal_lt_trans (ex: seqR.seq_R (ideal (mv_polynomial σ α)) (<))
+    : ∀ m n, m ≤ n → ex.1 m ≤ ex.1 n :=
+begin
+    intros m n,
+    by_cases m = n; intros,
+    begin
+        rw h; apply le_of_eq rfl,
+    end,
+    begin
+        have mltn : m < n, 
+            exact lt_of_le_of_ne a h,
+        have exi := nat.lt_add mltn, cases exi,
+        have h' := seq_ideal_lt_trans' ex m exi_fst,
+        rw exi_snd at h',
+        apply le_of_lt h',   
+    end,
+end
+
+lemma seq_ideal_in (ex: seqR.seq_R (ideal (mv_polynomial σ α)) (<))
+    : ∀ x m n, m ≤ n → x ∈ ex.1 m → x ∈ ex.1 n :=
+begin
+    intros,
+    have lt := seq_ideal_lt_trans ex m n a,
+    rw [←ideal.span_eq (ex.1 m), ideal.span_le] at lt,
+    apply lt; assumption,
+end
+
+def seq_ideal (ex: seqR.seq_R (ideal (mv_polynomial σ α)) (<)) 
+                : ideal (mv_polynomial σ α) :=
+{
+    carrier := set.Union (λ (s: ℕ), (↑ (ex.1 s) : set (mv_polynomial σ α) )),
+    zero := by simp,
+    add := begin 
+        intros x y in1 in2; simp at *,
+        cases in1; cases in2,
+        apply exists.intro (max in1_w in2_w),
+        have in1_max := seq_ideal_in ex x in1_w (max in1_w in2_w) (le_max_left _ _) in1_h,
+        have in2_max := seq_ideal_in ex y in2_w (max in1_w in2_w) (le_max_right _ _) in2_h,
+        exact (ex.val (max in1_w in2_w)).add in1_max in2_max,
+    end,
+    smul := begin
+        intros; simp at *,
+        cases a,
+        apply exists.intro a_w,
+        exact (ex.1 a_w).smul c a_h,
+    end,
+}
+lemma m : seqR.no_inf_chain (ideal (mv_polynomial σ α)) (<) :=
 begin
     intro ex,
     let union := set.Union (λ (s: ℕ), (↑ (ex.1 s) : set (mv_polynomial σ α) )),
+    generalize union_ideal : seq_ideal ex = x,
     
-
 end
 
 end discrete_field

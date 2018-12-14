@@ -47,6 +47,41 @@ lemma zero_of_add {a b : ℕ} : a + b = a → b = 0 :=
     end
     else by simp at h₁; assumption
 
+lemma le_add {a b : ℕ}: a ≤ b → Σ' (i : ℕ), a + i = b :=
+begin
+    revert a,
+    induction b;
+    intros,
+    begin
+        apply psigma.mk 0,
+        exact nat.le_zero_iff.1 a_1,
+    end,
+    begin
+        cases a,
+        begin
+            apply psigma.mk (succ b_n),
+            simp,
+        end,
+        begin
+            have ih := b_ih (le_of_succ_le_succ a_1),
+            cases ih,
+            apply psigma.mk ih_fst,
+            simp, apply congr_arg nat.succ,
+            rwa [add_comm],
+        end,
+    end,
+end
+
+lemma lt_add {a b : ℕ}: a < b → Σ' (i : ℕ), a + nat.succ i = b :=
+begin
+    intro lt,
+    have lee := le_add lt,
+    cases lee,
+    apply psigma.mk lee_fst,
+    rw [←lee_snd], simp, apply congr_arg nat.succ,
+    simp,
+end
+
 end nat
 
 namespace logic
@@ -57,7 +92,7 @@ begin
     intro, apply a_1, left, assumption,
     intro, apply a_1, right, assumption,
 end
-universe u
+
 lemma dite_true {c : Prop} [h: decidable c] {α : Sort u} {b₁ : c → α} {b₂ : ¬ c → α}
     : Π (ev: c = true), dite c b₁ b₂ = b₁ (@eq.subst _ id _ _ (eq.symm ev) true.intro)
  :=
