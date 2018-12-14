@@ -35,4 +35,7 @@ lemma subset_of_set_subset {s₁ s₂ : set α} {I : ideal α} : s₁ ⊆ s₂ �
     exact le_trans hs12 s2i,
 end
 
+lemma mem_of_mem_le_ideal {I₁ I₂ : ideal α} : ∀ x : α, x ∈ I₁ → I₁ ≤ I₂ → x ∈ I₂ :=
+λ x h₁ h₂ , by rw [←ideal.span_eq I₁, span_le] at h₂; apply h₂ h₁
+
 end ideal

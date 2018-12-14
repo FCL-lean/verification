@@ -1,5 +1,6 @@
 import data.set.lattice
 import data.finset
+import data.set
 
 universe u
 def not' : Type u → Prop := λ a, a → false
@@ -171,3 +172,8 @@ begin
 end
 
 end list
+
+namespace set
+variables {α : Type*}
+
+end set
