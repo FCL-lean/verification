@@ -35,6 +35,14 @@ lemma subset_of_set_subset {s₁ s₂ : set α} {I : ideal α} : s₁ ⊆ s₂ �
     exact le_trans hs12 s2i,
 end
 
+lemma subset_of_span_eq {I : ideal α} {s : set α} (h : span s = I) : s ⊆ I := by rw ←h;  apply subset_span
+
+lemma subset_of_subset_carrier {i : ideal α} {s : set α} : s ⊆ i.carrier ↔ s ⊆ i := by finish
+
+lemma subset_of_le {i₁ i₂ : ideal α} : i₁ ≤ i₂ ↔ (i₁ : set α) ⊆ ↑i₂ := by finish
+
+lemma carrier_lt_of_lt {i₁ i₂ : ideal α} (h : i₁ < i₂) : i₁.carrier < i₂.carrier := by finish
+
 lemma mem_of_mem_le_ideal {I₁ I₂ : ideal α} : ∀ x : α, x ∈ I₁ → I₁ ≤ I₂ → x ∈ I₂ :=
 λ x h₁ h₂ , by rw [←ideal.span_eq I₁, span_le] at h₂; apply h₂ h₁
 
