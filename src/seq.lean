@@ -109,11 +109,11 @@ def seq_ideal (s : seqR.seq_R (ideal β) (<)) : ideal β := {
         exact (s.1 hx_w).smul c hx_h,
     end,
 }
-    
+
 section noetherian
 variables [noetherian β]
 
-lemma ideal_contain_generator_eq_Union {s : seqR.seq_R (ideal β) (<)} :
+lemma ideal_contain_generator_eq_Union (s : seqR.seq_R (ideal β) (<)) :
     ∃ i : ℕ, ↑(s.1 i) = (⋃ (i : ℕ), (↑(s.1 i) : set β) ) :=
 begin
     generalize hs' : seqR.seq_R_coe (<) (<) (λ i : ideal β, i.carrier) s (λ a b hab, by simp; finish) = s',
@@ -131,6 +131,15 @@ begin
     intros x hx, simp at *, apply exists.intro H_w, assumption,
     simp [hs'.symm, seqR.seq_R_coe, ideal.subset_of_subset_carrier, ideal.span_le.symm, noe_h] at H_h, 
     rw [ideal.subset_of_le, hi] at H_h, assumption,
+end
+
+lemma ideal_no_inf_chain : seqR.no_inf_chain (ideal β) (<) :=
+begin
+    intro s, cases (ideal_contain_generator_eq_Union s),
+    have H : ↑(s.1 (w + 1)) ⊆ ⋃ (i : ℕ), (↑(s.1 i) : set β),
+        intros x hx, simp at *, apply exists.intro (w + 1), assumption,
+    rw [←h, ←ideal.subset_of_le] at H,
+    apply absurd (s.2 w) (not_lt_of_le H),
 end
 
 end noetherian
