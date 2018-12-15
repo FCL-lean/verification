@@ -62,7 +62,7 @@ protected lemma le_trans_of_lt (s : seq_R α (<)) : ∀ {m n}, m ≤ n → s.1 m
 λ m n hmn, begin
     from if h : m = n
     then by finish
-    else by apply le_of_lt (lt_trans s (lt_of_le_of_ne hmn h))
+    else by apply le_of_lt (seqR.lt_trans_of_lt s (lt_of_le_of_ne hmn h))
 end
 
 end preorder
