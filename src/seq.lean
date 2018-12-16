@@ -16,12 +16,12 @@ def seq_cons {α : Type u}: α → seq α → seq α
 | elem seq (nat.succ n) := seq n
 
 
-def seq_R (α : Type u) (R : α → α → Prop) := { f : stream α // ∀ n, R (f n) (f (n + 1))}
+def seq_R (α : Type u) (R : α → α → Prop) := { f : stream α // ∀ n, R (f (n + 1)) (f n)}
 
 variable {α : Type u}
 variable {R : α → α → Prop}
 
-def seq_R_cons : Π (elem: α) (f : seq_R α R), R elem (f.1 0) → seq_R α R 
+def seq_R_cons : Π (elem: α) (f : seq_R α R), R (f.1 0) elem → seq_R α R 
     := λ elem f r, ⟨seq_cons elem f.1, λ n, begin cases n, assumption, exact f.2 n, end⟩
 
 
@@ -57,12 +57,12 @@ lemma no_inf_chain_wf (α: Type*) (R: α → α → Prop): no_inf_chain α R →
 
 def seq_R_coe {α β : Type*} (ra: rel α) (rb: rel β) (f : α -> β) : 
     seq_R α ra -> (∀ a b, ra a b -> rb (f a) (f b)) -> seq_R β rb :=
-λ sra hab, ⟨_, λ n, hab (sra.1 n) (sra.1 (n + 1)) (sra.2 n)⟩
+λ sra hab, ⟨sra.1.map f, λ n, hab (sra.1 (n + 1)) (sra.1 n) (sra.2 n)⟩
 
 section preorder
 variables [partial_order α]
 
-protected lemma lt_trans_of_lt (s : seq_R α (<)) : ∀ {m n}, m < n → (s.1 m) < (s.1 n) :=
+protected lemma lt_trans_of_lt (s : seq_R α (>)) : ∀ {m n}, m < n → (s.1 m) < (s.1 n) :=
 λ m n hmn, begin
     rw ←nat.add_sub_cancel' hmn,
     apply @nat.strong_induction_on (λ x, (s.val m) < (s.val ((m + 1) + x))) (n - (m + 1)),
@@ -72,7 +72,7 @@ protected lemma lt_trans_of_lt (s : seq_R α (<)) : ∀ {m n}, m < n → (s.1 m)
     apply lt_trans h (s.2 (m + 1 + k)),
 end
 
-protected lemma le_trans_of_lt (s : seq_R α (<)) : ∀ {m n}, m ≤ n → s.1 m ≤ s.1 n :=
+protected lemma le_trans_of_lt (s : seq_R α (>)) : ∀ {m n}, m ≤ n → s.1 m ≤ s.1 n :=
 λ m n hmn, begin
     from if h : m = n
     then by finish
@@ -84,7 +84,7 @@ end preorder
 section set
 variables {β : Type*} [decidable_eq β]
 
-lemma max_set_of_list_subset_exists (s : seqR.seq_R (set β) (<)) (gs : finset β) (h : ↑gs ⊆ (⋃ (i : ℕ), (s.1 i))) : 
+lemma max_set_of_list_subset_exists (s : seqR.seq_R (set β) (>)) (gs : finset β) (h : ↑gs ⊆ (⋃ (i : ℕ), (s.1 i))) : 
     ∃ i : ℕ, ↑gs ⊆ s.1 i :=
 begin
     revert h,
@@ -101,7 +101,7 @@ end
 section ideal
 variables [comm_ring β] 
 
-def seq_ideal (s : seqR.seq_R (ideal β) (<)) : ideal β := {
+def seq_ideal (s : seqR.seq_R (ideal β) (>)) : ideal β := {
     carrier := (⋃ (i : ℕ), (↑(s.1 i) : set β) ),
     zero := by simp,
     add := begin 
@@ -122,10 +122,10 @@ def seq_ideal (s : seqR.seq_R (ideal β) (<)) : ideal β := {
 section noetherian
 variables [noetherian β]
 
-lemma ideal_contain_generator_eq_Union (s : seqR.seq_R (ideal β) (<)) :
+lemma ideal_contain_generator_eq_Union (s : seqR.seq_R (ideal β) (>)) :
     ∃ i : ℕ, ↑(s.1 i) = (⋃ (i : ℕ), (↑(s.1 i) : set β) ) :=
 begin
-    generalize hs' : seqR.seq_R_coe (<) (<) (λ i : ideal β, i.carrier) s (λ a b hab, by simp; finish) = s',
+    generalize hs' : seqR.seq_R_coe (>) (>) (λ i : ideal β, i.carrier) s (λ a b hab, by simp; finish) = s',
     have hss' : (⋃ (i : ℕ), (↑(s.1 i) : set β) ) = (⋃ (i : ℕ), s'.1 i),
         apply set.ext, intro x, simp [hs'.symm, seqR.seq_R_coe], finish,
     have hi : ↑(seq_ideal s) = (⋃ (i : ℕ), (↑(s.1 i) : set β) ), refl,
@@ -138,11 +138,11 @@ begin
     cases H, apply exists.intro H_w, 
     apply set.eq_of_subset_of_subset,
     intros x hx, simp at *, apply exists.intro H_w, assumption,
-    simp [hs'.symm, seqR.seq_R_coe, ideal.subset_of_subset_carrier, ideal.span_le.symm, noe_h] at H_h, 
+    simp [hs'.symm, seqR.seq_R_coe, stream.map, ideal.subset_of_subset_carrier, ideal.span_le.symm, noe_h] at H_h, 
     rw [ideal.subset_of_le, hi] at H_h, assumption,
 end
 
-lemma ideal_no_inf_chain : seqR.no_inf_chain (ideal β) (<) :=
+lemma ideal_no_inf_chain : seqR.no_inf_chain (ideal β) (>) :=
 begin
     intro s, cases (ideal_contain_generator_eq_Union s),
     have H : ↑(s.1 (w + 1)) ⊆ ⋃ (i : ℕ), (↑(s.1 i) : set β),
@@ -151,7 +151,7 @@ begin
     apply absurd (s.2 w) (not_lt_of_le H),
 end
 
-lemma ideal_wf : well_founded ((<) : rel (ideal β)) := no_inf_chain_wf _ (<) ideal_no_inf_chain
+lemma ideal_wf : well_founded ((>) : rel (ideal β)) := no_inf_chain_wf _ _ ideal_no_inf_chain
 
 instance : has_well_founded (ideal β) := ⟨_, ideal_wf⟩
 
