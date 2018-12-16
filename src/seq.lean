@@ -34,6 +34,11 @@ def head (s: seq_R α R): α := s.1 0
 def tail (s: seq_R α R): seq_R α R :=
     ⟨s.1.tail, λ n, s.2 (n + 1)⟩ 
 
+
+
+
+
+
 protected def coinduction : 
     ∀ {s₁ s₂: seq_R α R}, head s₁ = head s₂ → 
         (∀ (β : Type u) (fr: seq_R α R → β), fr (tail s₁) = fr (tail s₂)) → s₁ = s₂
@@ -45,6 +50,10 @@ def nth (s: seq_R α R) (n: ℕ): α := s.1 n
 
 
 def no_inf_chain (α: Type*) (R: α → α → Prop): Prop := ¬' seq_R α R
+
+lemma no_inf_chain_wf (α: Type*) (R: α → α → Prop): no_inf_chain α R → well_founded R := sorry
+
+
 
 def seq_R_coe {α β : Type*} (ra: rel α) (rb: rel β) (f : α -> β) : 
     seq_R α ra -> (∀ a b, ra a b -> rb (f a) (f b)) -> seq_R β rb :=
@@ -142,6 +151,10 @@ begin
     apply absurd (s.2 w) (not_lt_of_le H),
 end
 
+lemma ideal_wf : well_founded ((<) : rel (ideal β)) := no_inf_chain_wf _ (<) ideal_no_inf_chain
+
+instance : has_well_founded (ideal β) := ⟨_, ideal_wf⟩
+
 end noetherian
 
 end ideal
@@ -149,10 +162,5 @@ end set
 
 end seq
 
-variable (α : Type u)
-variable (R : α → α → Prop)
-
-
-lemma no_inf_chain_wf : no_inf_chain α R → well_founded R := sorry
 
 end seqR

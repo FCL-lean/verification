@@ -407,7 +407,7 @@ namespace fin_n
 variables {n : ℕ}
 
 variables [discrete_field α]
-variables [lt_wellfounded: @well_founded (fin n →₀ ℕ) (<)]
+variables (lt_wellfounded: @well_founded (fin n →₀ ℕ) (<))
 variable [bot_zero (fin n) ℕ]
 
 section div
@@ -559,7 +559,7 @@ def div : Π (a b : mv_polynomial (fin n) α),
                         ∧ a = b * q + r :=
     λ a b neqz, if h: mv_is_const b
            then let r := div_const a b neqz h in ⟨r.1, r.2.1, or.inr (and.intro h r.2.2.1), r.2.2.2⟩ 
-           else let r := @div_not_const _ _ _ lt_wellfounded _ a b h 
+           else let r := div_not_const lt_wellfounded a b h 
                 in ⟨r.1, r.2.1, or.inl (and.intro h r.2.2.1), r.2.2.2⟩
 
 omit lt_wellfounded
@@ -575,15 +575,15 @@ def s_poly (p q : mv_polynomial (fin n) α) :
     p ≠ 0 → q ≠ 0 → mv_polynomial (fin n) α :=
 λ p_nz q_nz,
 begin
-    let fst := @div _ _ _ lt_wellfounded _ (leading_term_lcm p q) p.leading_term (poly_lead_tm_neqz p_nz),
-    let snd := @div _ _ _ lt_wellfounded _ (leading_term_lcm p q) q.leading_term (poly_lead_tm_neqz q_nz),
+    let fst := div lt_wellfounded (leading_term_lcm p q) p.leading_term (poly_lead_tm_neqz p_nz),
+    let snd := div lt_wellfounded (leading_term_lcm p q) q.leading_term (poly_lead_tm_neqz q_nz),
     exact fst.fst * p - snd.fst * q,
 end
 
 def div_list : (mv_polynomial (fin n) α) → 
     (list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0)) → mv_polynomial (fin n) α
 | a [] := a
-| a (hd :: tl) := div_list (@div _ _ _ lt_wellfounded _ a hd.fst hd.snd).snd.fst tl
+| a (hd :: tl) := div_list (div lt_wellfounded a hd.fst hd.snd).snd.fst tl
 
 def buch_pairs (s : list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0)) 
 : list (Σ' (p: mv_polynomial (fin n) α × mv_polynomial (fin n) α), 
@@ -596,30 +596,36 @@ def buch_pairs (s : list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0))
 
 def buch_s_polys (pairs : list (Σ' (p: mv_polynomial (fin n) α × mv_polynomial (fin n) α), 
                 pprod (p.1 ≠ 0) (p.2 ≠ 0))) : list (mv_polynomial (fin n) α) 
-    := pairs.map (λ a, @s_poly _ _ _ lt_wellfounded _ _ a.fst.fst a.fst.snd a.snd.fst a.snd.snd)
+    := pairs.map (λ a, s_poly lt_wellfounded a.fst.fst a.fst.snd a.snd.fst a.snd.snd)
 
 def buch_div_result (s s_polys: list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0))
     := (list.foldl (λ a b, 
-    let div_result := @div_list _ _ _ lt_wellfounded _ _ (b: (Σ' (p: mv_polynomial (fin n) α), p ≠ 0)).fst a
+    let div_result := div_list lt_wellfounded (b: (Σ' (p: mv_polynomial (fin n) α), p ≠ 0)).fst a
     in if div_result ∉ list.map psigma.fst a 
         then (if h: div_result = 0 then a else ⟨div_result, h⟩ :: a ) else a) s s_polys)
-
+omit lt_wellfounded
 def filter_non_zero : list (mv_polynomial (fin n) α) →
     list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0)
 | [] := []
 | (x :: xs) := if h: x = 0 then filter_non_zero xs else ⟨x, h⟩ :: filter_non_zero xs
+def non_zero_poly_to_ideal : list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0) → ideal (mv_polynomial (fin n) α) :=
+    λ s, ideal.span $ finset.to_set $ list.to_finset $ s.map (λ (a : (Σ' (p: mv_polynomial (fin n) α), p ≠ 0)), a.1)
+include lt_wellfounded
 
 def buchberger : list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0) → 
     list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0)
 | s :=
-    let result := @buch_div_result _ _ _ lt_wellfounded _ _ s 
-        $ @filter_non_zero _ _ _ lt_wellfounded _ _ 
-        $ @buch_s_polys _ _ _ lt_wellfounded _ _
-        $ @buch_pairs _ _ _ lt_wellfounded _ _ s
+    let result := buch_div_result lt_wellfounded s 
+        $ filter_non_zero
+        $ buch_s_polys lt_wellfounded
+        $ buch_pairs lt_wellfounded s
         in if s = result then s else 
-                begin
-                    exact buchberger result
-                end
+            have non_zero_poly_to_ideal s < non_zero_poly_to_ideal result := sorry,
+            buchberger result
+using_well_founded 
+{ rel_tac := λ _ _, 
+`[exact ⟨_, inv_image.wf non_zero_poly_to_ideal seqR.ideal_wf⟩] 
+, dec_tac := tactic.assumption }
 
 end buchberger
 end fin_n
