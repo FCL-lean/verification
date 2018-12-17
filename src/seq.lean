@@ -18,6 +18,7 @@ def seq_cons {α : Type u}: α → seq α → seq α
 
 def seq_R (α : Type u) (R : α → α → Prop) := { f : stream α // ∀ n, R (f (n + 1)) (f n)}
 
+
 variable {α : Type u}
 variable {R : α → α → Prop}
 
@@ -26,7 +27,7 @@ def seq_R_cons : Π (elem: α) (f : seq_R α R), R (f.1 0) elem → seq_R α R
 
 
 
-def seq_R_s (elem : α) (R : α → α → Prop) : Type u := { f : seq_R α R // f.1 0 = elem }
+def seq_R_s (α: Type*) (elem : α) (R : α → α → Prop) : Type u := { f : seq_R α R // f.1 0 = elem }
 
 
 def head (s: seq_R α R): α := s.1 0
@@ -51,7 +52,32 @@ def nth (s: seq_R α R) (n: ℕ): α := s.1 n
 
 def no_inf_chain (α: Type*) (R: α → α → Prop): Prop := ¬' seq_R α R
 
-lemma no_inf_chain_wf (α: Type*) (R: α → α → Prop): no_inf_chain α R → well_founded R := sorry
+def no_inf_chain_s (α: Type*) (R: α → α → Prop) (elem : α): Prop := ¬' seq_R_s α elem R
+lemma no_inf_chain_s_lem (α: Type*) (R: α → α → Prop): 
+    no_inf_chain α R → ∀ elem, no_inf_chain_s α R elem :=
+begin
+    intros, intro a_1,
+    apply a, apply subtype.mk a_1.1.1,
+    intros, apply a_1.1.2,
+end
+
+lemma no_inf_chain_iff_emb [is_strict_order α R] : no_inf_chain α R → ¬ nonempty (((>) : ℕ → ℕ → Prop) ≼o R) :=
+begin
+    intros no_inf nonemp,
+    cases nonemp,
+    apply no_inf,
+    cases nonemp with f o,
+    apply subtype.mk f.1, intro,
+    change R (f (n + 1)) (f n),
+    rw [←o], constructor,
+end
+
+lemma no_inf_chain_wf (α: Type*) (R: α → α → Prop) [is_strict_order α R]: no_inf_chain α R → well_founded R :=
+begin
+    intro,
+    rw order_embedding.well_founded_iff_no_descending_seq,
+    exact no_inf_chain_iff_emb a,
+end
 
 
 
