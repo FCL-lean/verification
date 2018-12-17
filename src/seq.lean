@@ -61,7 +61,7 @@ begin
     intros, apply a_1.1.2,
 end
 
-lemma no_inf_chain_iff_emb [is_strict_order α R] : no_inf_chain α R → ¬ nonempty (((>) : ℕ → ℕ → Prop) ≼o R) :=
+lemma no_inf_chain_emb [is_strict_order α R] : no_inf_chain α R → ¬ nonempty (((>) : ℕ → ℕ → Prop) ≼o R) :=
 begin
     intros no_inf nonemp,
     cases nonemp,
@@ -76,7 +76,7 @@ lemma no_inf_chain_wf (α: Type*) (R: α → α → Prop) [is_strict_order α R]
 begin
     intro,
     rw order_embedding.well_founded_iff_no_descending_seq,
-    exact no_inf_chain_iff_emb a,
+    exact no_inf_chain_emb a,
 end
 
 
