@@ -441,61 +441,11 @@ begin
 end
 include lt_wellfounded
 
-def div_not_const : Π (a b : mv_polynomial (fin n) α),
-                ¬ mv_is_const b →
-                 Σ'q r, ¬ leading_term_le b r 
-                        ∧ a = b * q + r
-| a b bnconst :=
-begin
-    by_cases (leading_term_le b a),
-    generalize subeq : leading_term_sub' a b h = sub,
-    generalize q'eq : finsupp.single sub (a.leading_coeff / b.leading_coeff) = q',
-    generalize h : a - b * q' = r',
-    by_cases alt'eqz: a.leading_monomial = 0,
-    let atmeqz := lead_monomial_eqz_const alt'eqz, 
-    tactic.unfreeze_local_instances, dedup,
-    let btmeqz := lead_monomial_eqz_const (leading_monomial_zero_of_le_zero alt'eqz h),
-    have atmeqzp := atmeqz.snd,
-    have btmeqzp := btmeqz.snd,
-    apply false.elim, apply ne_mv_is_const bnconst, assumption,
-    let tt' : r'.leading_monomial < a.leading_monomial, 
-    rw ←h,
-    tactic.unfreeze_local_instances, dedup,
-    apply sub_dec a (b * q'),
-    rw [←q'eq, ←subeq], apply lead_tm_eq (nzero_of_ne_mv_is_const bnconst) h, assumption,
-    have result := div_not_const r' b bnconst,
-    cases result with r_q, cases result_snd with r_r,
-    apply psigma.mk (q' + r_q),
-    apply psigma.mk r_r,
-    apply and.intro,
-    exact result_snd_snd.left,
-    have prf : a = b * q' + r',
-    rw [←h],simp, 
-    cases result_snd_snd,
-    rw [prf, result_snd_snd_right],
-    simp,
-    rw left_distrib,
-    apply psigma.mk (0 : mv_polynomial (fin n) α),
-    apply psigma.mk a,
-    apply and.intro, assumption,
-    simp,
-end
-using_well_founded 
-{ rel_tac := λ _ _, 
-`[exact ⟨_, inv_image.wf psigma.fst (inv_image.wf leading_monomial lt_wellfounded)⟩] 
-, dec_tac := tactic.assumption }
+def reduction {a b : mv_polynomial (fin n) α} (h : leading_term_le b a) := 
+a - b * (monomial (leading_term_sub' a b h) (a.leading_coeff / b.leading_coeff))
 
 
 
-def div : Π (a b : mv_polynomial (fin n) α),
-                 b ≠ 0 →
-                 Σ'q r, ((¬ mv_is_const b ∧ ¬ leading_term_le b r) 
-                            ∨ (mv_is_const b ∧ b.leading_monomial = r.leading_monomial))
-                        ∧ a = b * q + r :=
-    λ a b neqz, if h: mv_is_const b
-           then let r := div_const a b neqz h in ⟨r.1, r.2.1, or.inr (and.intro h r.2.2.1), r.2.2.2⟩ 
-           else let r := div_not_const lt_wellfounded a b h 
-                in ⟨r.1, r.2.1, or.inl (and.intro h r.2.2.1), r.2.2.2⟩
 
 omit lt_wellfounded
 

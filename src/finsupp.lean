@@ -138,19 +138,6 @@ begin
     exact leading_term_sub_aux a b le_all n (by constructor),
 end
 
-def leading_term_le_aux' : ∀ m < (n + 1), (fin (n + 1) →₀ ℕ) → (fin (n + 1) →₀ ℕ) → Prop
-| 0 h := λ a b, a ⟨0, h⟩ ≤ b ⟨0, h⟩
-| (m + 1) h := λ a b, a ⟨m + 1, h⟩ ≤ b ⟨m + 1, h⟩ ∧ leading_term_le_aux' m (nat.lt_of_succ_lt h) a b
-
-def leading_term_le' (a b : fin n →₀ ℕ) : Prop := by cases n; exact true; apply leading_term_le_aux' n (nat.lt_succ_self n) a b
-
-def leading_term_sub_aux' (a b : fin (n + 1) →₀ ℕ) : ∀ m < n + 1, leading_term_le_aux' m H b a → (fin (n + 1) →₀ ℕ)
-| 0 le ltle := single 0 (a ⟨0, le⟩ - b ⟨0, le⟩)
-| (m + 1) le ltle := single (m + 1) (a ⟨m + 1, le⟩ - b ⟨m + 1, le⟩) + leading_term_sub_aux' m (nat.lt_of_succ_lt le) ltle.right
-
-def leading_term_sub' (a b : fin n →₀ ℕ) (h : leading_term_le' b a) : (fin n →₀ ℕ) :=
-    by cases n; exact a; apply leading_term_sub_aux' a b n (nat.lt_succ_self n) h
-
 def le_aux : ∀ m < (n + 1), ((fin $ n + 1) →₀ ℕ) → ((fin $ n + 1) →₀ ℕ) → Prop
 | 0 h := λ a b, a ⟨0, h⟩ ≤ b ⟨0, h⟩
 | (m + 1) h := λ a b, a ⟨m + 1, h⟩ < b ⟨m + 1, h⟩ ∨ (a ⟨m + 1, h⟩ = b ⟨m + 1, h⟩ ∧ le_aux m (nat.lt_of_succ_lt h) a b)
