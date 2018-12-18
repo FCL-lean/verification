@@ -503,9 +503,11 @@ def reduction_list : Π (a : mv_polynomial (fin n) α) (l : list (Σ' (p: mv_pol
    , mv_polynomial (fin n) α
 | a l :=
    let r := reduction_list_aux a l
-   in if r = a
+   in if h: r = a
     then r
-    else reduction_list r l
+    else have (reduction_list_aux a l).leading_monomial < a.leading_monomial,
+         from reduction_list_aux_neq_lt a l h, 
+         reduction_list r l
 using_well_founded 
 { rel_tac := λ _ _, `[exact ⟨_, inv_image.wf (λ a, a.1.leading_monomial) lt_wellfounded⟩] 
 , dec_tac := tactic.assumption }
