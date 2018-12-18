@@ -12,6 +12,9 @@ lemma mem_set : ∀ {a : α} {s : set α}, a ∈ s → a ∈ span s :=
     apply h' a h,
 end
 
+lemma mem_singleton_union : ∀ (a : α) {s : set α}, a ∈ span ({a} ∪ s) :=
+λ a s, by finish [mem_set]
+
 lemma linear_combine_mem {p q : α} {s : set α} : ∀ a b, p ∈ s → q ∈ s → (a * p + b * q) ∈ span s :=
 λ a b hp hq, begin
     apply ideal.add_mem (span s);
@@ -45,5 +48,11 @@ lemma carrier_lt_of_lt {i₁ i₂ : ideal α} (h : i₁ < i₂) : i₁.carrier <
 
 lemma mem_of_mem_le_ideal {I₁ I₂ : ideal α} : ∀ x : α, x ∈ I₁ → I₁ ≤ I₂ → x ∈ I₂ :=
 λ x h₁ h₂ , by rw [←ideal.span_eq I₁, span_le] at h₂; apply h₂ h₁
+
+lemma lt_of_union_not_mem {s : set α} {a : α} (h : a ∉ span s) : span s < span ({a} ∪ s) :=
+begin
+    rw [lt_iff_le_and_ne], apply and.intro, finish [span_mono],
+    intro H, rw H at h, apply absurd (mem_singleton_union a) h,
+end
 
 end ideal
