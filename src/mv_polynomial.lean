@@ -458,7 +458,7 @@ def reduction_list_aux : (mv_polynomial (fin n) α) →
                   else reduction_list_aux a tl
 
 lemma reduction_list_const : 
-    Π (a : α) (s: list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0)),
+    Π (a : α) (s: list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0)) (p: s ≠ list.nil),
     reduction_list_aux (C a) s = 0 := sorry
 
 
@@ -487,9 +487,18 @@ begin
             have isconst := lead_monomial_eqz_const eq0,
             cases isconst,
             revert leh, rw [isconst_snd], intro leh, 
-            rw [reduction_const, ←C_0, reduction_list_const],
-            apply lt_of_le_of_ne, exact finsupp.fin_n.zero_le a.leading_monomial,
-            exact p2.symm,            
+            rw [reduction_const, ←C_0], 
+            cases l_tl,
+            begin
+                simp [leading_monomial, reduction_list_aux],
+                apply lt_of_le_of_ne, exact finsupp.fin_n.zero_le a.leading_monomial,
+                exact p2.symm,
+            end,
+            begin
+                rw [reduction_list_const],
+                apply lt_of_le_of_ne, exact finsupp.fin_n.zero_le a.leading_monomial,
+                exact p2.symm, simp,
+            end,
         end,
         begin
             apply lt_trans,
