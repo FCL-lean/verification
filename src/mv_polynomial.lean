@@ -439,15 +439,57 @@ begin
     rw ←C_mul, rw discrete_field.inv_mul_cancel,
     simp, exact m.snd.fst,
 end
-include lt_wellfounded
 
-def reduction {a b : mv_polynomial (fin n) α} (h : leading_term_le b a) := 
+def reduction (a b : mv_polynomial (fin n) α) (h : leading_term_le b a) := 
 a - b * (monomial (leading_term_sub' a b h) (a.leading_coeff / b.leading_coeff))
 
+def reduction_list_aux : (mv_polynomial (fin n) α) → 
+    (list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0)) → mv_polynomial (fin n) α
+| a [] := a
+| a (hd :: tl) := if h: leading_term_le hd.1 a
+                  then reduction_list_aux (reduction a hd.1 h) tl
+                  else reduction_list_aux a tl
 
+lemma reduction_list_aux_neq_lt : 
+    Π (a : mv_polynomial (fin n) α) (l: list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0)),
+    reduction_list_aux a l ≠ a → (reduction_list_aux a l).leading_monomial < a.leading_monomial :=
+begin
+    intros a l, revert a,
+    induction l; intros, 
+    apply false.elim (a_1 rfl),
+    unfold reduction_list_aux,
+    by_cases m: (leading_term_le (l_hd.fst) a); simp [m],
+    swap,
+    begin 
+        apply l_ih a, 
+        intro eq,
+        apply a_1, unfold reduction_list_aux; simp [m],
+        assumption,
+    end,
+    begin
+        have h : leading_monomial (reduction_list_aux (reduction a (l_hd.fst) m) l_tl) 
+                    < leading_monomial (reduction_list_aux a l_tl),
+        sorry,    
+        apply lt_of_lt_of_le h,
+        by_cases eq: reduction_list_aux a l_tl = a,
+        by rw eq; apply le_of_eq,
+        apply le_of_lt,
+        apply l_ih, simp [reduction_list_aux, m] at a_1,
+        assumption,
+    end
+end
 
-
-omit lt_wellfounded
+include lt_wellfounded
+def reduction_list : Π (a : mv_polynomial (fin n) α) (l : list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0))
+   , mv_polynomial (fin n) α
+| a l :=
+   let r := reduction_list_aux a l
+   in if r = a
+    then r
+    else reduction_list r l
+using_well_founded 
+{ rel_tac := λ _ _, `[exact ⟨_, inv_image.wf (λ a, a.1.leading_monomial) lt_wellfounded⟩] 
+, dec_tac := tactic.assumption }
 
 end div
 
@@ -465,10 +507,6 @@ begin
     exact fst.fst * p - snd.fst * q,
 end
 
-def div_list : (mv_polynomial (fin n) α) → 
-    (list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0)) → mv_polynomial (fin n) α
-| a [] := a
-| a (hd :: tl) := div_list (div lt_wellfounded a hd.fst hd.snd).snd.fst tl
 
 def buch_pairs (s : list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0)) 
 : list (Σ' (p: mv_polynomial (fin n) α × mv_polynomial (fin n) α), 
@@ -485,7 +523,7 @@ def buch_s_polys (pairs : list (Σ' (p: mv_polynomial (fin n) α × mv_polynomia
 
 def buch_div_result (s s_polys: list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0))
     := (list.foldl (λ a b, 
-    let div_result := div_list lt_wellfounded (b: (Σ' (p: mv_polynomial (fin n) α), p ≠ 0)).fst a
+    let div_result := reduction_list lt_wellfounded (b: (Σ' (p: mv_polynomial (fin n) α), p ≠ 0)).fst a
     in if div_result ∉ list.map psigma.fst a 
         then (if h: div_result = 0 then a else ⟨div_result, h⟩ :: a ) else a) s s_polys)
 omit lt_wellfounded
