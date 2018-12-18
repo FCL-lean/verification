@@ -450,6 +450,32 @@ def reduction_list_aux : (mv_polynomial (fin n) α) →
                   then reduction_list_aux (reduction a hd.1 h) tl
                   else reduction_list_aux a tl
 
+
+lemma reduction_leading_monomial_le: Π (a b: mv_polynomial (fin n) α),
+    (b ≠ 0) → Π (p: leading_term_le b a),
+    leading_monomial (reduction a b p) < leading_monomial a :=
+begin
+    sorry
+end
+
+
+lemma reduction_list_lem : ∀ (a b: mv_polynomial (fin n) α) m l (p: b ≠ 0), 
+    leading_monomial (reduction_list_aux (reduction a b m) l) < leading_monomial a :=
+begin
+    intros a b m l, revert a b m,
+    induction l; intros,
+    apply reduction_leading_monomial_le; assumption,
+    unfold reduction_list_aux,
+    by_cases leh : leading_term_le (l_hd.fst) (reduction a b m); simp [leh],
+    begin
+        apply lt_trans,
+        apply l_ih (reduction a b m) l_hd.fst leh l_hd.snd,
+        apply reduction_leading_monomial_le _ _ p,
+    end,
+    begin
+        apply l_ih, assumption,
+    end
+end
 lemma reduction_list_aux_neq_lt : 
     Π (a : mv_polynomial (fin n) α) (l: list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0)),
     reduction_list_aux a l ≠ a → (reduction_list_aux a l).leading_monomial < a.leading_monomial :=
@@ -467,15 +493,8 @@ begin
         assumption,
     end,
     begin
-        have h : leading_monomial (reduction_list_aux (reduction a (l_hd.fst) m) l_tl) 
-                    < leading_monomial (reduction_list_aux a l_tl),
-        sorry,    
-        apply lt_of_lt_of_le h,
-        by_cases eq: reduction_list_aux a l_tl = a,
-        by rw eq; apply le_of_eq,
-        apply le_of_lt,
-        apply l_ih, simp [reduction_list_aux, m] at a_1,
-        assumption,
+        apply reduction_list_lem, 
+        exact l_hd.snd,
     end
 end
 
