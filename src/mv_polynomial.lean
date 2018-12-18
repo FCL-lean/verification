@@ -544,7 +544,8 @@ def filter_non_zero : list (mv_polynomial (fin n) α) →
 | [] := []
 | (x :: xs) := if h: x = 0 then filter_non_zero xs else ⟨x, h⟩ :: filter_non_zero xs
 def non_zero_poly_to_ideal : list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0) → ideal (mv_polynomial (fin n) α) :=
-    λ s, ideal.span $ finset.to_set $ list.to_finset $ s.map (λ (a : (Σ' (p: mv_polynomial (fin n) α), p ≠ 0)), a.1)
+    λ s, ideal.span $ finset.to_set $ list.to_finset $ s.map (λ (a : (Σ' (p: mv_polynomial (fin n) α), p ≠ 0)), a.1.leading_term)
+
 include lt_wellfounded
 
 def buchberger : list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0) → 
