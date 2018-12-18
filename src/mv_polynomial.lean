@@ -443,6 +443,13 @@ end
 def reduction (a b : mv_polynomial (fin n) α) (h : leading_term_le b a) := 
 a - b * (monomial (leading_term_sub' a b h) (a.leading_coeff / b.leading_coeff))
 
+lemma reduction_const (a : mv_polynomial (fin n) α) (b : α) : ∀ m,
+    reduction a (C b) m = 0 :=
+begin
+    intros, unfold reduction, 
+    sorry
+end
+
 def reduction_list_aux : (mv_polynomial (fin n) α) → 
     (list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0)) → mv_polynomial (fin n) α
 | a [] := a
@@ -450,16 +457,21 @@ def reduction_list_aux : (mv_polynomial (fin n) α) →
                   then reduction_list_aux (reduction a hd.1 h) tl
                   else reduction_list_aux a tl
 
+lemma reduction_list_const : 
+    Π (a : α) (s: list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0)),
+    reduction_list_aux (C a) s = 0 := sorry
+
 
 lemma reduction_leading_monomial_le: Π (a b: mv_polynomial (fin n) α),
-    (b ≠ 0) → Π (p: leading_term_le b a),
+    (b ≠ 0) → (a.leading_monomial ≠ 0) → Π (p: leading_term_le b a),
     leading_monomial (reduction a b p) < leading_monomial a :=
 begin
-    sorry
+    intros, apply sub_dec, apply lead_tm_eq,
+    assumption, assumption,
 end
 
 
-lemma reduction_list_lem : ∀ (a b: mv_polynomial (fin n) α) m l (p: b ≠ 0), 
+lemma reduction_list_lem : ∀ (a b: mv_polynomial (fin n) α) m l (p: b ≠ 0) (p2: a.leading_monomial ≠ 0), 
     leading_monomial (reduction_list_aux (reduction a b m) l) < leading_monomial a :=
 begin
     intros a b m l, revert a b m,
@@ -468,12 +480,25 @@ begin
     unfold reduction_list_aux,
     by_cases leh : leading_term_le (l_hd.fst) (reduction a b m); simp [leh],
     begin
-        apply lt_trans,
-        apply l_ih (reduction a b m) l_hd.fst leh l_hd.snd,
-        apply reduction_leading_monomial_le _ _ p,
+        by_cases eqz: leading_monomial (reduction a b m) = 0,
+        begin
+            have eq0 := leading_monomial_zero_of_le_zero eqz leh,
+            rw [_inst_2.zero_bot] at eq0,
+            have isconst := lead_monomial_eqz_const eq0,
+            cases isconst,
+            revert leh, rw [isconst_snd], intro leh, 
+            rw [reduction_const, ←C_0, reduction_list_const],
+            apply lt_of_le_of_ne, exact finsupp.fin_n.zero_le a.leading_monomial,
+            exact p2.symm,            
+        end,
+        begin
+            apply lt_trans,
+            apply l_ih (reduction a b m) l_hd.fst leh l_hd.snd eqz,
+            apply reduction_leading_monomial_le _ _ p p2,
+        end
     end,
     begin
-        apply l_ih, assumption,
+        apply l_ih; assumption,
     end
 end
 lemma reduction_list_aux_neq_lt : 
