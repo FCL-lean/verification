@@ -141,7 +141,7 @@ begin
     apply n_ih,
 end
 
-instance {n : ℕ} : fintype (fin n) 
+instance fin_fintype {n : ℕ} : fintype (fin n) 
     := ⟨(enum n).to_finset, by simp; apply in_enum⟩
 
 

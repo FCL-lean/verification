@@ -121,6 +121,30 @@ lemma leading_term_le_all (a b: fin n →₀ ℕ): leading_term_le a b →
     assumption
 end
 
+lemma leading_term_le_zero (a : fin n →₀ ℕ):
+    leading_term_le 0 a :=
+begin
+    unfold leading_term_le,
+    rw fintype.fintype_fold_and_iff; intros; apply zero_le,
+end
+
+lemma leading_term_le_refl: Π {n} {a : fin n →₀ ℕ},
+    leading_term_le a a :=
+begin
+    intros, cases n;
+    unfold leading_term_le,
+    rw fintype.fintype_fold_and_iff, intros; refl,
+end
+
+lemma leading_term_le_antisymm {a b: fin n →₀ ℕ}:
+    leading_term_le a b → leading_term_le b a → a = b :=
+begin
+    intros,
+    apply finsupp.ext,
+    intro val,
+    apply le_antisymm; apply leading_term_le_all; assumption,
+end
+
 def leading_term_sub_aux : Π {n : ℕ} (a b: fin n →₀ ℕ),
      (∀ x, b x ≤ a x) → Π (m : ℕ), m < n → (fin n →₀ ℕ)
 | 0 a b prf m prf2 := 0
@@ -129,13 +153,24 @@ def leading_term_sub_aux : Π {n : ℕ} (a b: fin n →₀ ℕ),
     := single (nat.succ m) (a ⟨nat.succ m, prf2⟩ - b ⟨nat.succ m, prf2⟩) 
        + leading_term_sub_aux a b prf m (nat.lt_of_succ_lt prf2)
 
-def leading_term_sub (a b: fin n →₀ ℕ) 
-    : leading_term_le b a → (fin n →₀ ℕ) := 
-λ ltle,
+def leading_term_sub : Π {n} (a b: fin n →₀ ℕ), leading_term_le b a → (fin n →₀ ℕ)
+| 0 a b ltle := 0
+| (nat.succ n) a b ltle 
+    := leading_term_sub_aux a b (leading_term_le_all b a ltle) n (by constructor)
+
+lemma leading_term_sub_aux_zero : Π {n m: ℕ} p1 p2, 
+    leading_term_sub_aux (0: fin n →₀ ℕ) 0 p1 m p2 = 0 :=
 begin
-    have le_all := leading_term_le_all b a ltle,
-    cases n, exact 0,
-    exact leading_term_sub_aux a b le_all n (by constructor),
+    intros n m; revert n, induction m; intros; cases n; try {by cases p2};
+    unfold leading_term_sub_aux; simp,
+    apply m_ih,
+end
+
+lemma leading_term_sub_zero : Π {n} (h: leading_term_le (0: fin n →₀ ℕ) 0),
+    leading_term_sub 0 0 h = 0 :=
+begin
+    intros, cases n; unfold leading_term_sub,
+
 end
 
 def le_aux : ∀ m < (n + 1), ((fin $ n + 1) →₀ ℕ) → ((fin $ n + 1) →₀ ℕ) → Prop

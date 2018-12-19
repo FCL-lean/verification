@@ -143,6 +143,13 @@ variables [lattice.semilattice_sup_bot (σ →₀ ℕ)]
 variables [bot_zero σ ℕ]
 def leading_monomial (a: mv_polynomial σ α): σ →₀ ℕ := a.support.sup id
 
+def leading_monomial_zero : (0: mv_polynomial σ α).leading_monomial = 0 :=
+begin
+    unfold leading_monomial,
+    rw finsupp.support_eq_empty.2; try {simp}; try {trivial},
+    rw _inst_5.zero_bot, by apply_instance,
+end
+
 def leading_coeff (a: mv_polynomial σ α): α := a.to_fun a.leading_monomial
 
 lemma leading_coeff_C (a : α): leading_coeff (C a : mv_polynomial σ α) = a :=
@@ -352,7 +359,21 @@ end semilattice
 def leading_term_sub' {n} (a b: mv_polynomial (fin n) α) [bot_zero (fin n) ℕ]
     (h: leading_term_le b a) : fin n →₀ ℕ
      := finsupp.fin_n.leading_term_sub a.leading_monomial b.leading_monomial h
-
+@[simp]
+def leading_term_sub'_zero {n} (b: mv_polynomial (fin n) α) [bot_zero (fin n) ℕ]
+    (h: leading_term_le b 0): leading_term_sub' 0 b h = 0 :=
+begin
+    have h': b.leading_monomial = 0,
+    apply finsupp.fin_n.leading_term_le_antisymm,
+    assumption, apply finsupp.fin_n.leading_term_le_zero,
+    unfold leading_term_sub',
+    unfold leading_term_le at h,
+    revert h,
+    change Π (h: finsupp.leading_term_le (leading_monomial b) (leading_monomial 0)),
+        finsupp.fin_n.leading_term_sub (leading_monomial 0) (leading_monomial b) h = 0,
+    rw [h', @leading_monomial_zero (fin n) α],
+    intros, apply finsupp.fin_n.leading_term_sub_zero,
+end
 end comm_semiring
 end general
 
@@ -481,7 +502,23 @@ lemma reduction_list_zero :
     Π (s: list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0)) (p: s ≠ list.nil),
     reduction_list_aux (C 0) s = 0 :=
 begin
-    sorry
+    intros s,
+    cases s,
+    begin
+        intros, trivial,
+    end,
+    begin
+        induction s_tl; intros,
+        begin
+            unfold reduction_list_aux,
+            by_cases leading_term_le (s_hd.fst) (C 0); simp [h],
+            unfold reduction,
+            by_cases mv_is_const (s_hd.fst); simp [h],
+            
+        end,
+        begin
+        end,
+    end
 end
 
 
