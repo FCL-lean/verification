@@ -137,6 +137,32 @@ def leading_coeff (a: mv_polynomial σ α): α := a.to_fun a.leading_monomial
 def leading_term (a: mv_polynomial σ α): mv_polynomial σ α 
     := finsupp.single a.leading_monomial a.leading_coeff
 
+lemma leading_monomial_eq (p : σ →₀ ℕ) {x : α} (h : x ≠ 0) : 
+    p = (monomial p x).leading_monomial :=
+begin
+    simp [leading_monomial, monomial, finsupp.single, h],
+    change p = finset.sup {p} id,
+    rw finset.sup_singleton, trivial,
+end
+
+lemma support_empty {a : mv_polynomial σ α} : a.support = ∅ → a.leading_monomial = ⊥ :=
+λ h, by finish [leading_monomial, h]
+
+lemma leading_monomial_zero_of_zero {a : mv_polynomial σ α} : a = 0 → a.leading_monomial = 0 :=
+λ h, by finish [leading_monomial, h, _inst_5.zero_bot]
+
+lemma const_support_zero {a : α} (h : a ≠ 0) : (C a : mv_polynomial σ α).support = {0} := 
+by finish [C, monomial, finsupp.single, h]
+
+lemma leading_term_eq_zero_of_const {p : mv_polynomial σ α} (h : mv_is_const p) : p.leading_monomial = 0 :=
+begin
+    have h' := eq_mv_is_const h,
+    cases h', by_cases h'_fst = (0 : α),
+    finish [leading_monomial_zero_of_zero],
+    simp [h'_snd, leading_monomial, @const_support_zero σ _ _ _ _ _ _ _ h],
+    apply finset.sup_singleton,
+end 
+
 section is_total
 variables [is_total (σ →₀ ℕ) has_le.le] [@decidable_rel (σ →₀ ℕ) has_le.le]
 
@@ -211,11 +237,9 @@ begin
     end
 end
 
-
-lemma poly_lead_coeff_z {p : mv_polynomial σ α}: 
-    p.leading_coeff = 0 → p = 0 :=
-λ coeffz,
-begin
+lemma zero_iff_leading_coeff_zero {p : mv_polynomial σ α}: 
+    p.leading_coeff = 0 ↔ p = 0 :=
+⟨λ coeffz, begin
     unfold leading_coeff leading_monomial at coeffz,
     rw [←finsupp.coe_f, ←finsupp.not_mem_support_iff] at coeffz,
     have h: p.support = ∅,
@@ -225,7 +249,11 @@ begin
     apply finset.mem_of_sup_id, assumption,
     rw finsupp.support_eq_empty at h,
     assumption,
-end
+end, 
+λ hp, by finish [leading_coeff, leading_monomial, hp] ⟩
+
+lemma not_zero_iff_leading_coeff_zero {p : mv_polynomial σ α}: 
+    p.leading_coeff ≠ 0 ↔ p ≠ 0 := by finish [zero_iff_leading_coeff_zero]
 
 lemma poly_lead_tm_neqz {p : mv_polynomial σ α}: p ≠ 0 → p.leading_term ≠ 0 :=
 λ pneqz eqz,
@@ -233,11 +261,8 @@ begin
     apply pneqz,
     unfold leading_term at eqz,
     have eqz' := finsupp.single_eqz eqz,
-    exact poly_lead_coeff_z eqz',
+    exact zero_iff_leading_coeff_zero.1 eqz',
 end
-
-lemma const_support_zero {a : α} (h : a ≠ 0) : (C a : mv_polynomial σ α).support = {0} := 
-by unfold C monomial finsupp.single; simp [h]
 
 lemma leading_term_nconst_of_nconst 
     {p : mv_polynomial σ α} (h : ¬mv_is_const p): ¬ mv_is_const p.leading_term :=
@@ -261,11 +286,6 @@ lemma leading_term_ne_zero_coeff {a : mv_polynomial σ α} :
 end
 
 end is_total
-
-lemma support_empty {a : mv_polynomial σ α} : a.support = ∅ → a.leading_monomial = ⊥ :=
-λ h, begin
-    unfold leading_monomial, rw [h], simp,
-end
 
 section fintype_s
 variable [fins: fintype σ]
@@ -308,34 +328,39 @@ begin
     apply absurd (support_empty neqz2) neqz,
 end
 
-section decidable_linear_order
-variables [decidable_linear_order α]
-
-def leading_term_lcm (p q : mv_polynomial σ α) : mv_polynomial σ α := 
-begin
-    have hp := mv_trichotomy p,
-    have hq := mv_trichotomy q,
-    cases hp, exact mv_polynomial.C 0,
-    cases hq, exact mv_polynomial.C 0,
-    cases hp, all_goals {cases hq},
-    exact mv_polynomial.C (max hp.fst hq.fst),
-    exact monomial q.leading_monomial (max hp.fst (q.to_fun (q.leading_monomial))),
-    exact monomial p.leading_monomial (max hq.fst (p.to_fun (p.leading_monomial))),
-    begin
-        let coeff := max (p.to_fun (p.leading_monomial)) (q.to_fun (q.leading_monomial)),
-        let supp := finsupp.zip_with max (max_self 0) p.leading_monomial q.leading_monomial,
-        exact monomial supp coeff,
-    end
-end
-
-end decidable_linear_order
 end semilattice
-
-def leading_term_sub' {n} (a b: mv_polynomial (fin n) α) [bot_zero (fin n) ℕ]
-    (h: leading_term_le b a) : fin n →₀ ℕ
-     := finsupp.fin_n.leading_term_sub a.leading_monomial b.leading_monomial h
-
 end comm_semiring
+variables [gcd_domain α] [lattice.semilattice_sup_bot (σ →₀ ℕ)] [bot_zero σ ℕ]
+
+def leading_term_lcm (p q : mv_polynomial σ α) (h₁ : p ≠ 0) (h₂ : q ≠ 0) : mv_polynomial σ α := 
+    if mv_is_const p 
+    then monomial q.leading_monomial (lcm p.leading_coeff q.leading_coeff)
+    else if mv_is_const q
+        then monomial p.leading_monomial (lcm p.leading_coeff q.leading_coeff)
+        else 
+            let supp := finsupp.zip_with max (max_self 0) p.leading_monomial q.leading_monomial in
+            monomial supp (lcm p.leading_coeff q.leading_coeff)
+
+lemma leading_term_le_of_lcm_left [fintype σ] [is_total (σ →₀ ℕ) has_le.le] [@decidable_rel (σ →₀ ℕ) has_le.le] 
+    (p q : mv_polynomial σ α) (h₁ : p ≠ 0) (h₂ : q ≠ 0) : 
+    leading_term_le p (leading_term_lcm p q h₁ h₂) := 
+begin
+    unfold leading_term_lcm, 
+    by_cases hp : mv_is_const p;
+    by_cases hq : mv_is_const q,
+    any_goals {simp [hp, hq, leading_term_le, finsupp.leading_term_le, fintype.fintype_fold_and_iff], 
+        intro x, try {rw [leading_term_eq_zero_of_const hp], simp},
+    },
+    all_goals {
+        rw ←@not_zero_iff_leading_coeff_zero σ α _ _ _ _ _ _ _ p at h₁,
+        rw ←@not_zero_iff_leading_coeff_zero σ α _ _ _ _ _ _ _ q at h₂,
+        have h : lcm (leading_coeff p) (leading_coeff q) ≠ 0, intro h',
+            rw lcm_eq_zero_iff at h', cases h', apply h₁ h', apply h₂ h', 
+        },
+    rw ←leading_monomial_eq p.leading_monomial h,
+    rw ←leading_monomial_eq (finsupp.zip_with max leading_term_lcm._proof_1 p.leading_monomial q.leading_monomial) h,
+    simp, apply le_max_left,
+end
 end general
 
 namespace fin_n
@@ -346,6 +371,11 @@ variables (lt_wellfounded: @well_founded (fin n →₀ ℕ) (<))
 variable [bot_zero (fin n) ℕ]
 
 section div
+
+def leading_term_sub' {n} (a b: mv_polynomial (fin n) α) [bot_zero (fin n) ℕ]
+    (h: leading_term_le b a) : fin n →₀ ℕ
+     := finsupp.fin_n.leading_term_sub a.leading_monomial b.leading_monomial h
+
 lemma lead_tm_eq_notin_supp
     : Π {a b: mv_polynomial (fin n) α},
     leading_term a = leading_term b
