@@ -6,6 +6,7 @@ import fin
 import noetherian
 import seq
 import bot_zero
+import field
 variables {σ : Type*} {α : Type*} {β : Type*} {γ : Type*} {δ : Type*} {ι : Type*}
 
 namespace mv_polynomial
@@ -179,7 +180,7 @@ lemma leading_monomial_zero_of_zero {a : mv_polynomial σ α} : a = 0 → a.lead
 lemma const_support_zero {a : α} (h : a ≠ 0) : (C a : mv_polynomial σ α).support = {0} := 
 by finish [C, monomial, finsupp.single, h]
 
-lemma leading_term_eq_zero_of_const {p : mv_polynomial σ α} (h : mv_is_const p) : p.leading_monomial = 0 :=
+lemma leading_monomial_eq_zero_of_const {p : mv_polynomial σ α} (h : mv_is_const p) : p.leading_monomial = 0 :=
 begin
     have h' := eq_mv_is_const h,
     cases h', by_cases h'_fst = (0 : α),
@@ -277,7 +278,7 @@ lemma zero_iff_leading_coeff_zero {p : mv_polynomial σ α}:
 end, 
 λ hp, by finish [leading_coeff, leading_monomial, hp] ⟩
 
-lemma not_zero_iff_leading_coeff_zero {p : mv_polynomial σ α}: 
+lemma not_zero_iff_leading_coeff_not_zero {p : mv_polynomial σ α}: 
     p.leading_coeff ≠ 0 ↔ p ≠ 0 := by finish [zero_iff_leading_coeff_zero]
 
 lemma poly_lead_tm_neqz {p : mv_polynomial σ α}: p ≠ 0 → p.leading_term ≠ 0 :=
@@ -385,26 +386,50 @@ def leading_term_lcm (p q : mv_polynomial σ α) (h₁ : p ≠ 0) (h₂ : q ≠ 
             let supp := finsupp.zip_with max (max_self 0) p.leading_monomial q.leading_monomial in
             monomial supp (lcm p.leading_coeff q.leading_coeff)
 
-lemma leading_term_le_of_lcm_left [fintype σ] [is_total (σ →₀ ℕ) has_le.le] [@decidable_rel (σ →₀ ℕ) has_le.le] 
-    (p q : mv_polynomial σ α) (h₁ : p ≠ 0) (h₂ : q ≠ 0) : 
-    leading_term_le p (leading_term_lcm p q h₁ h₂) := 
+lemma leading_term_lcm_comm (p q :mv_polynomial σ α) (h₁ : p ≠ 0) (h₂ : q ≠ 0) : leading_term_lcm p q h₁ h₂ = leading_term_lcm q p h₂ h₁ :=
 begin
-    unfold leading_term_lcm, 
     by_cases hp : mv_is_const p;
     by_cases hq : mv_is_const q,
-    any_goals {simp [hp, hq, leading_term_le, finsupp.leading_term_le, fintype.fintype_fold_and_iff], 
-        intro x, try {rw [leading_term_eq_zero_of_const hp], simp},
+    any_goals {
+        simp [leading_term_lcm, hp, hq], rw lcm_comm, 
+        try {rw [leading_monomial_eq_zero_of_const hp, leading_monomial_eq_zero_of_const hq],}
     },
-    all_goals {
-        rw ←@not_zero_iff_leading_coeff_zero σ α _ _ _ _ _ _ _ p at h₁,
-        rw ←@not_zero_iff_leading_coeff_zero σ α _ _ _ _ _ _ _ q at h₂,
-        have h : lcm (leading_coeff p) (leading_coeff q) ≠ 0, intro h',
-            rw lcm_eq_zero_iff at h', cases h', apply h₁ h', apply h₂ h', 
-        },
+    have h : finsupp.zip_with max leading_term_lcm._proof_1 p.leading_monomial q.leading_monomial
+        = finsupp.zip_with max leading_term_lcm._proof_1 q.leading_monomial p.leading_monomial,
+        apply finsupp.ext, finish [max_comm],
+    finish [h],
+end
+
+lemma leading_term_le_of_lcm_left [fintype σ] [is_total (σ →₀ ℕ) has_le.le] [@decidable_rel (σ →₀ ℕ) has_le.le] 
+    (p q : mv_polynomial σ α) (h₁ : p ≠ 0) (h₂ : q ≠ 0) : 
+    leading_term_le p.leading_term (leading_term_lcm p q h₁ h₂) := 
+begin
+    rw ←@not_zero_iff_leading_coeff_not_zero σ α _ _ _ _ _ _ _ p at h₁,
+    rw ←@not_zero_iff_leading_coeff_not_zero σ α _ _ _ _ _ _ _ q at h₂,
+    have h : lcm (leading_coeff p) (leading_coeff q) ≠ 0, intro h',
+        rw lcm_eq_zero_iff at h', cases h', apply h₁ h', apply h₂ h', 
+    have H : p.leading_monomial = p.leading_term.leading_monomial,
+        unfold leading_term,
+        change p.leading_monomial = leading_monomial (monomial p.leading_monomial p.leading_coeff),
+        rw ←leading_monomial_eq p.leading_monomial h₁,
+
+    --unfold leading_term_lcm, 
+    by_cases hp : mv_is_const p;
+    by_cases hq : mv_is_const q,
+    any_goals {simp [leading_term_lcm, hp, hq, leading_term_le, finsupp.leading_term_le, fintype.fintype_fold_and_iff], 
+        intro x, rw ←H, try { rw [leading_monomial_eq_zero_of_const hp], simp},
+    },
+
     rw ←leading_monomial_eq p.leading_monomial h,
     rw ←leading_monomial_eq (finsupp.zip_with max leading_term_lcm._proof_1 p.leading_monomial q.leading_monomial) h,
     simp, apply le_max_left,
 end
+
+lemma leading_term_le_of_lcm_right [fintype σ] [is_total (σ →₀ ℕ) has_le.le] [@decidable_rel (σ →₀ ℕ) has_le.le] 
+    (p q : mv_polynomial σ α) (h₁ : p ≠ 0) (h₂ : q ≠ 0) : 
+    leading_term_le q.leading_term (leading_term_lcm p q h₁ h₂) := 
+by rw leading_term_lcm_comm p q h₁ h₂; apply leading_term_le_of_lcm_left
+
 end general
 
 namespace fin_n
@@ -661,13 +686,9 @@ include lt_wellfounded
 def s_poly (p q : mv_polynomial (fin n) α) : 
     p ≠ 0 → q ≠ 0 → mv_polynomial (fin n) α :=
 λ p_nz q_nz,
-begin
-    let x := @leading_term_lcm (fin n) α _ _ _ _,
-    let fst := leading_term_sub' (leading_term_lcm p q p_nz q_nz) p.leading_term,
-    let snd := div lt_wellfounded (leading_term_lcm p q) q.leading_term (poly_lead_tm_neqz q_nz),
-    exact fst.fst * p - snd.fst * q,
-end
-
+    let fst := leading_term_sub' (leading_term_lcm p q p_nz q_nz) p.leading_term (leading_term_le_of_lcm_left p q p_nz q_nz) in
+    let snd := leading_term_sub' (leading_term_lcm p q p_nz q_nz) q.leading_term (leading_term_le_of_lcm_right p q p_nz q_nz) in
+    (monomial fst 1) * p - (monomial snd 1) * q
 
 def buch_pairs (s : list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0)) 
 : list (Σ' (p: mv_polynomial (fin n) α × mv_polynomial (fin n) α), 
