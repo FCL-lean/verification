@@ -125,18 +125,13 @@ lemma nzero_of_ne_mv_is_const {p : mv_polynomial σ α} :
     apply psigma.mk (0 : α), simp [a],
 end
 
-instance (p : mv_polynomial σ α): decidable (mv_is_const p) :=
+instance decidable_mv_is_const (p : mv_polynomial σ α): decidable (mv_is_const p) :=
 begin
-    generalize t : mv_trichotomy p = m,
-    cases h: m, apply is_true, rw val, simp,
-    cases h: val, apply is_true, rw val_1.snd.snd, simp,
-    unfold mv_is_const mv_is_const_aux,
-    cases val_1, rw ←val_1_snd.snd, rw t,
-    tactic.unfreeze_local_instances, dedup, 
-    rw [h, h_1], unfold mv_is_const_aux,
-    apply is_false, unfold mv_is_const,
-    rw [t], tactic.unfreeze_local_instances, dedup,
-    rw [h, h_1], unfold mv_is_const_aux, simp,
+    cases mv_trichotomy p,
+    right, apply eq_mv_is_const' (psigma.mk 0 val),
+    cases val,
+    right, apply eq_mv_is_const' (psigma.mk val.fst val.snd.snd),
+    left, intro h, apply val (eq_mv_is_const h),
 end
 
 section semilattice
@@ -762,7 +757,7 @@ def buchberger : list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0) →
         $ filter_non_zero
         $ buch_s_polys
         $ buch_pairs s
-        in if s = result then s else 
+        in if s = result then s else  
             have non_zero_poly_to_ideal s < non_zero_poly_to_ideal result := sorry,
             buchberger result
 using_well_founded 
