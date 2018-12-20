@@ -225,7 +225,7 @@ begin
 end
 
 set_option trace.check true
-def lead_monomial_eqz_const {a : mv_polynomial σ α}:
+def leading_monomial_eqz_const {a : mv_polynomial σ α}:
     a.leading_monomial = ⊥ → Σ' (c : α), a = C c :=
 λ eqz,
 begin 
@@ -296,7 +296,7 @@ begin
     intro h',
     have hp := ne_mv_is_const h,
     rw leading_monomial_const_iff at h',
-    apply hp (lead_monomial_eqz_const h'),
+    apply hp (leading_monomial_eqz_const h'),
 end
 
 lemma leading_term_ne_zero_coeff {a : mv_polynomial σ α} : 
@@ -564,7 +564,7 @@ begin
     intro m, unfold reduction,
     have : a.leading_monomial = 0 := finsupp.fin_n.leading_term_le_antisymm m (finsupp.fin_n.leading_term_le_zero _),
     rw [_inst_2.zero_bot] at this,
-    have eqzconst := lead_monomial_eqz_const this,
+    have eqzconst := leading_monomial_eqz_const this,
     cases eqzconst, by_cases mv_is_const a; simp [h],
     apply false.elim, apply h, rw eqzconst_snd, simp,
 end
@@ -648,7 +648,7 @@ begin
         begin
             have eq0 := leading_monomial_zero_of_le_zero eqz leh,
             rw [_inst_2.zero_bot] at eq0,
-            have isconst := lead_monomial_eqz_const eq0,
+            have isconst := leading_monomial_eqz_const eq0,
             cases isconst,
             revert leh, rw [isconst_snd], intro leh, 
             rw [reduction_const, ←C_0], 
@@ -719,8 +719,6 @@ end div
 section buchberger
 variables [decidable_linear_order α]
 
-include lt_wellfounded
-
 def s_poly (p q : mv_polynomial (fin n) α) : 
     p ≠ 0 → q ≠ 0 → mv_polynomial (fin n) α :=
 λ p_nz q_nz,
@@ -739,18 +737,19 @@ def buch_pairs (s : list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0))
 
 def buch_s_polys (pairs : list (Σ' (p: mv_polynomial (fin n) α × mv_polynomial (fin n) α), 
                 pprod (p.1 ≠ 0) (p.2 ≠ 0))) : list (mv_polynomial (fin n) α) 
-    := pairs.map (λ a, s_poly lt_wellfounded a.fst.fst a.fst.snd a.snd.fst a.snd.snd)
+    := pairs.map (λ a, s_poly a.fst.fst a.fst.snd a.snd.fst a.snd.snd)
 
 def buch_div_result (s s_polys: list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0))
     := (list.foldl (λ a b, 
     let div_result := reduction_list lt_wellfounded (b: (Σ' (p: mv_polynomial (fin n) α), p ≠ 0)).fst a
     in if div_result ∉ list.map psigma.fst a 
         then (if h: div_result = 0 then a else ⟨div_result, h⟩ :: a ) else a) s s_polys)
-omit lt_wellfounded
+
 def filter_non_zero : list (mv_polynomial (fin n) α) →
     list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0)
 | [] := []
 | (x :: xs) := if h: x = 0 then filter_non_zero xs else ⟨x, h⟩ :: filter_non_zero xs
+
 def non_zero_poly_to_ideal : list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0) → ideal (mv_polynomial (fin n) α) :=
     λ s, ideal.span $ finset.to_set $ list.to_finset $ s.map (λ (a : (Σ' (p: mv_polynomial (fin n) α), p ≠ 0)), a.1.leading_term)
 
@@ -761,8 +760,8 @@ def buchberger : list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0) →
 | s :=
     let result := buch_div_result lt_wellfounded s 
         $ filter_non_zero
-        $ buch_s_polys lt_wellfounded
-        $ buch_pairs lt_wellfounded s
+        $ buch_s_polys
+        $ buch_pairs s
         in if s = result then s else 
             have non_zero_poly_to_ideal s < non_zero_poly_to_ideal result := sorry,
             buchberger result
