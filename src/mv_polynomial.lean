@@ -419,9 +419,7 @@ end general
 namespace fin_n
 variables {n : ℕ}
 
-variables [discrete_field α]
-variables (lt_wellfounded: @well_founded (fin n →₀ ℕ) (<))
-variable [bot_zero (fin n) ℕ]
+variables [discrete_field α] (lt_wellfounded: @well_founded (fin n →₀ ℕ) (<)) [bot_zero (fin n) ℕ]
 
 section div
 
@@ -702,7 +700,8 @@ def s_poly (p q : mv_polynomial (fin n) α) :
     p ≠ 0 → q ≠ 0 → mv_polynomial (fin n) α :=
 λ p_nz q_nz,
 begin
-    let fst := div lt_wellfounded (leading_term_lcm p q) p.leading_term (poly_lead_tm_neqz p_nz),
+    let x := @leading_term_lcm (fin n) α _ _ _ _,
+    let fst := leading_term_sub' (leading_term_lcm p q p_nz q_nz) p.leading_term,
     let snd := div lt_wellfounded (leading_term_lcm p q) q.leading_term (poly_lead_tm_neqz q_nz),
     exact fst.fst * p - snd.fst * q,
 end
