@@ -72,7 +72,7 @@ begin
     unfold mv_is_const_aux at a,
     apply false.elim, assumption,
 end
-
+@[simp]
 lemma const_mv_is_const (a : α):
     mv_is_const (C a : mv_polynomial σ α) :=
 begin
@@ -333,6 +333,15 @@ lemma leading_monomial_zero_of_le_zero {a b : mv_polynomial σ α} : a.leading_m
     apply finsupp.ext, simp [hba],
 end
 
+lemma leading_term_le_const (b: mv_polynomial σ α) (c: α): 
+    leading_term_le b (C c) →  Σ' (x : α), b = C x :=
+begin
+    intros,
+    unfold leading_term_le at a,
+    sorry
+end
+
+
 omit fins
 end fintype_s
 
@@ -526,6 +535,17 @@ begin
     simp [const_mv_is_const],
 end
 
+lemma reduction_zero (a : mv_polynomial (fin n) α) : ∀ m,
+    reduction 0 a m = 0 :=
+begin
+    intro m, unfold reduction,
+    have : a.leading_monomial = 0 := finsupp.fin_n.leading_term_le_antisymm m (finsupp.fin_n.leading_term_le_zero _),
+    rw [_inst_2.zero_bot] at this,
+    have eqzconst := lead_monomial_eqz_const this,
+    cases eqzconst, by_cases mv_is_const a; simp [h],
+    apply false.elim, apply h, rw eqzconst_snd, simp,
+end
+
 def reduction_list_aux : (mv_polynomial (fin n) α) → 
     (list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0)) → mv_polynomial (fin n) α
 | a [] := a
@@ -548,10 +568,28 @@ begin
             unfold reduction_list_aux,
             by_cases leading_term_le (s_hd.fst) (C 0); simp [h],
             unfold reduction,
-            by_cases mv_is_const (s_hd.fst); simp [h],
-
+            by_cases h': mv_is_const (s_hd.fst); simp [h'],
+            rw [←(congr_arg leading_coeff C_0), leading_coeff_C],
+            rw C_0 at h, simp, unfold monomial,
+            rw [finsupp.single_zero],
+            apply ring.mul_zero, 
         end,
         begin
+            unfold reduction_list_aux,
+            have lem : reduction_list_aux (C 0) (s_hd :: s_tl_tl) = 0 := s_tl_ih (by simp),
+            unfold reduction_list_aux at lem,
+            rw C_0 at *,
+            by_cases h: leading_term_le (s_hd.fst) 0,
+            by_cases h': leading_term_le (s_tl_hd.fst) (reduction 0 (s_hd.fst) h), simp [h, h'] at *,
+            revert h,
+            change ∀ (h : leading_term_le (s_hd.fst) 0) (h' : leading_term_le (s_tl_hd.fst) (reduction 0 (s_hd.fst) h)),
+                        reduction_list_aux (reduction 0 (s_hd.fst) h) s_tl_tl = 0 →
+                            reduction_list_aux (reduction (reduction 0 (s_hd.fst) h) (s_tl_hd.fst) h') s_tl_tl = 0,
+            intro h, rw reduction_zero, intros h' p, rw reduction_zero, assumption,
+            simp [h, h'] at *, assumption,
+            simp [h] at *, 
+            by_cases h': leading_term_le (s_tl_hd.fst) 0, simp [h'],
+            rw reduction_zero, assumption, simp [h'], assumption,
         end,
     end
 end
