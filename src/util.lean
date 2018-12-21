@@ -211,3 +211,6 @@ namespace set
 variables {α : Type*}
 
 end set
+
+lemma eq.subst' {α : Sort u} {a b : α} {P : Π (m: α), (m = a) ∨ (m = b) → Prop} 
+    (h₁ : a = b) (h₂ : P a (or.inl rfl)) : P b (or.inr rfl) := by cases h₁; assumption

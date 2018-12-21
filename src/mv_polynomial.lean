@@ -458,8 +458,7 @@ begin
     rw finsupp.support_neg at m, assumption,
 end
 
-set_option trace.simplify.rewrite true
-lemma sub_dec' : Π (a b : mv_polynomial (fin n) α),
+lemma sub_dec : Π (a b : mv_polynomial (fin n) α),
     a.leading_term = b.leading_term 
     → a.leading_monomial ≠ 0
 → (a - b).leading_monomial < a.leading_monomial :=
@@ -481,45 +480,6 @@ lemma sub_dec' : Π (a b : mv_polynomial (fin n) α),
         apply absurd (finset.mem_of_sup_id H),
         apply finsupp.not_mem_support_iff.2, rw [finsupp.sub_apply, sub_eq_add_neg a b, h, finsupp.coe_f, h₂, ←h₁], apply sub_self,
     end
-end
-
-lemma sub_dec : Π (a b : mv_polynomial (fin n) α),
-    a.leading_term = b.leading_term 
-    → a.leading_monomial ≠ 0
-→ (a - b).leading_monomial < a.leading_monomial :=
-begin
-    intros a b leeq lmneqz,
-    unfold leading_term at leeq,
-    have coeff_eq := finsupp.single_inj2 leeq,
-    have coeff_neqz := leading_monomial_ne_zero_coeff lmneqz,
-    have lm_eq := finsupp.single_inj1 coeff_neqz leeq,
-    have a_in_a_sup := finset.mem_of_sup_id (finset.ne_empty_of_sup_ne_bot lmneqz),
-    have b_in_b_sup := finset.mem_of_sup_id (support_ne_empty_of_leading_term lmneqz lm_eq),
-    unfold leading_monomial at lm_eq,
-    rw ←lm_eq at b_in_b_sup,
-    have sup_a_u_b : finset.sup (a.support ∪ b.support) id = finset.sup (a.support) id,
-        by simp [finset.sup_union, lm_eq, lattice.sup_idem],
-    have a_sup_notin_a_sub_b_supp : a.support.sup id ∉ (a - b).support,
-        from leading_term_eq_notin_supp leeq lmneqz,
-    unfold leading_monomial,
-    rw ←sup_a_u_b,
-    have ab_le := finset.sub_sup (sub_support a b),
-    rw le_iff_lt_or_eq at ab_le,
-    cases ab_le, assumption,
-    apply false.elim,
-    rw sup_a_u_b at ab_le,
-    rw ←ab_le at a_sup_notin_a_sub_b_supp,
-    apply a_sup_notin_a_sub_b_supp,
-    by_cases (a - b).support = ∅,
-    begin
-        rw h at *, simp at ab_le,
-        unfold leading_coeff leading_monomial at coeff_neqz,
-        rw [←ab_le] at coeff_neqz,
-        apply lmneqz, exact ab_le.symm,
-    end,
-    begin
-        exact finset.mem_of_sup_id h,
-    end,
 end
 
 lemma leading_term_eq {a b : mv_polynomial (fin n) α} (hb : b ≠ 0) (hab : leading_term_le b a) : 

@@ -170,7 +170,7 @@ lemma leading_term_sub_zero : Π {n} (h: leading_term_le (0: fin n →₀ ℕ) 0
     leading_term_sub 0 0 h = 0 :=
 begin
     intros, cases n; unfold leading_term_sub,
-
+    apply leading_term_sub_aux_zero,
 end
 
 def le_aux : ∀ m < (n + 1), ((fin $ n + 1) →₀ ℕ) → ((fin $ n + 1) →₀ ℕ) → Prop
