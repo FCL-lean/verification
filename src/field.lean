@@ -3,7 +3,7 @@ import algebra.gcd_domain
 variables {α : Type*}
 
 set_option trace.simplify.rewrite true
-instance field_is_gcd_domain [discrete_field α] : gcd_domain α := {
+instance discrete_field_is_gcd_domain [discrete_field α] : gcd_domain α := {
     eq_zero_or_eq_zero_of_mul_eq_zero := discrete_field.eq_zero_or_eq_zero_of_mul_eq_zero,
     norm_unit := λ a, if h : a = 0 then 1 else {
         val := a⁻¹,

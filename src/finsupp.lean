@@ -305,8 +305,8 @@ lemma zero_le_aux : ∀ (m < n + 1) (a : fin (n + 1) →₀ ℕ), le_aux m H 0 a
 |(m + 1) H a := by simp [le_aux]; 
                 from if h : 0 < a ⟨m + 1, H⟩ 
                     then by simp [h]
-                    else by exact or.inr (and.intro (nat.eq_zero_of_le_zero (le_of_not_lt h)).symm
-                                (zero_le_aux m (nat.lt_of_succ_lt H) a))
+                    else begin exact or.inr (and.intro (nat.eq_zero_of_le_zero (le_of_not_lt h)).symm
+                                (zero_le_aux m (nat.lt_of_succ_lt H) a)) end
 
 lemma zero_le : ∀ a : fin n →₀ ℕ, 0 ≤ a :=
 λ a, by cases n; simp [has_le.le, preorder.le, fin_n.le, zero_le_aux]
@@ -338,16 +338,3 @@ end
 end fin_n
 
 end finsupp
-
-/-
-lemma wf : well_founded (@preorder.lt (fin n →₀ ℕ) _) :=
-begin
-    apply well_founded.intro, intro a,
-    cases n, 
-    apply acc.intro, intros b h, simp [preorder.lt, fin_n.le] at h, 
-    revert h, simp,
-    apply acc.intro, intros b lba,
-
-
-end
--/

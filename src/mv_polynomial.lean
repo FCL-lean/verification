@@ -152,9 +152,9 @@ lemma leading_coeff_C (a : α): leading_coeff (C a : mv_polynomial σ α) = a :=
 begin
     unfold leading_coeff leading_monomial C monomial,
     rw [←finsupp.coe_f, finsupp.single_apply],
-    simp [finsupp.single], by_cases a = 0; simp [h],
-    unfold finset.singleton finset.sup finset.fold, simp,
+    simp [finsupp.single], by_cases a = 0; simp [h, finset.singleton, finset.sup, finset.fold],
 end
+
 def leading_term (a: mv_polynomial σ α): mv_polynomial σ α 
     := finsupp.single a.leading_monomial a.leading_coeff
 
@@ -276,25 +276,7 @@ end,
 lemma not_zero_iff_leading_coeff_not_zero {p : mv_polynomial σ α}: 
     p.leading_coeff ≠ 0 ↔ p ≠ 0 := by finish [zero_iff_leading_coeff_zero]
 
-lemma poly_lead_tm_neqz {p : mv_polynomial σ α}: p ≠ 0 → p.leading_term ≠ 0 :=
-λ pneqz eqz,
-begin 
-    apply pneqz,
-    unfold leading_term at eqz,
-    have eqz' := finsupp.single_eqz eqz,
-    exact zero_iff_leading_coeff_zero.1 eqz',
-end
-
-lemma leading_term_nconst_of_nconst 
-    {p : mv_polynomial σ α} (h : ¬mv_is_const p): ¬ mv_is_const p.leading_term :=
-begin
-    intro h',
-    have hp := ne_mv_is_const h,
-    rw leading_monomial_const_iff at h',
-    apply hp (leading_monomial_eqz_const h'),
-end
-
-lemma leading_term_ne_zero_coeff {a : mv_polynomial σ α} : 
+lemma leading_monomial_ne_zero_coeff {a : mv_polynomial σ α} : 
     a.leading_monomial ≠ 0 → a.leading_coeff ≠ 0 :=
 λ neqz eqa, begin
     unfold leading_monomial at neqz,
@@ -416,8 +398,7 @@ begin
         unfold leading_term,
         change p.leading_monomial = leading_monomial (monomial p.leading_monomial p.leading_coeff),
         rw ←leading_monomial_eq p.leading_monomial h₁,
-
-    --unfold leading_term_lcm, 
+ 
     by_cases hp : mv_is_const p;
     by_cases hq : mv_is_const q,
     any_goals {simp [leading_term_lcm, hp, hq, leading_term_le, finsupp.leading_term_le, fintype.fintype_fold_and_iff], 
@@ -447,7 +428,7 @@ def leading_term_sub' {n} (a b: mv_polynomial (fin n) α) [bot_zero (fin n) ℕ]
     (h: leading_term_le b a) : fin n →₀ ℕ
      := finsupp.fin_n.leading_term_sub a.leading_monomial b.leading_monomial h
 
-lemma lead_tm_eq_notin_supp
+lemma leading_term_eq_notin_supp
     : Π {a b: mv_polynomial (fin n) α},
     leading_term a = leading_term b
     → a.leading_monomial ≠ 0
@@ -455,7 +436,7 @@ lemma lead_tm_eq_notin_supp
 λ a b eql neq0 insub,
 begin
     unfold leading_term at eql,
-    have coeff_neq_z := leading_term_ne_zero_coeff neq0,
+    have coeff_neq_z := leading_monomial_ne_zero_coeff neq0,
     have lead_tm_eq := finsupp.single_inj1 coeff_neq_z eql,
     have lead_coeff_eq := finsupp.single_inj2 eql,
     rw finsupp.mem_support_iff at insub,
@@ -477,6 +458,31 @@ begin
     rw finsupp.support_neg at m, assumption,
 end
 
+set_option trace.simplify.rewrite true
+lemma sub_dec' : Π (a b : mv_polynomial (fin n) α),
+    a.leading_term = b.leading_term 
+    → a.leading_monomial ≠ 0
+→ (a - b).leading_monomial < a.leading_monomial :=
+λ a b hab ha, begin
+    unfold leading_term at hab,
+    have h₁ := finsupp.single_inj1 (leading_monomial_ne_zero_coeff ha) hab,
+    have h₂ := finsupp.single_inj2 hab,
+    unfold leading_coeff leading_monomial at *,
+    have h₃ : finset.sup (a.support ∪ b.support) id = finset.sup a.support id, simp [finset.sup_union, h₁],
+    rw [lt_iff_le_and_ne, sub_eq_add_neg, ←h₃], apply and.intro,
+    apply finset.sub_sup, rw [←@finsupp.support_neg _ _ _ _ _ b], apply finsupp.support_add,
+    rw h₃, intro h,
+    from if H : (a - b).support = ∅ 
+    then begin 
+        rw [←sub_eq_add_neg, H, finset.sup_empty, ←_inst_2.zero_bot] at h,
+        exact ha h.symm,
+    end 
+    else begin
+        apply absurd (finset.mem_of_sup_id H),
+        apply finsupp.not_mem_support_iff.2, rw [finsupp.sub_apply, sub_eq_add_neg a b, h, finsupp.coe_f, h₂, ←h₁], apply sub_self,
+    end
+end
+
 lemma sub_dec : Π (a b : mv_polynomial (fin n) α),
     a.leading_term = b.leading_term 
     → a.leading_monomial ≠ 0
@@ -485,7 +491,7 @@ begin
     intros a b leeq lmneqz,
     unfold leading_term at leeq,
     have coeff_eq := finsupp.single_inj2 leeq,
-    have coeff_neqz := leading_term_ne_zero_coeff lmneqz,
+    have coeff_neqz := leading_monomial_ne_zero_coeff lmneqz,
     have lm_eq := finsupp.single_inj1 coeff_neqz leeq,
     have a_in_a_sup := finset.mem_of_sup_id (finset.ne_empty_of_sup_ne_bot lmneqz),
     have b_in_b_sup := finset.mem_of_sup_id (support_ne_empty_of_leading_term lmneqz lm_eq),
@@ -494,7 +500,7 @@ begin
     have sup_a_u_b : finset.sup (a.support ∪ b.support) id = finset.sup (a.support) id,
         by simp [finset.sup_union, lm_eq, lattice.sup_idem],
     have a_sup_notin_a_sub_b_supp : a.support.sup id ∉ (a - b).support,
-        from lead_tm_eq_notin_supp leeq lmneqz,
+        from leading_term_eq_notin_supp leeq lmneqz,
     unfold leading_monomial,
     rw ←sup_a_u_b,
     have ab_le := finset.sub_sup (sub_support a b),
@@ -516,30 +522,9 @@ begin
     end,
 end
 
-lemma lead_tm_eq {a b : mv_polynomial (fin n) α} (hb : b ≠ 0) (hab : leading_term_le b a) : 
+lemma leading_term_eq {a b : mv_polynomial (fin n) α} (hb : b ≠ 0) (hab : leading_term_le b a) : 
     a.leading_term = leading_term (b * finsupp.single (leading_term_sub' a b hab) 
                 (a.leading_coeff / b.leading_coeff)) := sorry
-
-def div_const : Π (a b : mv_polynomial (fin n) α), b ≠ 0 →
-                mv_is_const b →
-                Σ' (q r : mv_polynomial (fin n) α), b.leading_monomial = r.leading_monomial
-                        ∧ a = b * q + r
-| a b bneqz bconst :=
-begin
-    have m := mv_is_const_neqz bconst bneqz,
-    apply psigma.mk (a * C (1 / m.fst)),
-    apply psigma.mk (0: mv_polynomial (fin n) α),
-    apply and.intro,
-    rw m.snd.snd,
-    unfold leading_monomial C monomial finsupp.single, 
-    simp [m.snd.fst], rw [←finset.singleton_eq_singleton, finset.sup_singleton], 
-    unfold has_zero.zero, simp, rw [←_inst_2.zero_bot], trivial,
-    simp, have n : b = C m.fst,
-    exact m.snd.snd, generalize j : C (m.fst)⁻¹ = k,
-    rw n, rw ←j, rw mul_comm, rw mul_assoc,
-    rw ←C_mul, rw discrete_field.inv_mul_cancel,
-    simp, exact m.snd.fst,
-end
 
 def reduction (a b : mv_polynomial (fin n) α) (h : leading_term_le b a) := 
     if mv_is_const b
@@ -624,7 +609,7 @@ begin
         exact a_2.symm, 
     end,
     begin
-        apply sub_dec, apply lead_tm_eq,
+        apply sub_dec, apply leading_term_eq,
         assumption, assumption,
     end
 end
@@ -669,6 +654,7 @@ begin
         apply l_ih; assumption,
     end
 end
+
 lemma reduction_list_aux_neq_lt : 
     Π (a : mv_polynomial (fin n) α) (l: list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0)),
     a.leading_monomial ≠ 0 →
