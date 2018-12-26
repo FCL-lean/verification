@@ -61,6 +61,9 @@ begin
     simp at m, assumption,
 end
 
+def single_ext : Π {a b: α}{c d: β}, a = b → c = d → single a c = single b d :=
+    λ a b c d p q, by simp [p, q]
+
 def single_eqz : Π {a : α} {b : β}, single a b = 0 → b = 0 :=
 begin
     intros a b sin,
@@ -72,6 +75,8 @@ begin
     have m := congr_arg finsupp.support sin, simp at m,
     assumption,
 end
+
+lemma single_support : Π (a : α), (single a 1).support = {a} := by finish
 
 lemma coe_f : Π (a : α →₀ β) (n : α), a n = a.to_fun n := λ a n, rfl
 

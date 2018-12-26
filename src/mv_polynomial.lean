@@ -311,13 +311,6 @@ lemma leading_monomial_zero_of_le_zero {a b : mv_polynomial σ α} : a.leading_m
     apply finsupp.ext, simp [hba],
 end
 
-lemma leading_term_le_const (b: mv_polynomial σ α) (c: α): 
-    leading_term_le b (C c) →  Σ' (x : α), b = C x :=
-begin
-    intros,
-    unfold leading_term_le at a,
-    sorry
-end
 
 
 omit fins
@@ -482,9 +475,52 @@ lemma sub_dec : Π (a b : mv_polynomial (fin n) α),
     end
 end
 
+lemma mul_X_support : ∀ {b : mv_polynomial (fin n) α} (k : fin n),
+    finset.sup ((X k) * b).support id = finset.sup ((X k : mv_polynomial (fin n) α).support) id
+                                    + (finset.sup b.support id) :=
+begin
+    intros,
+    unfold has_mul.mul X monomial,
+    unfold finsupp.sum,
+    generalize lem : (finsupp.single (finsupp.single k 1) 1).support = t,
+    rw [finsupp.single_support (finsupp.single k 1)] at lem,
+end
+
+lemma sup_mul : ∀ (a b : mv_polynomial (fin n) α),
+    (finset.sup (a * b).support id) = 
+    finset.sup a.support id + finset.sup b.support id :=
+λ a, begin
+    apply mv_polynomial.induction_on a; intros,
+    sorry, sorry,
+    begin
+        rw [a_1],
+        rw [mul_assoc, a_1],
+        have h: finset.sup ((X n_1 * b).support) id = finset.sup ((X n_1).support) id + finset.sup (b.support) id,
+        apply mul_X_support,
+        simp [h],
+    end
+end
+lemma sup_single : ∀ {b : mv_polynomial (fin n) α} c d,
+    (finset.sup ((b * finsupp.single c d).support) id) = 
+        (finset.sup b.support id) + c :=
+begin
+    intro b,
+    apply mv_polynomial.induction_on b; intros; try {simp},
+    sorry, sorry,
+end
+
+lemma coeff_single : ∀ {a : mv_polynomial (fin n) α} b c,
+    (leading_coeff (a * finsupp.single b c)) = a.leading_coeff * c := sorry
+
 lemma leading_term_eq {a b : mv_polynomial (fin n) α} (hb : b ≠ 0) (hab : leading_term_le b a) : 
     a.leading_term = leading_term (b * finsupp.single (leading_term_sub' a b hab) 
-                (a.leading_coeff / b.leading_coeff)) := sorry
+                (a.leading_coeff / b.leading_coeff)) :=
+begin
+    unfold leading_term leading_monomial,
+    simp [sup_single, coeff_single, has_div.div, algebra.div],
+    apply finsupp.single_ext,
+
+end
 
 def reduction (a b : mv_polynomial (fin n) α) (h : leading_term_le b a) := 
     if mv_is_const b
