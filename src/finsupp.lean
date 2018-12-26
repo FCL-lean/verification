@@ -2,6 +2,7 @@ import data.finsupp
 import util
 import fintype
 import fin
+import seq
 variables {α : Type*} {β : Type*} {γ : Type*} {δ : Type*} {ι : Type*}
 namespace finsupp
 
@@ -338,7 +339,71 @@ lemma lt_zero_aux {a : fin (n + 1) →₀ ℕ} :
     apply lt_zero_aux m (nat.lt_of_succ_lt H) (and.intro h_left.right (h_right.right h_right.left.symm)),
 end
 
+lemma seqR_eq' : Π (n : ℕ) (s: seqR.seq_R (fin (n + 1) →₀ ℕ) (<)) (i: fin (n + 1))
+    (k : ℕ), k ≤ i.1 → ∃ (t : ℕ), ∀ t' (p1: t' ≥ t), ∀ k' (p2: k' ≤ k),
+        (s.1 t').to_fun ⟨k', by apply lt_of_le_of_lt p2; apply lt_of_le_of_lt a; exact i.2⟩ 
+    = (s.1 t) ⟨k', by apply lt_of_le_of_lt p2; apply lt_of_le_of_lt a; exact i.2⟩ :=
+begin
+    intro n,
+    induction n; intros,
+    begin
+        apply classical.by_contradiction,
+        rw [not_exists],
+        intro nex,
+        generalize t: s.1 0 = nex',
+        apply nex (nex' 0),
+        intros,
+        have l : i = 0 := sorry,
+        rw l at *,
+        have l' : k' ≤ 0 := trans p2 a,
+        rw le_zero_iff_eq at l',
+        cases l',
+        sorry,
+    end,
+    begin
+        apply classical.by_contradiction,
+        rw [not_exists],
+        intro nex,
+    end,
+end
 
+lemma seqR_eq : Π (n : ℕ) (s: seqR.seq_R (fin (n + 1) →₀ ℕ) (<)),
+    ∃ (t : ℕ), ∀ t' ≥ t, s.1 t = s.1 t' :=
+begin
+    intros,
+    have lem := seqR_eq' n s ⟨n, by constructor⟩ n (by refl),
+    cases lem,
+    apply exists.intro lem_w,
+    intros, apply finsupp.ext, intro a,
+    have lem' := lem_h t' H a (nat.le_of_succ_le_succ a.2),
+    symmetry, rw [←fin.eta a a.2], exact lem',
+end
+
+lemma seqR_false : Π (n : ℕ), ¬' seqR.seq_R (fin (n + 1) →₀ ℕ) (<) :=
+λ n seq,
+begin
+    have eq := seqR_eq n seq,
+    cases eq,
+    have eq_w'_eq := eq_h (eq_w + 1) (by unfold ge; constructor; constructor),
+    have related := seq.2 eq_w,
+    rw eq_w'_eq at related,
+    apply lt_irrefl _ related,
+end
+
+lemma lt_wf : well_founded ((<) : rel (fin n →₀ ℕ)) :=
+begin
+    cases n,
+    begin
+        constructor, intro a,
+        constructor, intros,
+        rw fin_0_id y a at a_1,
+        apply false.elim (lt_irrefl _ a_1),
+    end,
+    begin
+        apply seqR.no_inf_chain_wf,
+        apply seqR_false,
+    end
+end
 
 end fin_n
 
