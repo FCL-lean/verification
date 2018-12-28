@@ -183,10 +183,9 @@ def le_aux : ∀ m < (n + 1), ((fin $ n + 1) →₀ ℕ) → ((fin $ n + 1) →�
 | 0 h := λ a b, a ⟨0, h⟩ ≤ b ⟨0, h⟩
 | (m + 1) h := λ a b, a ⟨m + 1, h⟩ < b ⟨m + 1, h⟩ ∨ (a ⟨m + 1, h⟩ = b ⟨m + 1, h⟩ ∧ le_aux m (nat.lt_of_succ_lt h) a b)
 
-protected def le: rel (fin n →₀ ℕ) := λ a b, begin 
-    cases n, exact true,
-    apply le_aux n (nat.lt_succ_self n) a b,
-end
+protected def le: Π {n}, rel (fin n →₀ ℕ)
+| 0 a b            := true
+| (nat.succ n) a b := le_aux n (nat.lt_succ_self n) a b
 
 lemma le_refl_aux (m : ℕ) (h : m < n + 1) : ∀ a : (fin $ n + 1) →₀ ℕ, le_aux m h a a :=
 λ a, begin
@@ -339,31 +338,255 @@ lemma lt_zero_aux {a : fin (n + 1) →₀ ℕ} :
     apply lt_zero_aux m (nat.lt_of_succ_lt H) (and.intro h_left.right (h_right.right h_right.left.symm)),
 end
 
-lemma seqR_eq' : Π (n : ℕ) (s: seqR.seq_R (fin (n + 1) →₀ ℕ) (<)) (i: fin (n + 1))
-    (k : ℕ), k ≤ i.1 → ∃ (t : ℕ), ∀ t' (p1: t' ≥ t), ∀ k' (p2: k' ≤ k),
-        (s.1 t').to_fun ⟨k', by apply lt_of_le_of_lt p2; apply lt_of_le_of_lt a; exact i.2⟩ 
-    = (s.1 t) ⟨k', by apply lt_of_le_of_lt p2; apply lt_of_le_of_lt a; exact i.2⟩ :=
+lemma eq_le_aux'' : 
+    Π (a b : fin (n + 1) →₀ ℕ) t
+    p1 p2 p3
+    (H1: a.to_fun ⟨t, p1⟩ = b.to_fun ⟨t, p1⟩),
+    Π (H2: le_aux t p2 a b), 
+    a.to_fun ⟨t - 1, p3⟩ ≤ b.to_fun ⟨t - 1, p3⟩ :=
 begin
-    intro n,
-    induction n; intros,
+    intros,
+    cases t,
     begin
-        apply classical.by_contradiction,
-        rw [not_exists],
-        intro nex,
-        generalize t: s.1 0 = nex',
-        apply nex (nex' 0),
+        revert p3, rw nat.zero_sub,
+        intros, assumption,
+    end,
+    begin
+        simp,
+        cases H2,
+        begin
+            have H: a ⟨t + 1, p1⟩ = b ⟨t + 1, p1⟩,
+                assumption,
+            rw H at H2, apply false.elim, apply nat.lt_irrefl, assumption,
+        end,
+        begin
+            cases H2,
+            cases t,
+            by assumption,
+            begin
+                cases H2_right,
+                by apply le_of_lt; assumption,
+                by apply le_of_eq; exact H2_right.1,
+            end,
+        end,
+    end,
+end
+
+lemma eq_le_aux' :
+    Π (a b : fin (n + 1) →₀ ℕ) t k
+    (p1 : ∀ k, t - k < n + 1) p2 p3
+    (H1:  ∀ (k' : ℕ), k' < k → a.to_fun ⟨t - k', p1 k'⟩ = b.to_fun ⟨t - k', p1 k'⟩),
+    Π (H2: le_aux t p2 a b), 
+    a.to_fun ⟨t - k, p3⟩ ≤ b.to_fun ⟨t - k, p3⟩ :=
+begin
+    intros; induction k,
+    begin
+        cases t; unfold le_aux at H2,
+        by assumption,
+        begin
+            cases H2,
+            by apply le_of_lt; assumption,
+            by apply le_of_eq; exact H2.1,
+        end
+    end,
+    begin
+        by_cases HLT : t - k_n < n + 1,
+        begin
+            have IH := k_ih HLT,
+            apply eq_le_aux''; try { assumption }; try { apply H1 },
+            by constructor,
+            sorry,
+        end,
+        begin
+            rw not_lt at HLT,
+            by_cases H: nat.succ k_n ≤ t,
+            begin
+            /-
+                ¬t - k_n < n + 1
+                t - k_n ≥ n + 1
+                n + 1 ≤ t - k_n
+                t - nat.succ k_n < n + 1 ≤ t - k_n
+                -> n + 1 = t - k_n
+                -> t - (k_n + 1) = n 
+                -> p1 k_n : t - k_n = n + 1 < n + 1 =><=
+            -/
+                have p4 : (t - nat.succ k_n) + 1 ≤ n + 1 := p3,
+                have eq' : t - nat.succ k_n + 1 = t - k_n := sorry,
+                rw eq' at p4,
+                have H' := nat.le_antisymm p4 HLT,
+                have wrong := p1 k_n,
+                rw H' at wrong,
+                apply false.elim, apply nat.lt_irrefl, assumption,
+            end,
+            begin
+                rw not_lt at H,
+                have eqz := nat.sub_eq_zero_of_le H,
+                rw eqz at HLT, cases HLT,
+            end
+        end,
+    end,
+end
+
+
+lemma eq_le : Π m (a b : fin (n + 1) →₀ ℕ) (p1 : ∀ k, n - k < n + 1) p2
+    (H1: ∀ k : ℕ, k < nat.succ m → a.to_fun ⟨n - k, p1 k⟩ = b.to_fun ⟨n - k, p1 k⟩)
+    (H2: a ≤ b),
+    a.to_fun ⟨n - nat.succ m, p2⟩ ≤ b.to_fun ⟨n - nat.succ m, p2⟩ :=
+begin
+    intros,
+    unfold has_le.le preorder.le fin_n.le at H2,
+    apply eq_le_aux'; assumption,
+end
+
+
+lemma seq_R_elem_le_aux : Π (n : ℕ) (s : seqR.seq_R (fin (n + 1) →₀ ℕ) (<))
+    (i : ℕ) (p : i < n + 1) (j : ℕ) (p1 : ∀ k, n - k < n + 1) p2,
+        (∀ (k : ℕ) (p: k < i), ((s.1 (j + 1)).to_fun ⟨n - k, p1 k⟩)
+            = ((s.1 j).to_fun ⟨n - k, p1 k⟩))
+        → (s.1 (j + 1)).to_fun ⟨n - i, p2⟩ ≤ (s.1 j).to_fun ⟨n - i, p2⟩ :=
+begin
+    intros,
+    revert j; induction i; intros;
+    have h := s.2 j,
+    begin
+        cases h,
+        unfold fin_n.le at h_left,
+        cases n; unfold le_aux at h_left,
+        by assumption,
+        begin
+            cases h_left,
+            begin
+                apply le_of_lt,
+                assumption,
+            end,
+            begin
+                simp,
+                apply le_of_eq,
+                exact h_left.1,
+            end,
+        end,
+    end,
+    begin
+        cases h,
+        apply eq_le; assumption,
+    end,
+end
+
+lemma seq_R_elem_le :  Π (n : ℕ) (s : seqR.seq_R (fin (n + 1) →₀ ℕ) (<))
+    (i : ℕ) (p : i < n + 1) (j k : ℕ), j ≤ k 
+        → (s.1 k).to_fun ⟨i, p⟩ ≤ (s.1 j).to_fun ⟨i, p⟩ :=
+begin
+    intros,
+    by_cases j = k,
+    begin
+        cases h, refl,
+    end,
+    begin
+        have jklt: j < k := lt_of_le_of_ne a h,
+        rw ←nat.add_sub_cancel' jklt,
+        apply @nat.strong_induction_on 
+                (λ x, (s.val (nat.succ j + x)).to_fun ⟨i, p⟩ 
+                        ≤ (s.val j).to_fun ⟨i, p⟩) 
+                (k - nat.succ j),
         intros,
-        have l : i = 0 := sorry,
-        rw l at *,
-        have l' : k' ≤ 0 := trans p2 a,
-        rw le_zero_iff_eq at l',
-        cases l',
+        cases n_1,
+        begin
+            apply seq_R_elem_le_aux,
+        end,
+        begin
+            have ih:= a_1 n_1 (by constructor),
+            transitivity,
+            swap,
+            exact ih,
+            apply seq_R_elem_le_aux,
+        end,
+    end,
+end
+
+
+lemma lem' :  Π (n : ℕ) (s : seqR.seq_R (fin (n + 1) →₀ ℕ) (<))
+    (i : ℕ) (p : i < n + 1) (j k : ℕ), j ≤ k 
+        → (s.1 j).to_fun ⟨i, p⟩ ≠ (s.1 k).to_fun ⟨i, p⟩
+        → (s.1 k).to_fun ⟨i, p⟩ < (s.1 j).to_fun ⟨i, p⟩ :=
+begin
+    sorry
+end
+lemma lem : Π (n : ℕ) (s: seqR.seq_R (fin (n + 1) →₀ ℕ) (<)) (t : ℕ), 
+    (∀ (x : ℕ), ¬∀ (t : ℕ), t ≥ x → (s.val t).to_fun 0 = (s.val x).to_fun 0)
+    → (∀ (x : ℕ), ∃ t, t ≥ x → (s.val t).to_fun 0 < (s.val x).to_fun 0) :=
+begin
+    intros,
+    have a' := a x,
+    apply classical.by_contradiction,
+    intro,
+    apply a',
+    intros,
+    apply classical.by_contradiction,
+    intros,
+    apply a_1,
+    apply exists.intro t_1,
+    intros,
+end
+
+
+lemma seqR_eq' : Π (n : ℕ) (s: seqR.seq_R (fin (n + 1) →₀ ℕ) (<)) (i: ℕ) (ip: i < n + 1),
+    ∃ (t : ℕ), ∀ t' (p1: t' ≥ t), ∀ k (p2: k ≤ i) p3,
+        (s.1 t').to_fun ⟨n - k, p3⟩ 
+    = (s.1 t).to_fun ⟨n - k, p3⟩ :=
+begin
+    intros n s i,
+    induction i; intros,
+    begin
         sorry,
     end,
     begin
-        apply classical.by_contradiction,
-        rw [not_exists],
-        intro nex,
+        have ih := i_ih (by apply nat.le_of_succ_le; apply ip),
+        cases ih with ih_t ih_H,
+        apply exists.intro (s.1 ih_t ⟨nat.succ i_n, ip⟩ + ih_t),
+        intros,
+        have : ∀ k' (p: k' < i_n + 1) (pi: n - k' ≤ i_n), (s.val t').to_fun ⟨k', nat.lt_trans p ip⟩ 
+            = (s.val ((s.val ih_t).to_fun ⟨nat.succ i_n, ip⟩ + ih_t)).to_fun ⟨k', nat.lt_trans p ip⟩,
+            begin
+                intros k' p4 pi,
+                have LT' := lt_trans p4 ip,
+                have H := nat.sub_sub_self (nat.le_of_succ_le_succ LT'),
+                change (s.val t').to_fun ⟨k', LT'⟩ = (s.val ((s.val ih_t).to_fun ⟨nat.succ i_n, ip⟩ + ih_t)).to_fun ⟨k', LT'⟩,
+                revert LT',
+                rw ←H, intros,
+                transitivity,
+                begin
+                    apply ih_H,
+                    begin
+                        transitivity,
+                        exact p1,
+                        rw add_comm,
+                        apply @nat.add_le_add_left 0,
+                        apply nat.zero_le,
+                    end,
+                    begin
+                        assumption,
+                    end,
+                end,
+                begin
+                    symmetry,
+                    apply ih_H,
+                    rw add_comm,
+                    apply @nat.add_le_add_left 0,
+                    apply nat.zero_le,
+                    assumption,
+                end,
+            end,
+        by_cases k = nat.succ i_n, swap,
+        begin
+            have k_le_i_n := nat.le_of_succ_le_succ (lt_of_le_of_ne (by transitivity; assumption) h),
+            apply this,
+            apply nat.succ_le_succ,
+            assumption,
+        end,
+        begin
+            cases h,
+            sorry
+        end,
     end,
 end
 
@@ -371,12 +594,20 @@ lemma seqR_eq : Π (n : ℕ) (s: seqR.seq_R (fin (n + 1) →₀ ℕ) (<)),
     ∃ (t : ℕ), ∀ t' ≥ t, s.1 t = s.1 t' :=
 begin
     intros,
-    have lem := seqR_eq' n s ⟨n, by constructor⟩ n (by refl),
+    have lem := seqR_eq' n s n (by constructor),
     cases lem,
     apply exists.intro lem_w,
     intros, apply finsupp.ext, intro a,
-    have lem' := lem_h t' H a (nat.le_of_succ_le_succ a.2),
-    symmetry, rw [←fin.eta a a.2], exact lem',
+    have H' := nat.le_add (nat.le_of_succ_le_succ a.2),
+    cases H',
+    have lem' := lem_h t' H H'_fst sorry,
+    symmetry, rw [←fin.eta a a.2], 
+    have H'' : a.val = n - H'_fst, sorry,
+    have a2 := a.2,
+    change (s.val t') ⟨a.val, a2⟩ = (s.val lem_w) ⟨a.val, a2⟩,
+    revert a2,
+    rw H'', intros,
+    apply lem',
 end
 
 lemma seqR_false : Π (n : ℕ), ¬' seqR.seq_R (fin (n + 1) →₀ ℕ) (<) :=
