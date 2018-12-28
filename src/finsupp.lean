@@ -65,13 +65,11 @@ begin
     simp at m, assumption,
 end
 
-<<<<<<< HEAD
 def single_inj1' : Π {a b: α} {c d: β}, (c ≠ 0) → a ≠ b → single a c ≠ single b d :=
 λ a b c d hc hab h, by apply absurd (single_inj1 hc h) hab
-=======
+
 def single_ext : Π {a b: α}{c d: β}, a = b → c = d → single a c = single b d :=
     λ a b c d p q, by simp [p, q]
->>>>>>> a1f1df4ab33c35aebc9ec3a16c0be9214862886e
 
 def single_eqz : Π {a : α} {b : β}, single a b = 0 → b = 0 :=
 begin
