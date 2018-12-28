@@ -2,8 +2,11 @@ import data.finsupp
 import util
 import fintype
 import fin
+import bot_zero
 import seq
+
 variables {α : Type*} {β : Type*} {γ : Type*} {δ : Type*} {ι : Type*}
+
 namespace finsupp
 
 section general
@@ -62,6 +65,9 @@ begin
     simp at m, assumption,
 end
 
+def single_inj1' : Π {a b: α} {c d: β}, (c ≠ 0) → a ≠ b → single a c ≠ single b d :=
+λ a b c d hc hab h, by apply absurd (single_inj1 hc h) hab
+
 def single_ext : Π {a b: α}{c d: β}, a = b → c = d → single a c = single b d :=
     λ a b c d p q, by simp [p, q]
 
@@ -81,7 +87,47 @@ lemma single_support : Π (a : α), (single a 1).support = {a} := by finish
 
 lemma coe_f : Π (a : α →₀ β) (n : α), a n = a.to_fun n := λ a n, rfl
 
+lemma eq_zero_lem : ∀ {f : α → β}, ({support := ∅, to_fun := f, mem_support_to_fun := _} : α →₀ β) = 0 := refl
+
+lemma ne_zero_lem : ∀ {s : finset α} {f : α → β}, s ≠ ∅ → ({support := s, to_fun := f, mem_support_to_fun := _} : α →₀ β) ≠ 0 := by finish
+
+lemma eq_zero_apply {a : α →₀ β} : (∀ x, a x = 0) ↔  a = 0 := ⟨λ h, by apply ext; assumption, λ h, by finish⟩
+
+lemma ext_lem {a b : α →₀ β} : a = b ↔ ∀ x, a x = b x := ⟨λ h, by finish, λ h, by apply finsupp.ext; assumption⟩
+
+section semilattice
+variables [lattice.semilattice_sup_bot α]
+
+lemma apply_eq_zero_of_gt_max {a : α →₀ β} {x : α} (h : x > a.support.sup id) : a x = 0 :=
+begin
+    rw ←finsupp.not_mem_support_iff, intro hx,
+    apply absurd h (not_lt_of_le (finset.le_sup hx)),
+end
+
+end semilattice
 end has_zero
+
+section add_monoid
+variables [add_monoid β]
+
+def single_add_eqz [decidable_eq β] : Π {a b : α} {c d : β}, ¬ (c = 0 ∧ d = 0) → single a c + single b d = 0 → a = b :=
+begin
+    intros a b c d h₁ h₂,
+    by_cases hc : c = 0; by_cases hd : d = 0,
+    apply absurd (and.intro hc hd) h₁,
+    any_goals {simp [single, hc, hd, eq_zero_lem] at h₂, try {apply absurd h₂ (ne_zero_lem (finset.singleton_ne_empty _))},}, 
+    have h : ∀ x, (single a c + single b d) x = (0 : α →₀ β) x, simp [coe_f, single, h₂, hc, hd],
+    simp [single_apply] at h,
+    by_cases H : a = b, assumption,
+    have h' := h a, simp [H, ne.symm H] at h',
+    apply absurd h' hc,
+end 
+
+lemma add_left_cancel (a b c : α →₀ β) : a + b = a + c ↔ b = c := sorry
+
+lemma add_right_cancel (a : α →₀ β) {b c : α →₀ β} : b + a = c + a ↔ b = c := sorry
+
+end add_monoid
 
 section canonically_ordered_monoid
 variables [canonically_ordered_monoid β]
@@ -112,6 +158,7 @@ begin
 end
 
 end canonically_ordered_monoid
+
 end general
 
 namespace fin_n
