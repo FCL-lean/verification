@@ -3,8 +3,10 @@ import util
 import fintype
 import fin
 import bot_zero
+import seq
 
 variables {α : Type*} {β : Type*} {γ : Type*} {δ : Type*} {ι : Type*}
+
 namespace finsupp
 
 section general
@@ -63,8 +65,13 @@ begin
     simp at m, assumption,
 end
 
+<<<<<<< HEAD
 def single_inj1' : Π {a b: α} {c d: β}, (c ≠ 0) → a ≠ b → single a c ≠ single b d :=
 λ a b c d hc hab h, by apply absurd (single_inj1 hc h) hab
+=======
+def single_ext : Π {a b: α}{c d: β}, a = b → c = d → single a c = single b d :=
+    λ a b c d p q, by simp [p, q]
+>>>>>>> a1f1df4ab33c35aebc9ec3a16c0be9214862886e
 
 def single_eqz : Π {a : α} {b : β}, single a b = 0 → b = 0 :=
 begin
@@ -77,6 +84,8 @@ begin
     have m := congr_arg finsupp.support sin, simp at m,
     assumption,
 end
+
+lemma single_support : Π (a : α), (single a 1).support = {a} := by finish
 
 lemma coe_f : Π (a : α →₀ β) (n : α), a n = a.to_fun n := λ a n, rfl
 
@@ -379,7 +388,71 @@ lemma lt_zero_aux {a : fin (n + 1) →₀ ℕ} :
     apply lt_zero_aux m (nat.lt_of_succ_lt H) (and.intro h_left.right (h_right.right h_right.left.symm)),
 end
 
+lemma seqR_eq' : Π (n : ℕ) (s: seqR.seq_R (fin (n + 1) →₀ ℕ) (<)) (i: fin (n + 1))
+    (k : ℕ), k ≤ i.1 → ∃ (t : ℕ), ∀ t' (p1: t' ≥ t), ∀ k' (p2: k' ≤ k),
+        (s.1 t').to_fun ⟨k', by apply lt_of_le_of_lt p2; apply lt_of_le_of_lt a; exact i.2⟩ 
+    = (s.1 t) ⟨k', by apply lt_of_le_of_lt p2; apply lt_of_le_of_lt a; exact i.2⟩ :=
+begin
+    intro n,
+    induction n; intros,
+    begin
+        apply classical.by_contradiction,
+        rw [not_exists],
+        intro nex,
+        generalize t: s.1 0 = nex',
+        apply nex (nex' 0),
+        intros,
+        have l : i = 0 := sorry,
+        rw l at *,
+        have l' : k' ≤ 0 := trans p2 a,
+        rw le_zero_iff_eq at l',
+        cases l',
+        sorry,
+    end,
+    begin
+        apply classical.by_contradiction,
+        rw [not_exists],
+        intro nex,
+    end,
+end
 
+lemma seqR_eq : Π (n : ℕ) (s: seqR.seq_R (fin (n + 1) →₀ ℕ) (<)),
+    ∃ (t : ℕ), ∀ t' ≥ t, s.1 t = s.1 t' :=
+begin
+    intros,
+    have lem := seqR_eq' n s ⟨n, by constructor⟩ n (by refl),
+    cases lem,
+    apply exists.intro lem_w,
+    intros, apply finsupp.ext, intro a,
+    have lem' := lem_h t' H a (nat.le_of_succ_le_succ a.2),
+    symmetry, rw [←fin.eta a a.2], exact lem',
+end
+
+lemma seqR_false : Π (n : ℕ), ¬' seqR.seq_R (fin (n + 1) →₀ ℕ) (<) :=
+λ n seq,
+begin
+    have eq := seqR_eq n seq,
+    cases eq,
+    have eq_w'_eq := eq_h (eq_w + 1) (by unfold ge; constructor; constructor),
+    have related := seq.2 eq_w,
+    rw eq_w'_eq at related,
+    apply lt_irrefl _ related,
+end
+
+lemma lt_wf : well_founded ((<) : rel (fin n →₀ ℕ)) :=
+begin
+    cases n,
+    begin
+        constructor, intro a,
+        constructor, intros,
+        rw fin_0_id y a at a_1,
+        apply false.elim (lt_irrefl _ a_1),
+    end,
+    begin
+        apply seqR.no_inf_chain_wf,
+        apply seqR_false,
+    end
+end
 
 end fin_n
 
