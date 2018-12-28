@@ -8,6 +8,9 @@ notation `¬'` a := not' a
 
 section classes
 set_option old_structure_cmd true
+class is_monomial_order (α : Type u) (r : α → α → Prop) [has_add α] : Prop :=
+    (mono_order : ∀ a b w, r a b → r (a + w) (b + w))
+
 class monomial_order (α : Type*) extends has_add α, linear_order α := 
     (mono_order : ∀ a b w : α, (a ≤ b) → (a + w) ≤ (b + w))
 

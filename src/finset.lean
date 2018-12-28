@@ -69,6 +69,8 @@ begin
     apply lattice.le_sup_left,
 end
 
+lemma le_sup_id {b : α} {s : finset α} (hb : b ∈ s) : b ≤ s.sup id := finset.le_sup hb
+
 end decidable_eq
 
 section decidable_linear_order
