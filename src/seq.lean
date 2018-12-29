@@ -98,12 +98,31 @@ protected lemma lt_trans_of_lt (s : seq_R α (>)) : ∀ {m n}, m < n → (s.1 m)
     apply lt_trans h (s.2 (m + 1 + k)),
 end
 
+protected lemma gt_trans_of_lt (s : seq_R α (<)) : ∀ {m n}, m < n → (s.1 m) > (s.1 n) :=
+λ m n hmn, begin
+    rw ←nat.add_sub_cancel' hmn,
+    apply @nat.strong_induction_on (λ x, (s.val m) > (s.val ((m + 1) + x))) (n - (m + 1)),
+    intros k ih,
+    cases k, apply s.2,
+    have h := ih k (nat.lt_succ_self k),
+    apply lt_trans (s.2 (m + 1 + k)) h,
+end
+
+
 protected lemma le_trans_of_lt (s : seq_R α (>)) : ∀ {m n}, m ≤ n → s.1 m ≤ s.1 n :=
 λ m n hmn, begin
     from if h : m = n
     then by finish
     else by apply le_of_lt (seqR.lt_trans_of_lt s (lt_of_le_of_ne hmn h))
 end
+
+protected lemma ge_trans_of_lt (s : seq_R α (<)) : ∀ {m n}, m ≤ n → s.1 m ≥ s.1 n :=
+λ m n hmn, begin
+    from if h : m = n
+    then by finish
+    else by apply le_of_lt (seqR.gt_trans_of_lt s (lt_of_le_of_ne hmn h))
+end
+
 
 end preorder
 

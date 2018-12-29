@@ -641,31 +641,67 @@ begin
 end
 
 
-lemma lem : Π (n : ℕ) (s: seqR.seq_R (fin (n + 1) →₀ ℕ) (<)) (t : ℕ), 
-    (∀ (x : ℕ), ¬∀ (t : ℕ), t ≥ x → (s.val t).to_fun 0 = (s.val x).to_fun 0)
-    → (∀ (x : ℕ), ∃ t, t ≥ x → (s.val t).to_fun 0 < (s.val x).to_fun 0) :=
-begin
-    intros,
-    have a' := a x,
-    apply classical.by_contradiction,
-    intro,
-    apply a',
-    intros,
-    apply classical.by_contradiction,
-    intros,
-    apply a_1,
-    apply exists.intro t_1,
-    intros,
-end
-
-
 lemma no_t_inf_indx : Π (n : ℕ) (s: seqR.seq_R (fin (n + 1) →₀ ℕ) (<)),
     (¬ ∃ (t : ℕ), ∀ t' (p1: t' ≥ t), (s.1 t').to_fun ⟨n, by constructor⟩ 
                                 = (s.1 t).to_fun ⟨n, by constructor⟩)
         → ∃ (l : ℕ → ℕ), (∀ n, l n < l (n + 1)) ∧
             ∀ m, (s.1 (l m)).to_fun ⟨n, by constructor⟩ 
-                > (s.1 (l (m + 1))).to_fun ⟨n, by constructor⟩ := sorry
-
+                > (s.1 (l (m + 1))).to_fun ⟨n, by constructor⟩ :=
+begin
+    intros,
+    rw [not_exists] at a,
+    have ex : ∀ (x : ℕ), ∃ (t' : ℕ), t' ≥ x 
+        ∧ (s.val t').to_fun ⟨n, by constructor⟩ ≠ (s.val x).to_fun ⟨n, by constructor⟩,
+        begin
+            intro x,
+            apply classical.by_contradiction,
+            intros, apply a x,
+            intros,
+            apply classical.by_contradiction,
+            intro, apply a_1,
+            apply exists.intro t',
+            intros, apply and.intro; assumption,
+        end,
+    have sty : ∀ (x : ℕ), { t' : ℕ  // t' ≥ x ∧ (s.val t').to_fun ⟨n, by constructor⟩ ≠ (s.val x).to_fun ⟨n, by constructor⟩},
+        from λ x, classical.indefinite_description (λ m, m ≥ x ∧ (s.val m).to_fun ⟨n, by constructor⟩ ≠ (s.val x).to_fun ⟨n, by constructor⟩) (ex x),
+    let styf : ℕ → ℕ := λ x, (sty x).val,
+    let f : ℕ → ℕ := λ x, nat.rec_on x (styf 0) (λ n m, styf m),
+    apply exists.intro f,
+    have : ∀ x, x < styf x,
+        from λ x, begin 
+            have neqle := (sty x).2, 
+            apply lt_of_le_of_ne,
+            from neqle.1,
+            begin
+                intro,
+                apply neqle.2,
+                change (s.val (styf x)).to_fun ⟨n, _⟩ = (s.val x).to_fun ⟨n, _⟩,
+                rw ←a_1,
+            end,
+        end,
+    apply and.intro,
+    from λ x, by apply this,
+    begin
+        intro m,
+        have seq_gt := seqR.gt_trans_of_lt s (this (f m)),
+        cases seq_gt,
+        apply lt_of_le_of_ne,
+        begin
+            cases n, 
+            by assumption,
+            begin
+                cases seq_gt_left,
+                begin
+                    apply le_of_lt, assumption,
+                end,
+                begin
+                    apply le_of_eq, exact seq_gt_left.1,
+                end,
+            end,
+        end,
+        from (sty (f m)).2.2,
+    end,
+end
 
 lemma seqR_eq' : Π (n : ℕ) (s: seqR.seq_R (fin (n + 1) →₀ ℕ) (<)) (i: ℕ) (ip: i < n + 1),
     ∃ (t : ℕ), ∀ t' (p1: t' ≥ t), ∀ k (p2: k ≤ i) (p3: n - k < n + 1),
