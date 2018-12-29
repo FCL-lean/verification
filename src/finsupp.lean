@@ -520,7 +520,10 @@ begin
 end
 
 lemma seq_R_elem_le :  Π (n : ℕ) (s : seqR.seq_R (fin (n + 1) →₀ ℕ) (<))
-    (i : ℕ) (p : i < n + 1) (j k : ℕ), j ≤ k 
+    (i : ℕ) (p : i < n + 1) (p1: ∀ k, n - k < n + 1) (j k : ℕ), j ≤ k →
+        (∀ (k' : ℕ) (p: k' < n - i) (t : ℕ), t ≥ j → t < k → 
+            ((s.1 (t + 1)).to_fun ⟨n - k', p1 k'⟩)
+                = ((s.1 t).to_fun ⟨n - k', p1 k'⟩))
         → (s.1 k).to_fun ⟨i, p⟩ ≤ (s.1 j).to_fun ⟨i, p⟩ :=
 begin
     intros,
@@ -530,22 +533,58 @@ begin
     end,
     begin
         have jklt: j < k := lt_of_le_of_ne a h,
+        revert a_1,
         rw ←nat.add_sub_cancel' jklt,
         apply @nat.strong_induction_on 
-                (λ x, (s.val (nat.succ j + x)).to_fun ⟨i, p⟩ 
-                        ≤ (s.val j).to_fun ⟨i, p⟩) 
+                (λ x, (∀ (k' : ℕ),
+                        k' < n - i → ∀ (t : ℕ), t ≥ j →
+                        t < nat.succ j + x →
+                        (s.val (t + 1)).to_fun ⟨n - k', p1 k'⟩ 
+                        = (s.val t).to_fun ⟨n - k', p1 k'⟩) →
+                    (s.val (nat.succ j + x)).to_fun ⟨i, p⟩ 
+                        ≤ (s.val j).to_fun ⟨i, p⟩)
                 (k - nat.succ j),
         intros,
         cases n_1,
         begin
-            apply seq_R_elem_le_aux,
+            have p' := p,
+            revert p,
+            rw ←nat.sub_sub_self (nat.le_of_succ_le_succ p'),
+            intros,
+            apply seq_R_elem_le_aux _ _ (n - i) (p1 i) j p1 (p1 (n - i)),
+            begin
+                intros,
+                apply a_2; try {trivial}; try {assumption}; try {constructor},
+            end,
         end,
         begin
-            have ih:= a_1 n_1 (by constructor),
+            have ih:= a_1 n_1 (by constructor) 
+                (λ k' p t p' p'', begin apply a_2; try {assumption}, 
+                                        constructor; assumption, end),
             transitivity,
             swap,
-            exact ih,
-            apply seq_R_elem_le_aux,
+            by exact ih,
+            begin
+                have p' := p,
+                revert p,
+                rw ←nat.sub_sub_self (nat.le_of_succ_le_succ p'),
+                intros,
+                apply seq_R_elem_le_aux _ _ _ (p1 i) _ p1,
+                begin
+                    intros,
+                    apply a_2,
+                    by assumption,
+                    begin
+                        change (nat.succ j) + n_1 ≥ j,
+                        rw add_comm,
+                        constructor,
+                        have H' := add_le_add' (nat.zero_le n_1) (by refl : j ≤ j),
+                        rw zero_add at H',
+                        assumption,
+                    end,
+                    by constructor,
+                end,
+            end,
         end,
     end,
 end
@@ -577,7 +616,7 @@ end
 
 
 lemma seqR_eq' : Π (n : ℕ) (s: seqR.seq_R (fin (n + 1) →₀ ℕ) (<)) (i: ℕ) (ip: i < n + 1),
-    ∃ (t : ℕ), ∀ t' (p1: t' ≥ t), ∀ k (p2: k ≤ i) p3,
+    ∃ (t : ℕ), ∀ t' (p1: t' ≥ t), ∀ k (p2: k ≤ i) (p3: n - k < n + 1),
         (s.1 t').to_fun ⟨n - k, p3⟩ 
     = (s.1 t).to_fun ⟨n - k, p3⟩ :=
 begin
@@ -589,51 +628,6 @@ begin
     begin
         have ih := i_ih (by apply nat.le_of_succ_le; apply ip),
         cases ih with ih_t ih_H,
-        apply exists.intro (s.1 ih_t ⟨nat.succ i_n, ip⟩ + ih_t),
-        intros,
-        have : ∀ k' (p: k' < i_n + 1) (pi: n - k' ≤ i_n), (s.val t').to_fun ⟨k', nat.lt_trans p ip⟩ 
-            = (s.val ((s.val ih_t).to_fun ⟨nat.succ i_n, ip⟩ + ih_t)).to_fun ⟨k', nat.lt_trans p ip⟩,
-            begin
-                intros k' p4 pi,
-                have LT' := lt_trans p4 ip,
-                have H := nat.sub_sub_self (nat.le_of_succ_le_succ LT'),
-                change (s.val t').to_fun ⟨k', LT'⟩ = (s.val ((s.val ih_t).to_fun ⟨nat.succ i_n, ip⟩ + ih_t)).to_fun ⟨k', LT'⟩,
-                revert LT',
-                rw ←H, intros,
-                transitivity,
-                begin
-                    apply ih_H,
-                    begin
-                        transitivity,
-                        exact p1,
-                        rw add_comm,
-                        apply @nat.add_le_add_left 0,
-                        apply nat.zero_le,
-                    end,
-                    begin
-                        assumption,
-                    end,
-                end,
-                begin
-                    symmetry,
-                    apply ih_H,
-                    rw add_comm,
-                    apply @nat.add_le_add_left 0,
-                    apply nat.zero_le,
-                    assumption,
-                end,
-            end,
-        by_cases k = nat.succ i_n, swap,
-        begin
-            have k_le_i_n := nat.le_of_succ_le_succ (lt_of_le_of_ne (by transitivity; assumption) h),
-            apply this,
-            apply nat.succ_le_succ,
-            assumption,
-        end,
-        begin
-            cases h,
-            sorry
-        end,
     end,
 end
 
