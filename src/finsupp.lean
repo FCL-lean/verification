@@ -419,6 +419,45 @@ begin
     end,
 end
 
+lemma le_aux_descend : 
+    Π (a b : fin (n + 1) →₀ ℕ) t (p1: ∀ k', t - k' < n + 1) p2 q p3
+    (H1: le_aux t p2 a b)
+    (H2: ∀ (k' : ℕ), k' < nat.succ q
+        → a.to_fun ⟨t - k', p1 k'⟩ = b.to_fun ⟨t - k', p1 k'⟩),
+    le_aux (nat.sub t q) p3 a b :=
+begin
+    intros, 
+    induction q,
+    by assumption,
+    begin
+        have IH := q_ih (p1 _) (λ h1 h2, by apply H2; constructor; assumption),
+        generalize H : nat.sub t q_n = w,
+        have p1q_n := p1 q_n,
+        have IH' : ∀ y, le_aux (nat.sub t q_n) y a b := λ _, IH,
+        rw H at IH', cases w; unfold nat.sub;
+        change le_aux (nat.pred (nat.sub t q_n)) p3 a b;
+        revert p3;
+        change ∀ (p3 : nat.pred (nat.sub t q_n) < n + 1), le_aux (nat.pred (nat.sub t q_n)) p3 a b,
+        all_goals { rw H; intro },
+        by exact IH' p3,
+        begin
+            simp,
+            have IH'' := IH' (H ▸ p1q_n),
+            cases IH'',
+            begin
+                have IHEQ := H2 q_n (by constructor; constructor),
+                apply false.elim,
+                have EQ' : ∀ y, a ⟨t - q_n, y⟩ = b ⟨t - q_n, y⟩ := λ _, IHEQ,
+                have H' : t - q_n = w + 1 := H,
+                rw H' at EQ',
+                rw EQ' (H' ▸ p1q_n) at IH'',
+                exact lt_irrefl _ IH'',
+            end,
+            by exact IH''.2,
+        end,
+    end,
+end
+
 lemma eq_le_aux' :
     Π (a b : fin (n + 1) →₀ ℕ) t k
     (p1 : ∀ k, t - k < n + 1) p2 p3
@@ -442,7 +481,7 @@ begin
             have IH := k_ih HLT,
             apply eq_le_aux''; try { assumption }; try { apply H1 },
             by constructor,
-            sorry,
+            by apply le_aux_descend; assumption, 
         end,
         begin
             rw not_lt at HLT,
@@ -458,7 +497,8 @@ begin
                 -> p1 k_n : t - k_n = n + 1 < n + 1 =><=
             -/
                 have p4 : (t - nat.succ k_n) + 1 ≤ n + 1 := p3,
-                have eq' : t - nat.succ k_n + 1 = t - k_n := sorry,
+                have eq' : t - nat.succ k_n + 1 = t - k_n,
+                    from nat.succ_pred_eq_of_pos (nat.sub_pos_of_lt H),
                 rw eq' at p4,
                 have H' := nat.le_antisymm p4 HLT,
                 have wrong := p1 k_n,
@@ -590,13 +630,6 @@ begin
 end
 
 
-lemma lem' :  Π (n : ℕ) (s : seqR.seq_R (fin (n + 1) →₀ ℕ) (<))
-    (i : ℕ) (p : i < n + 1) (j k : ℕ), j ≤ k 
-        → (s.1 j).to_fun ⟨i, p⟩ ≠ (s.1 k).to_fun ⟨i, p⟩
-        → (s.1 k).to_fun ⟨i, p⟩ < (s.1 j).to_fun ⟨i, p⟩ :=
-begin
-    sorry
-end
 lemma lem : Π (n : ℕ) (s: seqR.seq_R (fin (n + 1) →₀ ℕ) (<)) (t : ℕ), 
     (∀ (x : ℕ), ¬∀ (t : ℕ), t ≥ x → (s.val t).to_fun 0 = (s.val x).to_fun 0)
     → (∀ (x : ℕ), ∃ t, t ≥ x → (s.val t).to_fun 0 < (s.val x).to_fun 0) :=
