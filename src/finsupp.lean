@@ -87,11 +87,22 @@ lemma single_support : Π (a : α), (single a 1).support = {a} := by finish
 
 lemma coe_f : Π (a : α →₀ β) (n : α), a n = a.to_fun n := λ a n, rfl
 
-lemma eq_zero_lem : ∀ {f : α → β}, ({support := ∅, to_fun := f, mem_support_to_fun := _} : α →₀ β) = 0 := refl
+lemma eq_zero_lem : ∀ {f : α → β} {l}, ({support := ∅, to_fun := f, mem_support_to_fun := l} : α →₀ β) = 0 :=
+begin
+    intros,
+    rw support_eq_empty.1 (rfl : ({support := ∅, to_fun := f, mem_support_to_fun := l} : α →₀ β).support = ∅),
+end
 
-lemma ne_zero_lem : ∀ {s : finset α} {f : α → β}, s ≠ ∅ → ({support := s, to_fun := f, mem_support_to_fun := _} : α →₀ β) ≠ 0 := by finish
+lemma ne_zero_lem : ∀ {s : finset α} {f : α → β} {l}, s ≠ ∅ → ({support := s, to_fun := f, mem_support_to_fun := l} 
+    : α →₀ β) ≠ 0 :=
+begin
+    intros s f l p1 p2,
+    rw ←support_eq_empty at p2,
+    simp at p2,
+    exact absurd p2 p1,
+end
 
-lemma eq_zero_apply {a : α →₀ β} : (∀ x, a x = 0) ↔  a = 0 := ⟨λ h, by apply ext; assumption, λ h, by finish⟩
+lemma eq_zero_apply {a : α →₀ β} : (∀ x, a x = 0) ↔ a = 0 := ⟨λ h, by apply ext; assumption, λ h, by finish⟩
 
 lemma ext_lem {a b : α →₀ β} : a = b ↔ ∀ x, a x = b x := ⟨λ h, by finish, λ h, by apply finsupp.ext; assumption⟩
 
@@ -648,6 +659,14 @@ begin
 end
 
 
+lemma no_t_inf_indx : Π (n : ℕ) (s: seqR.seq_R (fin (n + 1) →₀ ℕ) (<)),
+    (¬ ∃ (t : ℕ), ∀ t' (p1: t' ≥ t), (s.1 t').to_fun ⟨n, by constructor⟩ 
+                                = (s.1 t).to_fun ⟨n, by constructor⟩)
+        → ∃ (l : ℕ → ℕ), (∀ n, l n < l (n + 1)) ∧
+            ∀ m, (s.1 (l m)).to_fun ⟨n, by constructor⟩ 
+                > (s.1 (l (m + 1))).to_fun ⟨n, by constructor⟩ := sorry
+
+
 lemma seqR_eq' : Π (n : ℕ) (s: seqR.seq_R (fin (n + 1) →₀ ℕ) (<)) (i: ℕ) (ip: i < n + 1),
     ∃ (t : ℕ), ∀ t' (p1: t' ≥ t), ∀ k (p2: k ≤ i) (p3: n - k < n + 1),
         (s.1 t').to_fun ⟨n - k, p3⟩ 
@@ -656,6 +675,14 @@ begin
     intros n s i,
     induction i; intros,
     begin
+        apply classical.by_contradiction,
+        intro,
+        have H := no_t_inf_indx n s _,
+            swap, intro, apply a,
+            cases a_1, apply exists.intro a_1_w,
+            intros, cases p2, apply a_1_h; assumption,
+        cases H with idx idxp, cases idxp,
+
         sorry,
     end,
     begin
