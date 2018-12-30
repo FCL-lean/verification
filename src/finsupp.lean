@@ -853,6 +853,49 @@ begin
 end
 
 
+def get_largest_idx' : Π (n : ℕ) (idx: ℕ) (p: idx < n + 1) (f: Π (x : ℕ) (p: x < n + 1), ℕ), ℕ
+| n 0 p f := f 0 p
+| m (n + 1) p f := max (f (n + 1) p) (get_largest_idx' m n (begin transitivity, constructor, assumption end) f)
+
+def get_largest_idx : Π (n : ℕ) (s: seqR.seq_R (fin (n + 1) →₀ ℕ) (<)) n_i (p1 : Π k, n - k < n + 1)
+    (p2: n_i < n + 1), 
+    (∀ (m : ℕ), m < nat.succ n_i → m < n + 1 →
+        (Σ' (t : ℕ), ∀ (t' : ℕ), t' ≥ t 
+            → (s.val t').to_fun ⟨n - m, p1 m⟩ 
+                = (s.val t).to_fun ⟨n - m, p1 m⟩)) → ℕ 
+    := λ n s n_i p1 p2 f, get_largest_idx' n_i n_i (by constructor) 
+            (λ x p, (f x p (begin apply nat.lt_of_le_of_lt, exact nat.le_of_succ_le_succ p, exact p2 end)).1)
+
+
+
+lemma get_largest_idx_lem : Π (n : ℕ) (s: seqR.seq_R (fin (n + 1) →₀ ℕ) (<)) n_i (p1 : Π k, n - k < n + 1)
+    (p2: n_i < n + 1)
+    (p3: ∀ (m : ℕ), m < nat.succ n_i → m < n + 1 →
+        (Σ' (t : ℕ), ∀ (t' : ℕ), t' ≥ t 
+            → (s.val t').to_fun ⟨n - m, p1 m⟩ 
+                = (s.val t).to_fun ⟨n - m, p1 m⟩)),
+        let t := get_largest_idx n s n_i p1 p2 p3
+        in ∀ (t' : ℕ), t' ≥ t
+        → ∀ x, x < n_i + 1 → (s.val t').to_fun ⟨n - x, p1 x⟩ = (s.val t).to_fun ⟨n - x, p1 x⟩ :=
+begin
+    intros n s n_i p1 p2 p3 eq,
+    induction n_i; intros,
+    begin
+        have eqz := nat.le_of_succ_le_succ a_1,
+        cases eqz,
+        exact (p3 0 _ _).2 t' a,
+    end,
+    begin
+        have eqeq : eq = get_largest_idx n s (nat.succ n_i_n) p1 p2 p3 := rfl,
+        unfold get_largest_idx at eqeq,
+        have IH := n_i_ih sorry sorry,
+        by_cases x = n_i_n + 1,
+        sorry,
+        have := IH t' sorry x sorry,
+        rw eqeq,
+        unfold get_largest_idx', sorry,
+    end,
+end
 lemma seqR_eq' : Π (n : ℕ) (s: seqR.seq_R (fin (n + 1) →₀ ℕ) (<)) (i: ℕ) (ip: i < n + 1)
     (p3: ∀ k, n - k < n + 1),
     ∃ (t : ℕ), ∀ t' (p1: t' ≥ t),
@@ -868,7 +911,13 @@ begin
         intro,
         have H := no_t_inf_indx n s _,
             swap, intro, apply a_1,
-            sorry,
+            begin
+                cases a_2, apply exists.intro a_2_w,
+                have H : n - 0 < n + 1 := p3 0,
+                change ∀ (t' : ℕ), t' ≥ a_2_w → (s.val t').to_fun ⟨n - 0, H⟩ = (s.val a_2_w).to_fun ⟨n - 0, H⟩,
+                revert H, rw nat.sub_zero,
+                intro, assumption,
+            end,
         cases H with idx idxp, cases idxp,
         apply no_inf_indx' n s idx idxp_left n,
         apply nat.many_step, assumption,
@@ -877,12 +926,35 @@ begin
     begin
         apply classical.by_contradiction,
         intro,
-        have H := no_t_inf_indx' n s n_i _ _ p3 _ a_1,
-        cases H with idx idxp, cases idxp,
-        apply no_inf_indx' n s idx idxp_left (n - (n_i + 1)),
-        apply nat.many_step, assumption,
-        constructor, intros; transitivity; assumption,
-        sorry, sorry, sorry
+        have f : Π (m : ℕ), m < nat.succ n_i → m < n + 1 →
+                (Σ' (t : ℕ), ∀ (t' : ℕ), t' ≥ t 
+                → (s.val t').to_fun ⟨n - m, _⟩ = (s.val t).to_fun ⟨n - m, _⟩)
+                := 
+            begin
+                intros,
+                have a' := classical.indefinite_description _ (a m a_2 a_3),
+                apply psigma.mk a'.1 a'.2,
+            end,
+        have H := no_t_inf_indx' n s n_i _ 
+            (get_largest_idx n s  _ _ (nat.le_of_succ_le p) f) p3 _ a_1,
+        begin
+            cases H with idx idxp, cases idxp,
+            apply no_inf_indx' n s idx idxp_left (n - (n_i + 1)),
+            begin
+                apply nat.many_step, assumption,        
+                constructor, intros; transitivity; assumption,
+            end,
+        end,
+        begin
+            apply lt_trans, swap, constructor,
+            exact nat.le_of_succ_le_succ p,
+        end,
+        begin
+            intros,
+            have test := get_largest_idx_lem n s _ _ (nat.le_of_succ_le p) f;
+            apply test, assumption, cases a_3, constructor,
+            apply lt_of_le_of_lt, exact a_3, constructor,
+        end,
     end,
 end
 
@@ -890,18 +962,49 @@ lemma seqR_eq : Π (n : ℕ) (s: seqR.seq_R (fin (n + 1) →₀ ℕ) (<)),
     ∃ (t : ℕ), ∀ t' ≥ t, s.1 t = s.1 t' :=
 begin
     intros,
-    have : ∀ k, n - k < n + 1 := sorry,
+    have : ∀ k, n - k < n + 1,
+        begin
+            intro k,
+            induction k,
+            begin
+                rw nat.sub_zero,
+                constructor,
+            end,
+            begin
+                by_cases n - k_n = 0,
+                begin
+                    unfold has_sub.sub nat.sub,
+                    change nat.pred (n - k_n) < n + 1,
+                    rw h, apply lt_of_le_of_lt, apply nat.zero_le n,
+                    constructor,
+                end,
+                begin
+                    transitivity,
+                    apply nat.pred_lt h,
+                    assumption,
+                end,
+            end,
+        end,
     have lem := λ o u, seqR_eq' n s o u this,
-    cases lem,
-    apply exists.intro lem_w,
+    have f : Π (m : ℕ), m < n + 1 → m < n + 1 →
+                (Σ' (t : ℕ), ∀ (t' : ℕ), t' ≥ t 
+                → (s.val t').to_fun ⟨n - m, _⟩ = (s.val t).to_fun ⟨n - m, _⟩)
+                := 
+            begin
+                intros,
+                have a' := classical.indefinite_description _ (lem m a),
+                apply psigma.mk a'.1 a'.2,
+            end,
+    have lem' := get_largest_idx_lem n s n this (by constructor) f,
+    apply exists.intro (get_largest_idx n s n this (by constructor) f),
     intros, apply finsupp.ext, intro a,
     have H' := nat.le_add (nat.le_of_succ_le_succ a.2),
     cases H',
-    have lem' := lem_h t' H,
+    have lem' := lem' t' H,
     symmetry, rw [←fin.eta a a.2], 
     have H'' : a.val = n - H'_fst, sorry,
     have a2 := a.2,
-    change (s.val t') ⟨a.val, a2⟩ = (s.val lem_w) ⟨a.val, a2⟩,
+    change (s.val t') ⟨a.val, a2⟩ = (s.val (get_largest_idx n s n this (by constructor) f)) ⟨a.val, a2⟩,
     revert a2,
     rw H'', intros,
     apply lem',
