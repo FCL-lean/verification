@@ -55,6 +55,67 @@ begin
     apply @not_forall_not _ _ (classical.dec _),
 end
 
+lemma ne_empty_union [decidable_eq α] {s₁ s₂ : finset α} : ¬ (s₁ = ∅ ∧ s₂ = ∅) ↔ s₁ ∪ s₂ ≠ ∅ :=
+⟨λ h, begin 
+    by_cases h₁ : s₁ = ∅; by_cases h₂ : s₂ = ∅,
+    apply absurd (and.intro h₁ h₂) h,
+    any_goals {simp [h₁, h₂]},
+    rw [←ne.def, ne_empty_iff_exists_mem] at *, finish,
+end,
+λ h h', begin
+    simp [h'.left, h'.right] at h, assumption,
+end⟩
+
+section min 
+section decidable_linear_order
+variables [decidable_linear_order α]
+
+lemma lt_min'_not_mem (s : finset α) (hs : s ≠ ∅) : ∀ x < s.min' hs, x ∉ s :=
+λ x h h', by apply absurd h (not_lt_of_le $ s.min'_le hs x h')
+
+lemma union_min (s₁ s₂ : finset α) : (s₁ ∪ s₂).min = option.lift_or_get min (s₁.min) (s₂.min) :=
+begin
+    by_cases h₁ : s₁ = ∅; by_cases h₂ : s₂ = ∅,
+    any_goals {
+        try {simp [h₁, h₂, option.lift_or_get]}, 
+        try {
+            try {
+                cases (finset.min_of_ne_empty h₂) with x₂ h₂', 
+                simp at h₂', rw [h₂'],
+            },
+            try {
+                cases (finset.min_of_ne_empty h₁) with x₁ h₁', 
+                simp at h₁', rw [h₁'],
+            }
+        },
+    }, all_goals {unfold option.lift_or_get},
+    cases (finset.min_of_ne_empty (ne_empty_union.1 (not_and_of_not_left (s₂ = ∅) h₁))) with x h',
+    simp at h', rw h', simp,
+    rw [←option.mem_def] at *,
+    unfold min,
+    have h_m := mem_union.1 (mem_of_min h'),
+    have h_m₁ := le_min_of_mem (mem_union.2 (or.inl (mem_of_min h₁'))) h',
+    have h_m₂ := le_min_of_mem (mem_union.2 (or.inr (mem_of_min h₂'))) h',
+    cases h_m,
+    finish [antisymm h_m₁ (le_min_of_mem h_m h₁'), h_m₂],
+    rw antisymm h_m₂ (le_min_of_mem h_m h₂') at *,  rw le_iff_lt_or_eq at h_m₁, 
+    cases h_m₁, finish [not_le_of_lt h_m₁], finish,
+end
+
+lemma union_min' {s₁ s₂ : finset α} (hs₁ : s₁ ≠ ∅) (hs₂ : s₂ ≠ ∅) :
+(s₁ ∪ s₂).min' (ne_empty_union.1 (not_and_of_not_left (s₂ = ∅) hs₁)) = min (s₁.min' hs₁) (s₂.min' hs₂) :=
+begin
+    have h := union_min s₁ s₂,
+    have h₁ := min_of_ne_empty hs₁, cases h₁ with x₁ h₁,
+    have h₂ := min_of_ne_empty hs₂, cases h₂ with x₂ h₂,
+    have h₃ := min_of_ne_empty (ne_empty_union.1 (not_and_of_not_left (s₂ = ∅) hs₁)), cases h₃ with x₃ h₃,
+    simp at h₁ h₂ h₃, simp [h₁, h₂, h₃, option.lift_or_get] at h,
+    simp [min', option.get_of_mem _ h₁, option.get_of_mem _ h₂, option.get_of_mem _ h₃, h],
+end
+
+end decidable_linear_order
+end min
+
 section semilattice
 variables [lattice.semilattice_sup_bot α]
 

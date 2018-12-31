@@ -18,6 +18,13 @@ class decidable_monomial_order (α : Type*) extends monomial_order α, decidable
 
 end classes
 
+namespace option
+variables {α : Type*}
+
+lemma some_lem {a : α} : (a : option α) = some a := by finish
+
+end option
+
 namespace nat
 
 lemma lt_lt_antisym : ∀ {a b : ℕ}, a < b → b < a → false

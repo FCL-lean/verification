@@ -4,6 +4,7 @@ import fintype
 import fin
 import bot_zero
 import seq
+import finset
 
 variables {α : Type*} {β : Type*} {γ : Type*} {δ : Type*} {ι : Type*}
 
@@ -71,9 +72,9 @@ def single_inj1' : Π {a b: α} {c d: β}, (c ≠ 0) → a ≠ b → single a c 
 def single_ext : Π {a b: α}{c d: β}, a = b → c = d → single a c = single b d :=
     λ a b c d p q, by simp [p, q]
 
-def single_eqz : Π {a : α} {b : β}, single a b = 0 → b = 0 :=
-begin
-    intros a b sin,
+def single_eqz : Π {a : α} {b : β}, single a b = 0 ↔ b = 0 :=
+λ a b, 
+⟨λ sin, begin
     unfold single at sin,
     by_cases b = 0,
     assumption,
@@ -81,11 +82,17 @@ begin
     apply false.elim,
     have m := congr_arg finsupp.support sin, simp at m,
     assumption,
-end
+end, 
+λ h, by simp [h]⟩
 
-lemma single_support : Π (a : α), (single a 1).support = {a} := by finish
+lemma single_support' : Π (a : α), (single a 1).support = {a} := by finish
+
+lemma single_support : ∀ {s : α} {a : β}, a ≠ 0 → (single s a).support = {s} := 
+λ s a ha, by simp [single, ha]
 
 lemma coe_f : Π (a : α →₀ β) (n : α), a n = a.to_fun n := λ a n, rfl
+
+lemma support_ne_empty (a : α →₀ β) : a ≠ 0 ↔ a.support ≠ ∅ := by finish
 
 lemma eq_zero_lem : ∀ {f : α → β}, ({support := ∅, to_fun := f, mem_support_to_fun := _} : α →₀ β) = 0 := refl
 
@@ -94,6 +101,17 @@ lemma ne_zero_lem : ∀ {s : finset α} {f : α → β}, s ≠ ∅ → ({support
 lemma eq_zero_apply {a : α →₀ β} : (∀ x, a x = 0) ↔  a = 0 := ⟨λ h, by apply ext; assumption, λ h, by finish⟩
 
 lemma ext_lem {a b : α →₀ β} : a = b ↔ ∀ x, a x = b x := ⟨λ h, by finish, λ h, by apply finsupp.ext; assumption⟩
+
+section min
+variables [decidable_linear_order α]
+
+lemma lt_min_apply (a : α →₀ β) (ha : a ≠ 0) : ∀ x < a.support.min' ((support_ne_empty a).1 ha), a x = 0 :=
+λ x hx, not_mem_support_iff.1 (a.support.lt_min'_not_mem ((support_ne_empty a).1 ha) x hx)
+
+lemma min_apply (a : α →₀ β) (ha : a ≠ 0) : a (a.support.min' ((support_ne_empty a).1 ha)) ≠ 0 :=
+by rw ←mem_support_iff; apply finset.min'_mem
+
+end min
 
 section semilattice
 variables [lattice.semilattice_sup_bot α]
@@ -123,9 +141,11 @@ begin
     apply absurd h' hc,
 end 
 
-lemma add_left_cancel (a b c : α →₀ β) : a + b = a + c ↔ b = c := sorry
-
-lemma add_right_cancel (a : α →₀ β) {b c : α →₀ β} : b + a = c + a ↔ b = c := sorry
+def single_add_eqz' [decidable_eq β] : Π {a b : α} {c d : β}, ¬ (c = 0 ∧ d = 0) → single a c + single b d = 0 → c + d = 0 :=
+λ a b c d habcd h, begin
+    have h' := single_add_eqz habcd h, rw [h', ←single_add, single_eqz] at h,
+    assumption,
+end
 
 end add_monoid
 
@@ -158,6 +178,24 @@ begin
 end
 
 end canonically_ordered_monoid
+
+section nat
+
+lemma nat.add_left_cancel (a b c : α →₀ ℕ) : a + b = a + c ↔ b = c := 
+⟨λ h, by simp [ext_lem] at h; rw ←finsupp.ext_lem at h; finish, 
+λ h, by apply ext; simp; rw ←finsupp.ext_lem; finish⟩
+
+lemma nat.add_right_cancel (a b c : α →₀ ℕ) : a + b = c + b ↔ a = c := 
+⟨λ h, by rw [add_comm a b, add_comm c b] at h; apply (nat.add_left_cancel b a c).1 h, 
+λ h, by rw [add_comm a b, add_comm c b]; apply (nat.add_left_cancel b a c).2 h⟩
+
+lemma nat.add_eqz_iff {a b : α →₀ ℕ} : a + b = 0 ↔ a = 0 ∧ b = 0 := ⟨λ h, begin
+    simp [ext_lem, forall_and_distrib] at h, 
+    rw [finsupp.eq_zero_apply, finsupp.eq_zero_apply] at h,
+    assumption,
+end, λ h, by simp[h.left, h.right]⟩
+
+end nat
 
 end general
 
