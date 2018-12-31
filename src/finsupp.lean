@@ -1126,13 +1126,19 @@ begin
     cases H',
     have lem' := lem' t' H,
     symmetry, rw [←fin.eta a a.2], 
-    have H'' : a.val = n - H'_fst, sorry,
+    have H'' : a.val = n - H'_fst, 
+        rw add_comm at H'_snd,
+        from (nat.sub_eq_of_eq_add H'_snd.symm).symm,
     have a2 := a.2,
     change (s.val t') ⟨a.val, a2⟩ = (s.val (get_largest_idx n s n this (by constructor) f)) ⟨a.val, a2⟩,
     revert a2,
     rw H'', intros,
     apply lem',
-    sorry,
+    begin
+        apply nat.succ_le_succ,
+        rw ←H'_snd, apply le_add_of_nonneg_left,
+        apply nat.zero_le,
+    end
 end
 
 lemma seqR_false : Π (n : ℕ), ¬' seqR.seq_R (fin (n + 1) →₀ ℕ) (<) :=
