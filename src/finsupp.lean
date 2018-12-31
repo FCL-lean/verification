@@ -867,6 +867,104 @@ def get_largest_idx : Π (n : ℕ) (s: seqR.seq_R (fin (n + 1) →₀ ℕ) (<)) 
             (λ x p, (f x p (begin apply nat.lt_of_le_of_lt, exact nat.le_of_succ_le_succ p, exact p2 end)).1)
 
 
+lemma get_largest_idx_lem_aux' : Π (r t: ℕ) 
+    (m : ℕ) (f: Π (x : ℕ) (p: x < m + 1), ℕ) p1 p2
+    (p3: r ≤ t), f r p1 ≤ get_largest_idx' m t p2 f :=
+begin
+    intros, induction t,
+    begin cases p3, refl, end,
+    begin 
+        unfold get_largest_idx', 
+        rw le_max_iff,
+        by_cases r = t_n + 1,
+        begin
+            revert p1; rw h; intros; 
+            apply or.inl,
+            rw (rfl: p1 = p2),
+        end,
+        begin
+            apply or.inr, apply t_ih,
+            cases p3,
+            by apply false.elim; apply h; refl,
+            by assumption,
+        end,
+    end
+end
+
+lemma get_largest_idx_lem_aux : Π (n : ℕ) 
+    (s: seqR.seq_R (fin (n + 1) →₀ ℕ) (<)) n_i (p1 : Π k, n - k < n + 1)
+    (p2: n_i < n + 1) (m : ℕ)
+    (f: Π (x : ℕ) (p: x < m + 1), ℕ)
+    (p4: n_i < m + 1) (p5: n_i ≤ m) (p6: m ≤ n + 1)
+    (p3: ∀ x p t', t' ≥ f x p → (s.val t').to_fun ⟨n - x, p1 x⟩ = (s.val (f x p)).to_fun ⟨n - x, p1 x⟩),
+    let t := get_largest_idx' m n_i p4 f
+    in ∀ (t' : ℕ), t' ≥ t
+        → ∀ x, x < n_i + 1 → (s.val t').to_fun ⟨n - x, p1 x⟩ = (s.val t).to_fun ⟨n - x, p1 x⟩ :=
+begin
+    intros n s n_i,
+    induction n_i; intros,
+    begin
+        cases nat.le_of_succ_le_succ a_1,
+        apply p3,
+        apply nat.le_trans a,
+        refl,
+    end,
+    begin
+        have eqt : get_largest_idx' m (nat.succ n_i_n) p4 f = t := rfl,
+        unfold get_largest_idx' at eqt,
+        have t_le : max (f (n_i_n + 1) p4) (get_largest_idx' m n_i_n _ f) ≤ t,
+            by apply le_of_eq; assumption,
+        rw max_le_iff at t_le, cases t_le,
+        by_cases x = n_i_n + 1,
+        begin
+            transitivity,
+            begin
+                apply p3 _ (h.symm ▸ p4 : x < m + 1),
+                apply @nat.le_trans,
+                begin
+                    have h' : x < m + 1 := h.symm ▸ p4,
+                    have : t ≥ f x h',
+                        revert h',
+                        rw h, intro, assumption,
+                    exact this,
+                end,
+                by assumption,
+            end,
+            begin
+                symmetry,
+                apply p3,
+                have goal : ∀ p4, f (n_i_n + 1) p4 ≤ t,
+                    by intro; assumption,
+                rw ←h at goal,
+                apply goal,
+            end,
+        end,
+        begin
+            transitivity,
+            begin
+                apply p3 x (begin apply nat.le_trans, exact a_1, exact nat.succ_le_succ p5, end),
+                apply nat.le_trans _ a,
+                apply nat.le_trans _ t_le_right,
+                apply get_largest_idx_lem_aux',
+                have := nat.le_of_succ_le_succ a_1,
+                cases this,
+                by apply false.elim; apply h; refl,
+                by assumption,
+            end,
+            begin
+                symmetry,
+                apply p3 x (begin apply nat.le_trans, exact a_1, exact nat.succ_le_succ p5, end),
+                apply nat.le_trans _ t_le_right,
+                apply get_largest_idx_lem_aux',
+                have := nat.le_of_succ_le_succ a_1,
+                cases this,
+                by apply false.elim; apply h; refl,
+                by assumption,
+            end,
+        end,
+    end,
+end
+
 
 lemma get_largest_idx_lem : Π (n : ℕ) (s: seqR.seq_R (fin (n + 1) →₀ ℕ) (<)) n_i (p1 : Π k, n - k < n + 1)
     (p2: n_i < n + 1)
@@ -878,24 +976,12 @@ lemma get_largest_idx_lem : Π (n : ℕ) (s: seqR.seq_R (fin (n + 1) →₀ ℕ)
         in ∀ (t' : ℕ), t' ≥ t
         → ∀ x, x < n_i + 1 → (s.val t').to_fun ⟨n - x, p1 x⟩ = (s.val t).to_fun ⟨n - x, p1 x⟩ :=
 begin
-    intros n s n_i p1 p2 p3 eq,
-    induction n_i; intros,
-    begin
-        have eqz := nat.le_of_succ_le_succ a_1,
-        cases eqz,
-        exact (p3 0 _ _).2 t' a,
-    end,
-    begin
-        have eqeq : eq = get_largest_idx n s (nat.succ n_i_n) p1 p2 p3 := rfl,
-        unfold get_largest_idx at eqeq,
-        have IH := n_i_ih sorry sorry,
-        by_cases x = n_i_n + 1,
-        sorry,
-        have := IH t' sorry x sorry,
-        rw eqeq,
-        unfold get_largest_idx', sorry,
-    end,
+    intros, apply get_largest_idx_lem_aux; try {assumption}; try {constructor},
+    exact nat.le_of_succ_le_succ p2,
+    intros x p;
+    exact (p3 x _ _).2,
 end
+
 lemma seqR_eq' : Π (n : ℕ) (s: seqR.seq_R (fin (n + 1) →₀ ℕ) (<)) (i: ℕ) (ip: i < n + 1)
     (p3: ∀ k, n - k < n + 1),
     ∃ (t : ℕ), ∀ t' (p1: t' ≥ t),
@@ -1008,6 +1094,7 @@ begin
     revert a2,
     rw H'', intros,
     apply lem',
+    sorry,
 end
 
 lemma seqR_false : Π (n : ℕ), ¬' seqR.seq_R (fin (n + 1) →₀ ℕ) (<) :=
