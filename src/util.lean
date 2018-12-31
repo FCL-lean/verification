@@ -32,7 +32,13 @@ lemma many_step
         → is_trans ℕ P 
         → ∀ n m, n < m → P n m :=
 begin
-    intros, sorry
+    intros P p', introI, intros,
+    induction a_1,
+    by apply p',
+    begin
+        cases a,
+        apply a, exact a_1_ih, apply p',
+    end,
 end
 
 lemma many_step'
@@ -44,7 +50,16 @@ begin
     intros P step,
     introsI r t,
     intros,
-    sorry
+    cases a,
+    by cases r; apply r,
+    begin
+        induction a,
+        by cases r; apply r,
+        begin
+            cases t,
+            apply t, exact a_ih, apply step,
+        end,
+    end,
 end
 
 
