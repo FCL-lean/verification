@@ -838,7 +838,9 @@ begin
 end
 
 section decidable_linear_order
-variables [fintype σ] [is_total (σ →₀ ℕ) (≤)] [@decidable_rel (σ →₀ ℕ) (≤)]
+
+instance has_le : has_le (σ →₀ ℕ) := ⟨_inst_4.le⟩ 
+variables [fintype σ] [@decidable_rel (σ →₀ ℕ) (≤)] [is_total (σ →₀ ℕ) (≤)] 
 
 
 lemma leading_term_le_of_lcm_left 
