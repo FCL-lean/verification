@@ -85,6 +85,31 @@ def seq_R_coe {α β : Type*} (ra: rel α) (rb: rel β) (f : α -> β) :
     seq_R α ra -> (∀ a b, ra a b -> rb (f a) (f b)) -> seq_R β rb :=
 λ sra hab, ⟨sra.1.map f, λ n, hab (sra.1 (n + 1)) (sra.1 n) (sra.2 n)⟩
 
+
+section is_trans
+variables [is_trans α R]
+
+protected lemma R_trans_of_R (s : seq_R α R) : ∀ {m n}, m < n → R (s.1 n) (s.1 m) :=
+λ m n hmn, begin
+    rw ←nat.add_sub_cancel' hmn,
+    apply @nat.strong_induction_on (λ x, R (s.val ((m + 1) + x)) (s.val m)) (n - (m + 1)),
+    intros k ih,
+    cases k, apply s.2,
+    have h := ih k (nat.lt_succ_self k),
+    apply trans (s.2 (m + 1 + k)) h,
+end
+
+def drop (n : ℕ) (s: seq_R α R): seq_R α R :=
+    ⟨s.1.drop n, 
+λ m, begin 
+    unfold stream.drop,
+    apply seqR.R_trans_of_R,
+    simp [add_comm], constructor,
+end⟩
+
+
+end is_trans
+
 section preorder
 variables [partial_order α]
 
@@ -98,12 +123,31 @@ protected lemma lt_trans_of_lt (s : seq_R α (>)) : ∀ {m n}, m < n → (s.1 m)
     apply lt_trans h (s.2 (m + 1 + k)),
 end
 
+protected lemma gt_trans_of_lt (s : seq_R α (<)) : ∀ {m n}, m < n → (s.1 m) > (s.1 n) :=
+λ m n hmn, begin
+    rw ←nat.add_sub_cancel' hmn,
+    apply @nat.strong_induction_on (λ x, (s.val m) > (s.val ((m + 1) + x))) (n - (m + 1)),
+    intros k ih,
+    cases k, apply s.2,
+    have h := ih k (nat.lt_succ_self k),
+    apply lt_trans (s.2 (m + 1 + k)) h,
+end
+
+
 protected lemma le_trans_of_lt (s : seq_R α (>)) : ∀ {m n}, m ≤ n → s.1 m ≤ s.1 n :=
 λ m n hmn, begin
     from if h : m = n
     then by finish
     else by apply le_of_lt (seqR.lt_trans_of_lt s (lt_of_le_of_ne hmn h))
 end
+
+protected lemma ge_trans_of_lt (s : seq_R α (<)) : ∀ {m n}, m ≤ n → s.1 m ≥ s.1 n :=
+λ m n hmn, begin
+    from if h : m = n
+    then by finish
+    else by apply le_of_lt (seqR.gt_trans_of_lt s (lt_of_le_of_ne hmn h))
+end
+
 
 end preorder
 

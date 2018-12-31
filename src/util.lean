@@ -27,6 +27,28 @@ end option
 
 namespace nat
 
+lemma many_step 
+    : ∀ (P : ℕ → ℕ → Prop), (∀ n, P n (n + 1)) 
+        → is_trans ℕ P 
+        → ∀ n m, n < m → P n m :=
+begin
+    intros, sorry
+end
+
+lemma many_step'
+    : ∀ (P : ℕ → ℕ → Prop), (∀ n, P n (n + 1))
+        → is_refl ℕ P
+        → is_trans ℕ P 
+        → ∀ n m, n ≤ m → P n m :=
+begin
+    intros P step,
+    introsI r t,
+    intros,
+    sorry
+end
+
+
+
 lemma lt_lt_antisym : ∀ {a b : ℕ}, a < b → b < a → false
 | a b le₀ le₁ := begin apply (absurd le₀ (not_lt_of_ge (le_of_lt le₁))), end
 
