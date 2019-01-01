@@ -840,8 +840,13 @@ end
 section decidable_linear_order
 
 instance has_le : has_le (σ →₀ ℕ) := ⟨_inst_4.le⟩ 
-variables [fintype σ] [@decidable_rel (σ →₀ ℕ) (≤)] [is_total (σ →₀ ℕ) (≤)] 
 
+variables [fintype σ] [@decidable_rel (σ →₀ ℕ) (≤)] [is_total (σ →₀ ℕ) (≤)] 
+instance partial_order : partial_order (σ →₀ ℕ) 
+    := { le := (≤),
+         le_refl := _inst_4.le_refl,
+         le_trans := _inst_4.le_trans,
+         le_antisymm := _inst_4.le_antisymm, }
 
 lemma leading_term_le_of_lcm_left 
     (p q : mv_polynomial σ α) (h₁ : p ≠ 0) (h₂ : q ≠ 0) : 
