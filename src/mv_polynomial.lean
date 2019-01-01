@@ -210,8 +210,60 @@ begin
     apply absurd (support_empty neqz2) neqz,
 end
 
-section is_total
+section fintype_s
+variable [fins: fintype σ]
+include fins
+
+def leading_term_le (a b: mv_polynomial σ α): Prop
+    := finsupp.leading_term_le a.leading_monomial b.leading_monomial
+
+instance leading_term_le_dec (a b: mv_polynomial σ α): decidable (leading_term_le a b) :=
+begin
+    unfold leading_term_le finsupp.leading_term_le,
+    apply fintype.fintype_fold_dec,
+    intro, apply_instance,
+end
+
+lemma leading_monomial_zero_of_le_zero {a b : mv_polynomial σ α} : a.leading_monomial = 0
+     → leading_term_le b a → b.leading_monomial = 0 := 
+λ ha hba, begin
+    simp [leading_term_le, finsupp.leading_term_le, ha, fintype.fintype_fold_and_iff] at hba,
+    apply finsupp.ext, simp [hba],
+end
+
+omit fins
+end fintype_s
+
+end semilattice
+
+def leading_term_sub' {n} (a b: mv_polynomial (fin n) α) [bot_zero (fin n) ℕ]
+    (h: leading_term_le b a) : fin n →₀ ℕ
+     := finsupp.fin_n.leading_term_sub a.leading_monomial b.leading_monomial h
+
+@[simp]
+def leading_term_sub'_zero {n} (b: mv_polynomial (fin n) α) [bot_zero (fin n) ℕ]
+    (h: leading_term_le b 0): leading_term_sub' 0 b h = 0 :=
+begin
+    have h': b.leading_monomial = 0,
+    apply finsupp.fin_n.leading_term_le_antisymm,
+    assumption, apply finsupp.fin_n.leading_term_le_zero,
+    unfold leading_term_sub',
+    unfold leading_term_le at h,
+    revert h,
+    change Π (h: finsupp.leading_term_le (leading_monomial b) (leading_monomial 0)),
+        finsupp.fin_n.leading_term_sub (leading_monomial 0) (leading_monomial b) h = 0,
+    rw [h', @leading_monomial_zero (fin n) α],
+    intros, apply finsupp.fin_n.leading_term_sub_zero,
+end
+
+end comm_semiring
+
+section semilattice_decidable_linear_order
+variables [lattice.semilattice_sup_bot (σ →₀ ℕ)] [bot_zero σ ℕ]
 variables [is_total (σ →₀ ℕ) has_le.le] [@decidable_rel (σ →₀ ℕ) has_le.le]
+
+section comm_semiring
+variables [comm_semiring α]
 
 def last_monomial (p : mv_polynomial σ α) : option (σ →₀ ℕ) := p.support.min
 
@@ -314,23 +366,6 @@ last_term _ (monomial_ne_zero_lem a hb) + last_term _ hp ≠ 0 :=
     apply absurd H, apply last_monomial'_apply,
 end
 
-
-/-
-lemma last_monomial_of_add_le (p q : mv_polynomial σ α) (hpq : p ≠ 0 ∧ q ≠ 0 ∧ p + q ≠ 0) : 
-    option.rel (≤) (option.lift_or_get min p.last_monomial q.last_monomial) (p + q).last_monomial :=
-begin
-    cases (last_monomial_some_iff_nez.1 hpq.left) with px hp',
-    cases (last_monomial_some_iff_nez.1 hpq.right.left) with qx hq',
-    cases (last_monomial_some_iff_nez.1 hpq.right.right) with pqx hpq',
-    cases (finset.min_of_ne_empty (finset.ne_empty_union.1 (not_and_of_not_left (q.support = ∅) ((finsupp.support_ne_empty p).1 hpq.left)))) with pqx' hpq'',
-    have h := finset.le_min_of_mem (finset.mem_of_subset finsupp.support_add (finset.mem_of_min hpq')) hpq'',
-    rw finset.union_min at hpq'',
-    simp [last_monomial] at *,
-    rw [hp', hq', option.lift_or_get] at *, rw hpq', apply option.rel.some, 
-    simp at hpq'',
-    finish,
-end-/
-
 lemma zero_iff_leading_coeff_zero {p : mv_polynomial σ α}: 
     p.leading_coeff = 0 ↔ p = 0 :=
 ⟨λ coeffz, begin
@@ -358,7 +393,7 @@ lemma leading_monomial_ne_zero_coeff {a : mv_polynomial σ α} :
     apply eqa, apply finset.mem_of_sup_id,
     intro eqe, rw eqe at *,
     simp at neqz,
-    apply neqz, rw _inst_5.zero_bot,
+    apply neqz, rw _inst_4.zero_bot,
 end
 
 lemma ne_zero_of_leading_monomial_ne_zero (a : mv_polynomial σ α) : 
@@ -368,18 +403,18 @@ lemma leading_monomial_eqz_iff_leading_term_const {p : mv_polynomial σ α} :
     mv_is_const p.leading_term ↔ p.leading_monomial = ⊥ :=
 begin
     apply iff.intro; intro h,
-    rw ←_inst_5.zero_bot,
+    rw ←_inst_4.zero_bot,
     have h' := eq_mv_is_const h,
     unfold leading_term C monomial at h', {
         from if hpcz :p.leading_coeff = 0
         then 
             begin 
-                simp [zero_iff_leading_coeff_zero] at hpcz, simp [leading_monomial, hpcz, _inst_5.zero_bot], 
+                simp [zero_iff_leading_coeff_zero] at hpcz, simp [leading_monomial, hpcz, _inst_4.zero_bot], 
                 change finset.sup ∅ id = ⊥, exact finset.sup_empty,
             end
         else by apply finsupp.single_inj1 hpcz h'.2
     },
-    rw [←_inst_5.zero_bot] at h,
+    rw [←_inst_4.zero_bot] at h,
     simp [leading_term, h],
     change mv_is_const (C p.leading_coeff),
     apply eq_mv_is_const',
@@ -389,10 +424,10 @@ end
 
 lemma leading_monomial_eq_zero_of_const' {p : mv_polynomial σ α} (h : p.leading_monomial = 0) : mv_is_const p :=
 begin 
-    rw [_inst_5.zero_bot, leading_monomial] at h,
+    rw [_inst_4.zero_bot, leading_monomial] at h,
     have h' : p.support = ∅ ∨ p.support = {⊥}, from finset.sup_bot p.support h,
     cases h', rw finsupp.support_eq_empty at h', simp [h'],
-    rw [←_inst_5.zero_bot] at h', 
+    rw [←_inst_4.zero_bot] at h', 
     apply eq_mv_is_const', apply psigma.mk (p.to_fun 0),
     apply finsupp.ext, intro x,
     simp [finsupp.coe_f, C, monomial, finsupp.single],
@@ -405,9 +440,9 @@ def leading_monomial_eqz_const {p : mv_polynomial σ α}:
     p.leading_monomial = 0 → Σ' (a : α), p = C a :=
 λ h,
 begin 
-    rw [_inst_5.zero_bot, leading_monomial] at h,
+    rw [_inst_4.zero_bot, leading_monomial] at h,
     have h' : p.support = ∅ ∨ p.support = {⊥}, from finset.sup_bot p.support h,
-    rw [←_inst_5.zero_bot] at h', 
+    rw [←_inst_4.zero_bot] at h', 
     apply psigma.mk (p.to_fun 0),
     cases h', rw finsupp.support_eq_empty at h', rw [←finsupp.coe_f, h'], finish, 
     apply finsupp.ext, intro x,
@@ -449,7 +484,7 @@ begin
         have h₂ := lt_or_gt_of_ne h₁,
         have H : ∀ {x y : mv_polynomial σ α}, x.support.sup id > y.support.sup id → x.support.sup id ∈ (x + y).support,
             intros x y hxy,
-            have hx : x.support ≠ ∅, intro hx, simp [hx] at hxy, apply absurd hxy, apply not_lt_of_le, apply _inst_4.bot_le,
+            have hx : x.support ≠ ∅, intro hx, simp [hx] at hxy, apply absurd hxy, apply not_lt_of_le, apply _inst_3.bot_le,
             simp [finsupp.mem_support_iff, finsupp.apply_eq_zero_of_gt_max hxy, finsupp.mem_support_iff.1 (finset.mem_of_sup_id hx)],
         cases h₂,
         rw add_comm,
@@ -468,7 +503,7 @@ begin
     unfold leading_term leading_monomial leading_coeff at *,
     have H₁ : ∀ {x y : mv_polynomial σ α}, x.support.sup id > y.support.sup id → x.support.sup id ≤ (x + y).support.sup id,
         intros x y hxy,
-        have hx : x.support ≠ ∅, intro hx, simp [hx] at hxy, apply absurd hxy, apply not_lt_of_le, apply _inst_4.bot_le,
+        have hx : x.support ≠ ∅, intro hx, simp [hx] at hxy, apply absurd hxy, apply not_lt_of_le, apply _inst_3.bot_le,
         apply finset.le_sup_id,
         simp [finset.le_sup, finsupp.mem_support_iff, finsupp.apply_eq_zero_of_gt_max hxy, finsupp.mem_support_iff.1 (finset.mem_of_sup_id hx)],
     have H₂ : (p + q).support.sup id ≤ (p.support ∪ q.support).sup id := finset.sub_sup finsupp.support_add,
@@ -505,60 +540,10 @@ p ≠ 0 → b ≠ 0 → a ∉ p.support → leading_term (monomial a b) + leadin
     apply absurd (finset.mem_of_sup_id (λ h, hp (finsupp.support_eq_empty.1 h))) ha,
 end
 
-end is_total
-
-section fintype_s
-variable [fins: fintype σ]
-include fins
-
-def leading_term_le (a b: mv_polynomial σ α): Prop
-    := finsupp.leading_term_le a.leading_monomial b.leading_monomial
-
-instance leading_term_le_dec (a b: mv_polynomial σ α): decidable (leading_term_le a b) :=
-begin
-    unfold leading_term_le finsupp.leading_term_le,
-    apply fintype.fintype_fold_dec,
-    intro, apply_instance,
-end
-
-lemma leading_monomial_zero_of_le_zero {a b : mv_polynomial σ α} : a.leading_monomial = 0
-     → leading_term_le b a → b.leading_monomial = 0 := 
-λ ha hba, begin
-    simp [leading_term_le, finsupp.leading_term_le, ha, fintype.fintype_fold_and_iff] at hba,
-    apply finsupp.ext, simp [hba],
-end
-
-
-omit fins
-
-end fintype_s
-end semilattice
-
-def leading_term_sub' {n} (a b: mv_polynomial (fin n) α) [bot_zero (fin n) ℕ]
-    (h: leading_term_le b a) : fin n →₀ ℕ
-     := finsupp.fin_n.leading_term_sub a.leading_monomial b.leading_monomial h
-
-@[simp]
-def leading_term_sub'_zero {n} (b: mv_polynomial (fin n) α) [bot_zero (fin n) ℕ]
-    (h: leading_term_le b 0): leading_term_sub' 0 b h = 0 :=
-begin
-    have h': b.leading_monomial = 0,
-    apply finsupp.fin_n.leading_term_le_antisymm,
-    assumption, apply finsupp.fin_n.leading_term_le_zero,
-    unfold leading_term_sub',
-    unfold leading_term_le at h,
-    revert h,
-    change Π (h: finsupp.leading_term_le (leading_monomial b) (leading_monomial 0)),
-        finsupp.fin_n.leading_term_sub (leading_monomial 0) (leading_monomial b) h = 0,
-    rw [h', @leading_monomial_zero (fin n) α],
-    intros, apply finsupp.fin_n.leading_term_sub_zero,
-end
-
 end comm_semiring
 
 section integral_domain
-variables [integral_domain α] [lattice.semilattice_sup_bot (σ →₀ ℕ)] [bot_zero σ ℕ] 
-variables [is_total (σ →₀ ℕ) (≤)] [@decidable_rel (σ →₀ ℕ) has_le.le] [is_monomial_order (σ →₀ ℕ) has_le.le]
+variables [integral_domain α] [is_monomial_order (σ →₀ ℕ) has_le.le]
 
 instance : decidable_linear_ordered_cancel_comm_monoid (σ →₀ ℕ) := {
     add_left_cancel := λ a b c, (finsupp.nat.add_left_cancel a b c).1,
@@ -572,9 +557,9 @@ instance : decidable_linear_ordered_cancel_comm_monoid (σ →₀ ℕ) := {
         have h_eq := (finsupp.nat.add_right_cancel c a b).1 (antisymm h' H),
         apply absurd h_eq h.right,
     end,
-    le_total := _inst_6.total,
-    decidable_le := _inst_7,
-    .._inst_4,
+    le_total := _inst_5.total,
+    decidable_le := _inst_6,
+    .._inst_3,
     ..@finsupp.add_comm_monoid σ ℕ _ _ _
 }
 
@@ -679,10 +664,10 @@ lemma leading_monomial_lt_of_mul (p q : mv_polynomial σ α) (hp : p ≠ 0) :
     (p * q).leading_monomial ≥ q.leading_monomial :=
 begin
     by_cases hq : q = 0, 
-    rw [leading_monomial_zero_of_zero hq, _inst_5.zero_bot], 
-    apply _inst_4.bot_le,
+    rw [leading_monomial_zero_of_zero hq, _inst_4.zero_bot], 
+    apply _inst_3.bot_le,
     rw [leading_monomial_of_mul (and.intro hp hq)],
-    apply le_add_of_nonneg_left, rw _inst_5.zero_bot, apply _inst_4.bot_le,
+    apply le_add_of_nonneg_left, rw _inst_4.zero_bot, apply _inst_3.bot_le,
 end
 
 
@@ -793,7 +778,7 @@ begin
         have ha'a : last_monomial' (a' * a) (mv_mul_ne_zero ha' ha) > last_monomial' x hx₁,
         simp [last_monomial_of_mul ha' ha],
         apply lt_of_lt_of_le hagt.right, apply le_add_of_nonneg_right, 
-        rw _inst_5.zero_bot, apply _inst_4.bot_le,
+        rw _inst_4.zero_bot, apply _inst_3.bot_le,
     },
     finish,
     finish,
@@ -812,7 +797,7 @@ lemma last_monomial_lt_not_mem_ideal (x : mv_polynomial σ α) (s : finset (mv_p
 end integral_domain
 
 section gcd_domain
-variables [gcd_domain α] [lattice.semilattice_sup_bot (σ →₀ ℕ)] [bot_zero σ ℕ] 
+variables [gcd_domain α] 
 
 def leading_term_lcm (p q : mv_polynomial σ α) (h₁ : p ≠ 0) (h₂ : q ≠ 0) : mv_polynomial σ α := 
     if mv_is_const p 
@@ -837,18 +822,7 @@ begin
     finish [h],
 end
 
-section decidable_linear_order
-
-instance has_le : has_le (σ →₀ ℕ) := ⟨_inst_4.le⟩ 
-
-variables [fintype σ] [@decidable_rel (σ →₀ ℕ) (≤)] [is_total (σ →₀ ℕ) (≤)] 
-instance partial_order : partial_order (σ →₀ ℕ) 
-    := { le := (≤),
-         le_refl := _inst_4.le_refl,
-         le_trans := _inst_4.le_trans,
-         le_antisymm := _inst_4.le_antisymm, }
-
-lemma leading_term_le_of_lcm_left 
+lemma leading_term_le_of_lcm_left [fintype σ]
     (p q : mv_polynomial σ α) (h₁ : p ≠ 0) (h₂ : q ≠ 0) : 
     leading_term_le p.leading_term (leading_term_lcm p q h₁ h₂) := 
 begin
@@ -872,13 +846,12 @@ begin
     simp, apply le_max_left,
 end
 
-lemma leading_term_le_of_lcm_right (p q : mv_polynomial σ α) (h₁ : p ≠ 0) (h₂ : q ≠ 0) : 
+lemma leading_term_le_of_lcm_right [fintype σ] (p q : mv_polynomial σ α) (h₁ : p ≠ 0) (h₂ : q ≠ 0) : 
     leading_term_le q.leading_term (leading_term_lcm p q h₁ h₂) := 
 by rw leading_term_lcm_comm p q h₁ h₂; apply leading_term_le_of_lcm_left
 
-end decidable_linear_order
 end gcd_domain
-
+end semilattice_decidable_linear_order
 end general
 
 namespace fin_n
