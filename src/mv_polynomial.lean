@@ -545,7 +545,8 @@ end comm_semiring
 section integral_domain
 variables [integral_domain α] [is_monomial_order (σ →₀ ℕ) has_le.le]
 
-instance : decidable_linear_ordered_cancel_comm_monoid (σ →₀ ℕ) := {
+def finsupp.nat.decidable_linear_ordered_cancel_comm_monoid
+ : decidable_linear_ordered_cancel_comm_monoid (σ →₀ ℕ) := {
     add_left_cancel := λ a b c, (finsupp.nat.add_left_cancel a b c).1,
     add_right_cancel := λ a b c, (finsupp.nat.add_right_cancel a b c).1,
     add_le_add_left := λ a b h c, by simp [add_comm]; apply _inst_8.mono_order; exact h,
@@ -567,6 +568,7 @@ lemma mul_m_leading_term_add_nez {p : mv_polynomial σ α} {a a' : σ →₀ ℕ
 (ih : p ≠ 0 → b' ≠ 0 → leading_monomial (monomial a' b' * p) = a' + p.leading_monomial)
 (ha : a ∉ p.support) : leading_term ((monomial a' b') * (monomial a b)) + leading_term (monomial a' b' * p) ≠ 0 :=
 begin
+    letI := @finsupp.nat.decidable_linear_ordered_cancel_comm_monoid σ _ _ _ _ _,
     rw [monomial_mul], unfold leading_term, intro h,
     have h_mc : leading_coeff (monomial (a' + a) (b' * b)) ≠ 0,
         rw not_zero_iff_leading_coeff_not_zero, exact monomial_ne_zero_lem _ (mul_ne_zero hb.right hb.left),
@@ -590,6 +592,7 @@ begin
         have ltm_nez' := mul_m_leading_term_add_nez hf (and.intro hb hb') (@ih a' _) haf,
         have m_id : leading_monomial ((monomial a' b') * (monomial a b)) = a' + leading_monomial (monomial a b),
             rw [monomial_mul, ←leading_monomial_eq (a' + a) (mul_ne_zero hb' hb), ←leading_monomial_eq a hb],
+        letI := @finsupp.nat.decidable_linear_ordered_cancel_comm_monoid σ _ _ _ _ _,
         by_cases h : leading_monomial f ≤ leading_monomial (monomial a b),
         have h' : leading_monomial (monomial a' b' * f) ≤ leading_monomial (monomial a' b' * monomial a b),
             rw [m_id, (ih hf hb')], apply add_le_add_left h,
@@ -624,6 +627,7 @@ lemma mul_leading_term_add_nez {p q : mv_polynomial σ α} {a : σ →₀ ℕ} {
 (ihm : leading_monomial (p * (monomial a b)) = p.leading_monomial + a) 
 (ha : a ∉ q.support) : leading_term (p * (monomial a b)) + leading_term (p * q) ≠ 0 :=
 begin
+    letI := @finsupp.nat.decidable_linear_ordered_cancel_comm_monoid σ _ _ _ _ _,
     unfold leading_term, intro h,
     have h' := finsupp.single_add_eqz (not_and_of_not_left _ (not_zero_iff_leading_coeff_not_zero.2 (mv_mul_m_ne_zero hp hb))) h,
     simp [-add_comm, ihp, ihm, add_left_cancel_iff] at h',
@@ -634,6 +638,7 @@ end
 lemma leading_monomial_of_mul {p q : mv_polynomial σ α} : (p ≠ 0 ∧ q ≠ 0)
 → (p * q).leading_monomial = p.leading_monomial + q.leading_monomial :=
 begin
+    letI := @finsupp.nat.decidable_linear_ordered_cancel_comm_monoid σ _ _ _ _ _,
     apply finsupp.induction q, finish,
     intros a b f haf hb hfp h_sfp, 
     have H : finsupp.single a b = monomial a b := by finish [monomial], rw [H] at *,
@@ -663,6 +668,7 @@ end
 lemma leading_monomial_lt_of_mul (p q : mv_polynomial σ α) (hp : p ≠ 0) :
     (p * q).leading_monomial ≥ q.leading_monomial :=
 begin
+    letI := @finsupp.nat.decidable_linear_ordered_cancel_comm_monoid σ _ _ _ _ _,
     by_cases hq : q = 0, 
     rw [leading_monomial_zero_of_zero hq, _inst_4.zero_bot], 
     apply _inst_3.bot_le,
@@ -686,6 +692,7 @@ lemma last_monomial_of_mul_m_left {p : mv_polynomial σ α} {a : σ →₀ ℕ} 
 last_monomial' _ (mv_mul_ne_zero (monomial_ne_zero_lem a hb) hp) =
     a + (last_monomial' _ hp) :=
 begin
+    letI := @finsupp.nat.decidable_linear_ordered_cancel_comm_monoid σ _ _ _ _ _,
     revert hp,
     apply finsupp.induction p, finish,
     intros a' b' f haf' hb' ih h_sf',
@@ -729,6 +736,7 @@ end
 lemma last_monomial_of_mul {p q : mv_polynomial σ α} (hp : p ≠ 0) (hq : q ≠ 0) :
 last_monomial' _ (mv_mul_ne_zero hp hq) = (last_monomial' _ hp) + (last_monomial' _ hq) :=
 begin
+    letI := @finsupp.nat.decidable_linear_ordered_cancel_comm_monoid σ _ _ _ _ _,
     revert hq, apply finsupp.induction q, finish,
     intros a b f haf hb ih h_sf,
     have H : finsupp.single a b = monomial a b, finish [monomial],
@@ -760,6 +768,7 @@ lemma last_monomial_lt_ideal_of_lt_finset (x : mv_polynomial σ α) (s : finset 
     (hs₂ : ∀ (p : mv_polynomial σ α) (h₁ : p ≠ 0) (h₂ : p ∈ s), ∃ ps pa, p = monomial ps pa ∧ last_monomial' p h₁ > last_monomial' x hx₁) : 
     ∀ (p : mv_polynomial σ α) (h : p ≠ 0), p ∈ ideal.span (↑s : set (mv_polynomial σ α)) → last_monomial' p h > last_monomial' x hx₁ :=
 begin
+    letI := @finsupp.nat.decidable_linear_ordered_cancel_comm_monoid σ _ _ _ _ _,
     revert hs₁ hs₂,
     apply finset.case_strong_induction_on s, simp,
     intros a s a_nm ih hs₁' hs₂' p hp₁ hp₂,
@@ -960,7 +969,7 @@ lemma leading_term_eq {a b : mv_polynomial (fin n) α} (hb : b ≠ 0) (hab : lea
     a.leading_term = leading_term (b * finsupp.single (leading_term_sub' a b hab) 
                 (a.leading_coeff / b.leading_coeff)) :=
 begin
-    unfold leading_term leading_monomial,
+    unfold leading_term,
     simp [sup_single, coeff_single, has_div.div, algebra.div],
     apply finsupp.single_ext,
 
