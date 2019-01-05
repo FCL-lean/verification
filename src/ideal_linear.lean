@@ -79,11 +79,17 @@ lemma linear_combination' (s : finset α) :
         cases h_1 with c' hc', apply exists.intro c', assumption, 
 
     let f'sub : ∀ c : α →₀ α, is_linear_combination a' c s → {c' : α →₀ α // is_linear_combination a' c' s}
-        := λ c hc, classical.indefinite_description _ (Exists.dcases_on (f c hc) (λ c' hc', exists.intro c' hc'.left)),
+        := λ c hc, let st := classical.indefinite_description _ (f c hc) 
+                   in subtype.mk st.1 st.2.1,
     let hnf' : ℕ → (α →₀ α) := λ n, ((nat.rec_on n (classical.indefinite_description _ hc₁) (λ n cn, (f'sub cn.1 cn.2))) : {c : α →₀ α // is_linear_combination a' c s}).1,
     have h_hnf' : ∀ n, (hnf' n).support.card > (hnf' (n + 1)).support.card,
-        intro n, simp [hnf', f'sub], induction n; simp,
+        intro n, 
+        have is_linear : ∀ n, is_linear_combination a' (hnf' n) s,
+            intro n', induction n',
+            exact (classical.indefinite_description _ hc₁).2,
+            exact (f'sub (hnf' n'_n) n'_ih).2,
         apply lt_of_not_ge,
+        exact (classical.indefinite_description _ (f (hnf' n) (is_linear n))).2.2,            
 
     /-
         f : ℕ → (α →₀ α)
