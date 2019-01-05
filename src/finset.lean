@@ -66,6 +66,12 @@ end,
     simp [h'.left, h'.right] at h, assumption,
 end⟩
 
+lemma singleton_non_mem_inter_empty [decidable_eq α] {s₁ : finset α} {a : α}:
+    a ∉ s₁ → s₁ ⊓ {a} = ∅ := sorry
+
+lemma singleton_non_mem_inter_empty' [decidable_eq α] {s₁ : finset α} {a : α}:
+    a ∉ s₁ → {a} ⊓ s₁ = ∅ := sorry
+
 section min 
 section decidable_linear_order
 variables [decidable_linear_order α]

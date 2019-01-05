@@ -965,6 +965,42 @@ end
 lemma coeff_single : ∀ {a : mv_polynomial (fin n) α} b c,
     (leading_coeff (a * finsupp.single b c)) = a.leading_coeff * c := sorry
 
+lemma sup_eq' : ∀ (a : fin n →₀ ℕ) (b: mv_polynomial (fin n) α) h,
+    a = finset.sup (b.support) id + 
+        finsupp.fin_n.leading_term_sub a (finset.sup (b.support) id) h :=
+λ a b h, begin
+    revert a,
+    apply finsupp.induction b; intros,
+    begin
+        simp [_inst_2.zero_bot.symm], sorry,
+    end,
+    begin
+        revert h,
+        rw [finsupp.support_add_eq, finset.sup_union, finsupp.single_support, finset.sup_singleton]; try {assumption},
+        change ∀ (h : finsupp.leading_term_le (a ⊔ finset.sup (f.support) id) a_4),
+            a_4 = a ⊔ finset.sup (f.support) id + finsupp.fin_n.leading_term_sub a_4 (a ⊔ finset.sup (f.support) id) h,
+        by_cases a ≤ finset.sup (f.support) id,
+        begin
+            rw lattice.sup_of_le_right; intros,
+            apply a_3, assumption,
+        end,
+        begin
+            rw not_le at h,
+            rw lattice.sup_of_le_left; intros,
+            sorry,
+            begin
+                apply le_of_lt,
+                assumption,
+            end,
+        end,
+        begin
+            unfold disjoint,
+            rw [finsupp.single_support, finset.singleton_non_mem_inter_empty'],
+            finish, assumption, assumption,
+        end,
+    end,
+end
+
 lemma sup_eq : ∀ {a b: mv_polynomial (fin n) α} {hab},
     finset.sup (a.support) id = 
     leading_term_sub' a b hab + finset.sup (b.support) id :=
@@ -972,11 +1008,40 @@ begin
     intro a,
     apply finsupp.induction a; intros,
     begin
-        sorry
+        have : b.leading_monomial = 0,
+        from finsupp.fin_n.leading_term_le_antisymm hab 
+            (finsupp.fin_n.leading_term_le_zero _),
+        revert hab, have this' := this,
+        unfold leading_monomial at this, rw this, intro hab,
+        simp [_inst_2.zero_bot.symm], symmetry, apply leading_term_sub'_zero,
     end,
     begin
         simp,
-
+        unfold leading_term_sub' leading_monomial,
+        have : ∀ h, finset.sup ((f + finsupp.single a_1 b).support) id =
+            finset.sup (b_1.support) id + finsupp.fin_n.leading_term_sub (finset.sup ((f + finsupp.single a_1 b).support) id) (finset.sup (b_1.support) id)
+                h,
+            rw [finsupp.support_add_eq, finset.sup_union],
+            by_cases sup_le: finset.sup (f.support) id ≤ finset.sup ((finsupp.single a_1 b).support) id,
+            begin
+                rw lattice.sup_of_le_right sup_le,
+                intros, revert h, rw [finsupp.single_support, finset.sup_singleton],
+                sorry,
+            end,
+            begin
+                rw lattice.sup_of_le_left,
+                intros, rw add_comm,
+                apply a_4, rw not_le at sup_le,
+                apply le_of_lt, assumption,
+            end,
+        begin
+            unfold disjoint,
+            rw [finsupp.single_support a_3, finset.singleton_non_mem_inter_empty];
+            simp [a_2],
+        end,
+        begin
+            apply this,
+        end,
     end,
 end
 
