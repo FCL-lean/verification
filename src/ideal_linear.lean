@@ -34,17 +34,6 @@ end
 
 def is_linear_combination (a : α) (c : α →₀ α) (s : finset α) := c.support ⊆ s ∧ a = s.fold (+) 0 (λ x, c.to_fun x * x)
 
-/-
-lemma f_in_list {β : Type*} (hd : β) (tl : list β) : ∀ (f : β → β → β), (∀ a b, f a b = a ∨ f a b = b) → tl.foldl f hd ∈ (list.cons hd tl) :=
-λ f hf, begin
-    revert hd,
-    induction tl, finish,
-    intro hd,
-    cases hf hd tl_hd; cases tl_ih hd;
-    finish [h, tl_ih], 
-end
--/
-
 set_option pp.proofs true
 lemma linear_combination' (s : finset α) :
 ∀ a ∈ span (↑s : set α), 
@@ -66,12 +55,10 @@ lemma linear_combination' (s : finset α) :
         apply h_1, intros c' hc' hac',
         simp [not_exists, not_and] at a_1, apply a_1 c' (and.intro hc' hac'),
     generalize haa : a = a',
-    --cases linear_combination s a has with c₁ hc₁, rw haa at hc₁,
     let hc₁ := linear_combination s a has, rw haa at hc₁,
     have f : ∀ c : (α →₀ α),  is_linear_combination a' c s → 
         (∃ (c' : α →₀ α), is_linear_combination a' c' s 
             ∧ (¬c'.support.card ≥ c.support.card)), 
-        --:= λ c hc, Exists.dcases_on ((or.rec (λ hx, )) )
         intros c hc,
         simp [is_linear_combination, haa] at *,
         cases h' c, apply absurd hc.left h_1,
@@ -89,49 +76,30 @@ lemma linear_combination' (s : finset α) :
             exact (classical.indefinite_description _ hc₁).2,
             exact (f'sub (hnf' n'_n) n'_ih).2,
         apply lt_of_not_ge,
-        exact (classical.indefinite_description _ (f (hnf' n) (is_linear n))).2.2,            
+        exact (classical.indefinite_description _ (f (hnf' n) (is_linear n))).2.2,
+    have hnf'_gt_of_lt : ∀ {n m}, n < m → (hnf' n).support.card > (hnf' m).support.card,
+        intros n m hnm, rw ←nat.add_sub_of_le (nat.succ_le_of_lt hnm),
+        induction (m - (n + 1)), apply h_hnf',
+        rw nat.add_succ (n + 1) n_1,
+        apply gt_trans ih (h_hnf' ((n + 1) + n_1)),
+    have hnf'_ge_of_le : ∀ {n m}, n ≤ m → (hnf' n).support.card ≥ (hnf' m).support.card,
+        intros n m hnm, rw le_iff_eq_or_lt at hnm, cases hnm, finish, apply le_of_lt (hnf'_gt_of_lt hnm),
+    have lt_of_hnf'_gt : ∀ {n m}, (hnf' n).support.card > (hnf' m).support.card → n < m,
+        intros n m h_nm, apply lt_of_not_ge, intro h_nm',
+        apply absurd h_nm (not_lt_of_le (hnf'_ge_of_le  h_nm')),
+    have le_of_hnf'_ge : ∀ {n m}, (hnf' n).support.card ≥ (hnf' m).support.card → n ≤ m,
+        intros n m h_nm, apply le_of_not_lt, intro hnm,
+        apply absurd h_nm (not_le_of_lt (hnf'_gt_of_lt hnm)),
 
-    /-
-        f : ℕ → (α →₀ α)
-        ∀ x, (f x).support.card > (f (x + 1)).support.card,
-                    generalize : 
-                classical.indefinite_description (λ (c' : α →₀ α), is_linear_combination a' c' s)
-                    (Exists.dcases_on (f c₁ hc₁) (λ c' hc', exists.intro c' hc'.left)) = c0,
-    -/
-
-
-
-/-
-    have hs : ∃ sc : list (α →₀ α), sc ≠ [] ∧ ∀ c ∈ sc, (c : α →₀ α).support ⊆ s ∧ a = s.fold (+) 0 (λ x, c.to_fun x * x),
-        cases linear_combination s a has with c hc,
-        apply exists.intro [c], split, 
-        simp, 
-        intros c' hc', simp at hc', simp [hc'], assumption,
-    rcases hs with ⟨sc, ⟨hsc₁, hsc₂⟩⟩,
-    let f := (λ a b: α →₀ α, ite (b.support.card < a.support.card) b a),
-    have hf : ∀ a b, f a b = a ∨ f a b = b,
-        intros a b, by_cases b.support.card < a.support.card; simp [f]; simp [h],
-    let c := sc.tail.foldl (λ a b: α →₀ α, ite (b.support.card < a.support.card) b a) sc.head,
-    have hc : c ∈ sc,
-        rw [←list.cons_head_tail hsc₁], apply f_in_list sc.head sc.tail f hf,    
-    apply exists.intro c,
-    split, exact (hsc₂ c hc).left, 
-    split, exact (hsc₂ c hc).right,
-    intros c' hc',-/
+    have inj_hnf' : function.injective (λ n, (hnf' n).support.card),
+        unfold function.injective, intros a₁ a₂ ha₁₂,
+        apply antisymm (le_of_hnf'_ge (ge_of_eq ha₁₂)) (le_of_hnf'_ge (le_of_eq ha₁₂)),
+    have inf_chain : nonempty (((>) : ℕ → ℕ → Prop) ≼o ((<) : ℕ → ℕ → Prop)),
+        constructor,
+        apply order_embedding.mk (function.embedding.mk (λ n, (hnf' n).support.card) inj_hnf'),
+        intros a b, simp, split, apply hnf'_gt_of_lt,
+        apply lt_of_hnf'_gt,
+    apply (order_embedding.well_founded_iff_no_descending_seq.1 nat.lt_wf) inf_chain,
 end
 
 end ideal
-
-namespace mv_polynomial
-variables [comm_ring α] [decidable_eq σ] [decidable_eq α]
-
-lemma monomial_linear_combination (s : finset (mv_polynomial σ α)) 
-(hs₁ : s ≠ ∅) (hs₂ : ∀ p ∈ s, ∃ ps pa, monomial ps pa = p) :
-∀ p ∈ ideal.span (↑s : set (mv_polynomial σ α)),  ∃ ps pa, pa ≠ 0 ∧ monomial ps pa = p 
-    → ∃ c, ideal.is_linear_combination p c s ∧ 
-        (∀ c', ideal.is_linear_combination p c' s → c'.support.card ≥ c.support.card) :=
-begin
-
-end
-
-end mv_polynomial
