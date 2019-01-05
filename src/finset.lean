@@ -66,6 +66,19 @@ end,
     simp [h'.left, h'.right] at h, assumption,
 end⟩
 
+lemma subset_of_union_left [decidable_eq α] {s₁ s₂} (s₃ : finset α) (hs : s₁ ⊆ s₂) : 
+s₁ ⊆ s₂ ∪ s₃ := subset.trans hs (subset_union_left s₂ s₃)
+
+lemma subset_of_union_right [decidable_eq α] {s₁ s₃} (s₂ : finset α) (hs : s₁ ⊆ s₃) : 
+s₁ ⊆ s₂ ∪ s₃ := subset.trans hs (subset_union_right s₂ s₃)
+
+lemma union_subset' [decidable_eq α] {s₁ s₂ s₃ s₄ : finset α} (h₁ : s₁ ⊆ s₂) (h₂ : s₃ ⊆ s₄) :
+s₁ ∪ s₃ ⊆ s₂ ∪ s₄ := union_subset (subset_of_union_left s₄ h₁) (subset_of_union_right s₂ h₂)
+
+lemma union_subset'_symm [decidable_eq α] {s₁ s₂ s₃ s₄ : finset α} (h₁ : s₁ ⊆ s₄) (h₂ : s₃ ⊆ s₂) :
+s₁ ∪ s₃ ⊆ s₂ ∪ s₄ := union_subset (subset_of_union_right s₂ h₁) (subset_of_union_left s₄ h₂)
+
+
 section min 
 section decidable_linear_order
 variables [decidable_linear_order α]
