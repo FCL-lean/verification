@@ -965,14 +965,34 @@ end
 lemma coeff_single : ∀ {a : mv_polynomial (fin n) α} b c,
     (leading_coeff (a * finsupp.single b c)) = a.leading_coeff * c := sorry
 
+lemma sup_eq : ∀ {a b: mv_polynomial (fin n) α} {hab},
+    finset.sup (a.support) id = 
+    leading_term_sub' a b hab + finset.sup (b.support) id :=
+begin
+    intro a,
+    apply finsupp.induction a; intros,
+    begin
+        sorry
+    end,
+    begin
+        simp,
+
+    end,
+end
+
 lemma leading_term_eq {a b : mv_polynomial (fin n) α} (hb : b ≠ 0) (hab : leading_term_le b a) : 
     a.leading_term = leading_term (b * finsupp.single (leading_term_sub' a b hab) 
                 (a.leading_coeff / b.leading_coeff)) :=
 begin
-    unfold leading_term,
+    unfold leading_term leading_monomial,
     simp [sup_single, coeff_single, has_div.div, algebra.div],
     apply finsupp.single_ext,
-
+    by apply sup_eq,
+    begin
+        rw ←@not_zero_iff_leading_coeff_not_zero _ _ _ _ _ _ _ _ _ at hb; try {apply_instance},
+        rw [mul_comm (leading_coeff a), ←mul_assoc, discrete_field.mul_inv_cancel],
+        by simp, assumption,
+    end,
 end
 
 def reduction (a b : mv_polynomial (fin n) α) (h : leading_term_le b a) := 
