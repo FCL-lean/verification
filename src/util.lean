@@ -216,7 +216,6 @@ begin
     apply false.elim, apply ev, assumption,
 end
 
-
 end logic
 universe α
 
