@@ -7,6 +7,8 @@ import noetherian
 import seq
 import bot_zero
 import field
+import ideal_linear
+
 variables {σ : Type*} {α : Type*} {β : Type*} {γ : Type*} {δ : Type*} {ι : Type*}
 
 namespace mv_polynomial
@@ -542,6 +544,13 @@ end
 
 end comm_semiring
 
+section comm_ring
+variables [comm_ring α]
+
+
+
+end comm_ring
+
 section integral_domain
 variables [integral_domain α] [is_monomial_order (σ →₀ ℕ) has_le.le]
 
@@ -802,6 +811,25 @@ lemma last_monomial_lt_not_mem_ideal (x : mv_polynomial σ α) (s : finset (mv_p
     (hs₂ : ∀ (p : mv_polynomial σ α) (h₁ : p ≠ 0) (h₂ : p ∈ s), ∃ ps pa, p = monomial ps pa ∧ last_monomial' p h₁ > last_monomial' x hx₁) : 
     x ∉ ideal.span (↑s : set (mv_polynomial σ α)) :=
 λ hx, by apply absurd (le_of_eq (by refl)) (not_le_of_gt $ last_monomial_lt_ideal_of_lt_finset x s hx₁ hx₂ hs₁ hs₂ x hx₁ hx)
+
+lemma monomial_mem_ideal : ∀ (s : finset (mv_polynomial σ α)) 
+(hs₁ : s ≠ ∅) (hs₂ : ∀ (p : mv_polynomial σ α) (h₁ : p ∈ s), p ≠ 0 ∧ ∃ ps pa, monomial ps pa = p),
+∀ (p : mv_polynomial σ α) (hp : p ∈ ideal.span (↑s : set (mv_polynomial σ α))), (p ≠ 0 ∧ ∃ ps pa, monomial ps pa = p) → 
+    ∃ (q : mv_polynomial σ α) (hq : q ∈ s), ∀ x, q.leading_monomial x ≤ p.leading_monomial x :=
+λ s, begin
+    apply finset.case_strong_induction_on s, finish,
+    intros a s has ih hias hs' p hp₁ hp₂,
+    by_cases hs : s = ∅,
+    {
+        apply exists.intro a, simp [hs, finset.insert_eq, ideal.mem_span_singleton'] at *,
+        rcases hs' with ⟨ha₁, ⟨as, ⟨aa, ha₂⟩⟩⟩,
+        cases hp₁ with a' hp₁,
+        have ha' : a' ≠ 0, intro ha', simp [ha'] at hp₁, apply hp₂.left hp₁.symm,
+        rw [←hp₁, leading_monomial_of_mul (and.intro ha' ha₁)],
+        simp,
+    },
+    have h := ideal.linear_combination' (insert a s) p hp₁,
+end
 
 end integral_domain
 
