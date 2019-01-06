@@ -968,18 +968,13 @@ begin
 end
 
 lemma sup_mul : ∀ (a b : mv_polynomial (fin n) α),
+    a ≠ 0 → b ≠ 0 →
     (finset.sup (a * b).support id) = 
     finset.sup a.support id + finset.sup b.support id :=
-λ a, begin
-    apply mv_polynomial.induction_on a; intros,
-    sorry, sorry,
-    begin
-        rw [a_1],
-        rw [mul_assoc, a_1],
-        have h: finset.sup ((X n_1 * b).support) id = finset.sup ((X n_1).support) id + finset.sup (b.support) id,
-        apply mul_X_support,
-        simp [h],
-    end
+λ a b p₁ p₂, begin
+    apply @leading_monomial_of_mul _ _ _ _ _ _ _ _ _ _;
+    try {apply_instance}, swap,
+    exact finsupp.fin_n.decidable_monomial_order.mono_order,
 end
 lemma sup_single : ∀ {b : mv_polynomial (fin n) α} c d,
     (finset.sup ((b * finsupp.single c d).support) id) = 
@@ -1053,8 +1048,8 @@ begin
             by_cases sup_le: finset.sup (f.support) id ≤ finset.sup ((finsupp.single a_1 b).support) id,
             begin
                 rw lattice.sup_of_le_right sup_le,
-                intros, revert h, rw [finsupp.single_support, finset.sup_singleton],
-                sorry,
+                intros, revert h, rw [finsupp.single_support, finset.sup_singleton], intro,
+                apply sup_eq', assumption,
             end,
             begin
                 rw lattice.sup_of_le_left,

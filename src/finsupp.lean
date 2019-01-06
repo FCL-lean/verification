@@ -275,6 +275,9 @@ begin
     apply leading_term_sub_aux_zero,
 end
 
+lemma leading_term_sub_zero' {n} (a : fin n →₀ ℕ): Π (h : leading_term_le 0 a),
+    leading_term_sub a 0 h = a := sorry
+
 def le_aux : ∀ m < (n + 1), ((fin $ n + 1) →₀ ℕ) → ((fin $ n + 1) →₀ ℕ) → Prop
 | 0 h := λ a b, a ⟨0, h⟩ ≤ b ⟨0, h⟩
 | (m + 1) h := λ a b, a ⟨m + 1, h⟩ < b ⟨m + 1, h⟩ ∨ (a ⟨m + 1, h⟩ = b ⟨m + 1, h⟩ ∧ le_aux m (nat.lt_of_succ_lt h) a b)
