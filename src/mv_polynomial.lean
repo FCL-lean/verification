@@ -928,16 +928,6 @@ lemma sub_dec : Π (a b : mv_polynomial (fin n) α),
     end
 end
 
-lemma mul_X_support : ∀ {b : mv_polynomial (fin n) α} (k : fin n),
-    finset.sup ((X k) * b).support id = finset.sup ((X k : mv_polynomial (fin n) α).support) id
-                                    + (finset.sup b.support id) :=
-begin
-    intros,
-    unfold has_mul.mul X monomial,
-    unfold finsupp.sum,
-    generalize lem : (finsupp.single (finsupp.single k 1) 1).support = t,
-    rw [finsupp.single_support' (finsupp.single k 1)] at lem,
-end
 
 lemma sup_mul : ∀ (a b : mv_polynomial (fin n) α),
     a ≠ 0 → b ≠ 0 →
@@ -952,16 +942,24 @@ lemma sup_mul : ∀ (a b : mv_polynomial (fin n) α),
     finish,
 end
 lemma sup_single : ∀ {b : mv_polynomial (fin n) α} c d,
+    b ≠ 0 → finsupp.single c d ≠ 0 → d ≠ 0 →
     (finset.sup ((b * finsupp.single c d).support) id) = 
         (finset.sup b.support id) + c :=
 begin
-    intro b,
-    apply mv_polynomial.induction_on b; intros; try {simp},
-    sorry, sorry,
+    intros, rw [sup_mul, finsupp.single_support, finset.sup_singleton]; try {assumption},
+    simp,
 end
 
 lemma coeff_single : ∀ {a : mv_polynomial (fin n) α} b c,
-    (leading_coeff (a * finsupp.single b c)) = a.leading_coeff * c := sorry
+    (leading_coeff (a * finsupp.single b c)) = a.leading_coeff * c :=
+begin
+    intro a,
+    apply finsupp.induction a; intros,
+    sorry,
+    begin
+        rw mul_dist
+    end,
+end
 
 lemma sup_eq' : ∀ (a : fin n →₀ ℕ) (b: mv_polynomial (fin n) α) h,
     a = finset.sup (b.support) id + 
@@ -1049,12 +1047,14 @@ begin
     end,
 end
 
-lemma leading_term_eq {a b : mv_polynomial (fin n) α} (hb : b ≠ 0) (hab : leading_term_le b a) : 
+lemma leading_term_eq {a b : mv_polynomial (fin n) α} (ha : a ≠ 0) (hb : b ≠ 0) (hab : leading_term_le b a) : 
     a.leading_term = leading_term (b * finsupp.single (leading_term_sub' a b hab) 
                 (a.leading_coeff / b.leading_coeff)) :=
 begin
     unfold leading_term leading_monomial,
-    simp [sup_single, coeff_single, has_div.div, algebra.div],
+    have := @sup_single _ _ _ _ b (leading_term_sub' a b hab) (leading_coeff a / leading_coeff b) _ _ _,
+    rw this,
+    simp [coeff_single, has_div.div, algebra.div],
     apply finsupp.single_ext,
     by apply sup_eq,
     begin
@@ -1062,6 +1062,15 @@ begin
         rw [mul_comm (leading_coeff a), ←mul_assoc, discrete_field.mul_inv_cancel],
         by simp, assumption,
     end,
+    by assumption,
+    all_goals {
+        rw ←@not_zero_iff_leading_coeff_not_zero _ _ _ _ _ _ _ _ _ at ha hb; try {apply_instance},
+    },
+    rw finsupp.single_neqz,
+    all_goals {
+        apply division_ring.mul_ne_zero ha,
+        apply inv_ne_zero, assumption,
+    },
 end
 
 def reduction (a b : mv_polynomial (fin n) α) (h : leading_term_le b a) := 
@@ -1147,7 +1156,9 @@ begin
     end,
     begin
         apply sub_dec, apply leading_term_eq,
-        assumption, assumption,
+        have := leading_monomial_ne_zero_coeff a_2,
+        exact not_zero_iff_leading_coeff_not_zero.1 this, 
+        all_goals {assumption},
     end
 end
 

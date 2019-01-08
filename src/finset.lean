@@ -67,10 +67,22 @@ end,
 end⟩
 
 lemma singleton_non_mem_inter_empty [decidable_eq α] {s₁ : finset α} {a : α}:
-    a ∉ s₁ → s₁ ⊓ {a} = ∅ := sorry
+    a ∉ s₁ → s₁ ⊓ {a} = ∅ :=
+begin
+    intros; simp,
+    rw [eq_empty_iff_forall_not_mem],
+    from λ x xin, begin
+        rw [mem_inter, mem_singleton] at xin,
+        have : a ∈ s₁, from xin.2 ▸ xin.1,
+        exact a_1 this,
+    end,
+end
 
 lemma singleton_non_mem_inter_empty' [decidable_eq α] {s₁ : finset α} {a : α}:
-    a ∉ s₁ → {a} ⊓ s₁ = ∅ := sorry
+    a ∉ s₁ → {a} ⊓ s₁ = ∅ :=
+begin
+    intros, simp, apply singleton_non_mem_inter_empty a_1,
+end
 lemma subset_of_union_left [decidable_eq α] {s₁ s₂} (s₃ : finset α) (hs : s₁ ⊆ s₂) : 
 s₁ ⊆ s₂ ∪ s₃ := subset.trans hs (subset_union_left s₂ s₃)
 

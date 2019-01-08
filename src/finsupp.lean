@@ -85,6 +85,9 @@ def single_eqz : Π {a : α} {b : β}, single a b = 0 ↔ b = 0 :=
 end, 
 λ h, by simp [h]⟩
 
+def single_neqz : Π {a : α} {b : β}, single a b ≠ 0 ↔ b ≠ 0 :=
+    λ _ _, not_iff_not.2 single_eqz
+
 lemma single_support' : Π (a : α), (single a 1).support = {a} := by finish
 
 lemma single_support : ∀ {s : α} {a : β}, a ≠ 0 → (single s a).support = {s} := 
