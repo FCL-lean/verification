@@ -946,7 +946,10 @@ lemma sup_mul : ∀ (a b : mv_polynomial (fin n) α),
 λ a b p₁ p₂, begin
     apply @leading_monomial_of_mul _ _ _ _ _ _ _ _ _ _;
     try {apply_instance}, swap,
-    exact finsupp.fin_n.decidable_monomial_order.mono_order,
+    letI := (@finsupp.fin_n.decidable_monomial_order n).mono_order,
+    letI : is_monomial_order (fin n →₀ ℕ) (≤);
+            repeat { constructor <|> apply_instance <|> assumption },
+    finish,
 end
 lemma sup_single : ∀ {b : mv_polynomial (fin n) α} c d,
     (finset.sup ((b * finsupp.single c d).support) id) = 
@@ -967,7 +970,10 @@ lemma sup_eq' : ∀ (a : fin n →₀ ℕ) (b: mv_polynomial (fin n) α) h,
     revert a,
     apply finsupp.induction b; intros,
     begin
-        simp [_inst_2.zero_bot.symm], sorry,
+        simp [_inst_2.zero_bot.symm],
+        symmetry, 
+        have := finsupp.fin_n.leading_term_sub_lem a 0 h,
+        simp at this, apply this,
     end,
     begin
         revert h,
@@ -982,7 +988,10 @@ lemma sup_eq' : ∀ (a : fin n →₀ ℕ) (b: mv_polynomial (fin n) α) h,
         begin
             rw not_le at h,
             rw lattice.sup_of_le_left; intros,
-            sorry,
+            begin
+                symmetry, rw [add_comm],
+                apply finsupp.fin_n.leading_term_sub_lem,
+            end,
             begin
                 apply le_of_lt,
                 assumption,
