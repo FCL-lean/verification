@@ -1059,10 +1059,10 @@ lemma sup_mul : ∀ (a b : mv_polynomial (fin n) α),
 end
 
 lemma sup_add : ∀ (a b : mv_polynomial (fin n) α),
-    (finset.sup (a + b).support id) = 
-    finset.sup a.support id ⊔ finset.sup b.support id :=
-λ a b p₁ p₂, begin
-
+    disjoint a.support b.support → 
+    (finset.sup (a + b).support id) = finset.sup a.support id ⊔ finset.sup b.support id :=
+λ a b p₁, begin
+    rw [finsupp.support_add_eq p₁, finset.sup_union],
 end
 
 lemma sup_single : ∀ {b : mv_polynomial (fin n) α} c d,
@@ -1083,8 +1083,26 @@ begin
     begin
         rw right_distrib,
         unfold leading_coeff leading_monomial,
-        rw [←finsupp.coe_f, finsupp.add_apply],
+        rwcs [finsupp.add_apply, sup_add],
         by_cases a_1 ≤ f.support.sup id,
+        begin
+            by_cases h': f = 0,
+            begin
+                sorry,
+            end,
+            begin
+                unfold leading_coeff leading_monomial at a_4,
+                rwcs [lattice.sup_of_le_right, finsupp.add_apply, 
+                        a_4, sup_add, lattice.sup_of_le_left, finsupp.single_mul_single, 
+                        finsupp.single_apply, logic.ite_false', finsupp.single_apply,
+                        logic.ite_false'],
+            end,
+            
+        end,
+        begin
+            have le' := le_of_not_le h,
+
+        end,
     end,
 end
 
