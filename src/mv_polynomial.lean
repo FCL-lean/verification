@@ -941,6 +941,14 @@ lemma sup_mul : ∀ (a b : mv_polynomial (fin n) α),
             repeat { constructor <|> apply_instance <|> assumption },
     finish,
 end
+
+lemma sup_add : ∀ (a b : mv_polynomial (fin n) α),
+    (finset.sup (a + b).support id) = 
+    finset.sup a.support id ⊔ finset.sup b.support id :=
+λ a b p₁ p₂, begin
+
+end
+
 lemma sup_single : ∀ {b : mv_polynomial (fin n) α} c d,
     b ≠ 0 → finsupp.single c d ≠ 0 → d ≠ 0 →
     (finset.sup ((b * finsupp.single c d).support) id) = 
@@ -957,7 +965,10 @@ begin
     apply finsupp.induction a; intros,
     sorry,
     begin
-        rw mul_dist
+        rw right_distrib,
+        unfold leading_coeff leading_monomial,
+        rw [←finsupp.coe_f, finsupp.add_apply],
+        by_cases a_1 ≤ f.support.sup id,
     end,
 end
 
@@ -1163,7 +1174,7 @@ begin
 end
 
 
-lemma reduction_list_lem : ∀ (a b: mv_polynomial (fin n) α) m l (p: b ≠ 0) (p2: a.leading_monomial ≠ 0), 
+lemma reduction_list_aux_lem : ∀ (a b: mv_polynomial (fin n) α) m l (p: b ≠ 0) (p2: a.leading_monomial ≠ 0), 
     leading_monomial (reduction_list_aux (reduction a b m) l) < leading_monomial a :=
 begin
     intros a b m l, revert a b m,
@@ -1220,12 +1231,30 @@ begin
         assumption,
     end,
     begin
-        apply reduction_list_lem, 
+        apply reduction_list_aux_lem, 
         exact l_hd.snd,
         assumption
     end
 end
 
+lemma leading_monomiadl_neqz_of_ne_mv_const : ∀ b : mv_polynomial (fin n) α, 
+    ¬mv_is_const b → b.leading_monomial ≠ 0 :=
+begin
+    intros b b_ne_const lmz,
+    cases finset.sup_bot b.support lmz; clear lmz,
+    begin
+        rw finsupp.support_eq_empty at h,
+        rw h at b_ne_const,
+        apply b_ne_const,
+        have := const_mv_is_const (0: α),
+        rw C_0 at this, exact this,
+    end,
+    begin
+        apply b_ne_const,
+        have := const_of_support_singleton h,
+        cases this, simp [this_snd],
+    end,
+end
 include lt_wellfounded
 def reduction_list : Π (a : mv_polynomial (fin n) α) (l : list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0))
    , mv_polynomial (fin n) α
@@ -1234,13 +1263,102 @@ def reduction_list : Π (a : mv_polynomial (fin n) α) (l : list (Σ' (p: mv_pol
    in if h: r = a
     then r
     else if h': a.leading_monomial = 0 
-         then r
+         then a
          else have (reduction_list_aux a l).leading_monomial < a.leading_monomial,
          from reduction_list_aux_neq_lt a l h' h, 
          reduction_list r l
 using_well_founded 
 { rel_tac := λ _ _, `[exact ⟨_, inv_image.wf (λ a, a.1.leading_monomial) lt_wellfounded⟩] 
 , dec_tac := tactic.assumption }
+
+lemma reduction_list_lem_aux : Π (a : mv_polynomial (fin n) α) 
+    (l : list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0))
+    (b : mv_polynomial (fin n) α) 
+    (p: b ≠ 0)
+    (b_ne_const: ¬ mv_is_const b), psigma.mk b p ∈ l → 
+    reduction_list_aux a l = a → ¬ leading_term_le b a :=
+begin
+    intros, revert b p, induction l; intros,
+    by cases a_1,
+    begin
+        simp at a_1,
+        cases a_1;
+        unfold reduction_list_aux at a_2;
+        by_cases leading_term_le (l_hd.fst) a; simp [h] at a_2,
+        begin
+            begin
+                cases a_1,
+                by_cases h': a.leading_monomial = 0,
+                begin
+                    have eqz := leading_monomial_zero_of_le_zero h' h,
+                    have neqz : b.leading_monomial ≠ 0,
+                    by apply leading_monomiadl_neqz_of_ne_mv_const; assumption,
+                    exact false.elim (neqz eqz),
+                end,
+                begin
+                    have r_lt := reduction_list_aux_lem a b h l_tl p h',
+                    rw a_2 at r_lt, intro, 
+                    exact lt_irrefl _ r_lt,
+                end,
+            end,
+        end,
+        begin
+            cases a_1, assumption,
+        end,
+        begin
+            by_cases h': a.leading_monomial = 0,
+            begin
+                intro,
+                have eqz := leading_monomial_zero_of_le_zero h' a_3,
+                have neqz : b.leading_monomial ≠ 0,
+                by apply leading_monomiadl_neqz_of_ne_mv_const; assumption,
+                exact false.elim (neqz eqz),
+            end,
+            begin
+                have r_lt := reduction_list_aux_lem a l_hd.fst h l_tl l_hd.2 h',
+                rw a_2 at r_lt, intro, 
+                exact lt_irrefl _ r_lt,
+            end,
+        end,
+        begin
+            apply l_ih; assumption,
+        end,
+    end,
+end
+lemma reduction_list_lem : 
+    Π (a : mv_polynomial (fin n) α) 
+    (l : list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0)),
+    ∀ (b : mv_polynomial (fin n) α) 
+    (p: b ≠ 0)
+    (b_ne_const: ¬ mv_is_const b), psigma.mk b p ∈ l → 
+        ¬ leading_term_le b (reduction_list lt_wellfounded a l)
+| a l b p b_ne_const in_l :=
+begin
+    intros, unfold reduction_list,
+    by_cases reduction_list_aux a l = a; simp [h],
+    begin
+        apply reduction_list_lem_aux; assumption,
+    end,
+    begin
+        by_cases h': leading_monomial a = 0; simp [h'],
+        begin
+            intro ltle,
+            have : b.leading_monomial ≠ 0,
+            by apply leading_monomiadl_neqz_of_ne_mv_const; assumption,
+            have b_lmz := leading_monomial_zero_of_le_zero h' ltle,
+            exact this b_lmz,
+        end,
+        begin
+            let : (reduction_list_aux a l).leading_monomial < a.leading_monomial,
+            from reduction_list_aux_neq_lt a l h' h, 
+            exact reduction_list_lem (reduction_list_aux a l) l b p b_ne_const in_l,
+        end,
+    end,
+end
+using_well_founded 
+{ rel_tac := λ _ _, `[exact ⟨_, inv_image.wf (λ a, a.1.leading_monomial) lt_wellfounded⟩] 
+, dec_tac := tactic.assumption }
+
 
 end div
 
