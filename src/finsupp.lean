@@ -5,7 +5,7 @@ import fin
 import bot_zero
 import seq
 import finset
-
+import custom_tactic
 variables {α : Type*} {β : Type*} {γ : Type*} {δ : Type*} {ι : Type*}
 
 namespace finsupp
@@ -92,9 +92,9 @@ lemma single_support' : Π (a : α), (single a 1).support = {a} := by finish
 
 lemma single_support : ∀ {s : α} {a : β}, a ≠ 0 → (single s a).support = {s} := 
 λ s a ha, by simp [single, ha]
-
+/-
 lemma coe_f : Π (a : α →₀ β) (n : α), a n = a.to_fun n := λ a n, rfl
-
+-/
 lemma support_ne_empty (a : α →₀ β) : a ≠ 0 ↔ a.support ≠ ∅ := by finish
 
 lemma eq_zero_lem : ∀ {f : α → β} {l}, ({support := ∅, to_fun := f, mem_support_to_fun := l} : α →₀ β) = 0 :=
@@ -289,16 +289,15 @@ begin
     intros,
     induction m,
     begin
-        simp [coe_f, leading_term_sub_aux, single],
-        rw logic.ite_false', intro h',
+        rwcs [leading_term_sub_aux, single, logic.ite_false'],
+        intro h',
         have : 0 = t,
         from congr_arg (λ x : fin (n + 1), x.1) h',
         rw [←this] at h₃, cases h₃,
     end,
     begin
-        simp [coe_f, leading_term_sub_aux, single],
-        rw [←coe_f, add_apply],
-        simp [coe_f], constructor,
+        rwcs [leading_term_sub_aux, single, add_apply],
+        constructor,
         begin
             apply m_ih,
             exact nat.le_of_succ_le h₃,
@@ -319,15 +318,13 @@ begin
     intros, cases m; simp at *;
     cases n; try { by cases h₂ },
     begin
-        repeat { rw [coe_f] },
-        unfold leading_term_sub_aux single,
-        simp, 
+        rwcs [leading_term_sub_aux, single],
         have prf: ((0 : fin (n + 1)) = ⟨0, h₂⟩) := rfl,
-        rw [logic.ite_true' prf, ←coe_f, add_comm, nat.sub_add_cancel],
-        refl, apply h,
+        rwcs [logic.ite_true' prf, add_comm, nat.sub_add_cancel],
+        apply h,
     end,
     begin
-        rw [add_comm, coe_f],
+        rwc [add_comm, coe_f],
         unfold leading_term_sub_aux single; simp;
         rw [←coe_f, add_apply]; simp [coe_f],
         apply @eq.subst _ (λ x, b.to_fun ⟨nat.succ m, h₂⟩ +
