@@ -7,6 +7,8 @@ import noetherian
 import seq
 import bot_zero
 import field
+import ideal_linear
+
 variables {σ : Type*} {α : Type*} {β : Type*} {γ : Type*} {δ : Type*} {ι : Type*}
 
 namespace mv_polynomial
@@ -540,7 +542,65 @@ p ≠ 0 → b ≠ 0 → a ∉ p.support → leading_term (monomial a b) + leadin
     apply absurd (finset.mem_of_sup_id (λ h, hp (finsupp.support_eq_empty.1 h))) ha,
 end
 
+lemma add_support_subset_union (c : mv_polynomial σ α) (as : σ →₀ ℕ) {aa : α} (haa : aa ≠ 0) :
+ (finset.fold (+) 0 (λ (a : σ →₀ ℕ), finsupp.single (as + a) (mul_zero_class.mul (c.to_fun a) aa)) (c.support)).support 
+  ⊆ finset.fold (∪) (∅) (λ (a : σ →₀ ℕ), (finsupp.single (as + a) (mul_zero_class.mul (c.to_fun a) aa)).support) (c.support) :=
+begin
+    apply finsupp.induction c, simp,
+    intros a b f haf hb ih,
+    have h : (finsupp.single a b + f).support = insert a f.support,
+        have h' : (finsupp.single a b).support = {a}, simp [finsupp.single, hb],
+        rw [finset.insert_eq, ←h'],
+        apply finsupp.support_add_eq,
+        simp [finsupp.single, hb, finsupp.not_mem_support_iff.1 haf],
+    rw [h, finset.fold_insert haf], simp, 
+    apply finset.subset.trans finsupp.support_add,
+    have h_to_fun_eq : ∀ (x : σ →₀ ℕ) (hx : x ∈ f.support), f.to_fun x = (f + finsupp.single a b).to_fun x,
+            intros x hx,
+            have hax : a ≠ x, intro hax', rw hax' at haf, exact haf hx,
+            repeat {rw ←finsupp.coe_f}, simp, simp [finsupp.coe_f, finsupp.single], simp [hax],
+    have h_congr : ∀ (x : σ →₀ ℕ) (hx : x ∈ f.support), (λ x, finsupp.single (as + x) (mul_zero_class.mul (f.to_fun x) aa)) x =
+        (λ x, finsupp.single (as + x) (mul_zero_class.mul ((f + finsupp.single a b).to_fun x) aa)) x,
+        intros x hx, simp [h_to_fun_eq x hx],
+    have h_congr' : ∀ (x : σ →₀ ℕ) (hx : x ∈ f.support), (λ x, (finsupp.single (as + x) (mul_zero_class.mul (f.to_fun x) aa)).support) x =
+        (λ x, (finsupp.single (as + x) (mul_zero_class.mul ((f + finsupp.single a b).to_fun x) aa)).support) x,
+        intros x hx, simp [h_to_fun_eq x hx],
+    rw [finset.fold_congr h_congr, finset.fold_congr h_congr'] at ih,
+    apply finset.union_subset' (finset.subset.refl _) ih,
+end
+
 end comm_semiring
+
+section comm_ring
+variables [comm_ring α]
+
+lemma support_subset_of_linear_combination_union (s : finset (mv_polynomial σ α)) : 
+    ∀ (hs: s ≠ ∅) (p : mv_polynomial σ α) (hp₁ : p ∈ ideal.span (↑s : set (mv_polynomial σ α))),
+    ∃ (c : ((mv_polynomial σ α) →₀ (mv_polynomial σ α))), c.support ⊆ s ∧ p.support ⊆ s.fold (∪) (∅) (λ a, ((c.to_fun a) * a).support) :=
+begin
+    apply finset.induction_on s, finish,
+    intros a s' has' ih hs p hp,
+    rw [finset.coe_insert, ideal.mem_span_insert] at hp,
+    rcases hp with ⟨a', ⟨z, ⟨hz, hp⟩⟩⟩,
+    by_cases hs' : s' = ∅,
+    simp [hs', ideal.span] at hz, 
+    apply exists.intro (finsupp.single a a'),
+    rw [finset.fold_insert has', hp, hz, hs', ←finsupp.coe_f], simp [finsupp.single, finset.insert_eq], 
+    by_cases ha' : a' = 0; finish [ha'],
+    rcases ih hs' z hz with ⟨zc, ⟨hzc, hz'⟩⟩,
+    apply exists.intro (finsupp.single a a' + zc), 
+    simp,
+    have hzc_app : zc a = 0, rw [←finsupp.not_mem_support_iff], intro hazc, exact has' (hzc hazc),
+    
+    have h_congr : ∀ x ∈ s', (λ x, (zc.to_fun x * x).support) x = (λ x, ((zc + finsupp.single a a').to_fun x * x).support) x,
+        intros x hx, simp, repeat {rw [←finsupp.coe_f]}, simp [finsupp.single_apply, ne.symm (finset.ne_of_mem_and_not_mem hx has')],
+    
+    simp [(finset.fold_congr h_congr).symm, hzc_app, hp], split,
+    apply finset.subset.trans finsupp.support_add (finset.union_subset'_symm hzc finsupp.support_single_subset),
+    apply finset.subset.trans finsupp.support_add (finset.union_subset'_symm hz' (finset.subset.refl _)),
+end
+
+end comm_ring
 
 section integral_domain
 variables [integral_domain α] [is_monomial_order (σ →₀ ℕ) has_le.le]
@@ -802,6 +862,62 @@ lemma last_monomial_lt_not_mem_ideal (x : mv_polynomial σ α) (s : finset (mv_p
     (hs₂ : ∀ (p : mv_polynomial σ α) (h₁ : p ≠ 0) (h₂ : p ∈ s), ∃ ps pa, p = monomial ps pa ∧ last_monomial' p h₁ > last_monomial' x hx₁) : 
     x ∉ ideal.span (↑s : set (mv_polynomial σ α)) :=
 λ hx, by apply absurd (le_of_eq (by refl)) (not_le_of_gt $ last_monomial_lt_ideal_of_lt_finset x s hx₁ hx₂ hs₁ hs₂ x hx₁ hx)
+
+lemma mem_mul_support (p c a : mv_polynomial σ α) (hp : p ≠ 0 ∧ ∃ ps pa, monomial ps pa = p)
+(hp_sub : p.support ⊆ (c * a).support) (ha : a ≠ 0 ∧ ∃ as aa, monomial as aa = a) : 
+∀ x, p.leading_monomial x ≥ a.leading_monomial x :=
+begin
+    rcases hp with ⟨hp₁, ⟨ps, ⟨pa, hp₂⟩⟩⟩,
+    rcases ha with ⟨ha₁, ⟨as, ⟨aa, ha₂⟩⟩⟩,
+    have haa : aa ≠ 0, intro haa, simp [haa, monomial] at ha₂, exact ha₁ ha₂.symm,
+    have hpa : pa ≠ 0, intro hpa, simp [hpa, monomial] at hp₂, exact hp₁ hp₂.symm,
+    simp [finsupp.coe_f, hp₂.symm, ha₂.symm, leading_monomial, monomial, finsupp.single, haa, hpa],
+    rw [←(finset.singleton_eq_singleton ps), ←(finset.singleton_eq_singleton as), finset.sup_singleton, finset.sup_singleton],
+    simp [ha₂.symm] at hp_sub ⊢,
+    simp [monomial, finsupp.single, hpa] at hp₂,
+    simp [has_mul.mul, monomial, finsupp.single_sum' as haa] at hp_sub,
+    simp [finsupp.sum, finset.sum_eq_fold, hp₂.symm] at hp_sub,
+    have hp_sub' := finset.subset.trans hp_sub (add_support_subset_union c as haa),
+    rcases finset.mem_fold_union hp_sub' with ⟨b, ⟨hb, h⟩⟩,
+    have h_mul_nez : mul_zero_class.mul (c.to_fun b) aa ≠ 0,
+        apply mul_ne_zero _ haa,
+        rw ←finsupp.coe_f, exact finsupp.mem_support_iff.1 hb,
+    simp [finsupp.single, h_mul_nez, finset.subset_iff] at h,
+    intro x,
+    rw [h, ←finsupp.coe_f, ←finsupp.coe_f],
+    simp, 
+    apply nat.le_add_right,
+end
+
+lemma monomial_mem_ideal : ∀ (s : finset (mv_polynomial σ α)) 
+(hs₁ : s ≠ ∅) (hs₂ : ∀ (p : mv_polynomial σ α) (h₁ : p ∈ s), p ≠ 0 ∧ ∃ ps pa, monomial ps pa = p),
+∀ (p : mv_polynomial σ α) (hp : p ∈ ideal.span (↑s : set (mv_polynomial σ α))), (p ≠ 0 ∧ ∃ ps pa, monomial ps pa = p) → 
+    ∃ (q : mv_polynomial σ α) (hq : q ∈ s), ∀ x, q.leading_monomial x ≤ p.leading_monomial x :=
+λ s, begin
+    apply finset.case_strong_induction_on s, finish,
+    intros a s has ih hias hs' p hp₁ hp₂,
+    by_cases hs : s = ∅,
+    {
+        apply exists.intro a, simp [hs, finset.insert_eq, ideal.mem_span_singleton'] at *,
+        rcases hs' with ⟨ha₁, ⟨as, ⟨aa, ha₂⟩⟩⟩,
+        cases hp₁ with a' hp₁,
+        have ha' : a' ≠ 0, intro ha', simp [ha'] at hp₁, apply hp₂.left hp₁.symm,
+        rw [←hp₁, leading_monomial_of_mul (and.intro ha' ha₁)],
+        simp,
+    },
+    let hp₂' := hp₂,
+    rcases hp₂ with ⟨hp₂, ⟨ps, ⟨pa, hp₃⟩⟩⟩,
+    have hpa : pa ≠ 0, intro hpa', simp [hpa', monomial] at hp₃, exact hp₂ hp₃.symm,
+    have hp₄ : p.support = {ps},
+        simp [hp₃.symm, monomial, finsupp.single, hpa],
+    rcases support_subset_of_linear_combination_union (insert a s) hias p hp₁ with ⟨c, ⟨hc, h⟩⟩,
+    rw [hp₄] at h,
+    rcases finset.mem_fold_union h with ⟨q, ⟨hq, h'⟩⟩,
+    apply exists.intro q, apply exists.intro hq,
+    have hq' := hs' q hq,
+    apply mem_mul_support p (c.to_fun q) q hp₂' _ hq',
+    simp [hp₄], apply h',
+end
 
 end integral_domain
 

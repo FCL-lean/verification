@@ -47,6 +47,9 @@ end nat
 section general
 parameters {α : Type*}
 
+lemma ne_of_mem_and_not_mem {s : finset α} {a b : α} (ha : a ∈ s) (hb : b ∉ s) : a ≠ b :=
+λ h, by rw h at ha; exact hb ha
+
 @[simp] lemma coe_to_set {s : finset α} : s.to_set = ↑s := rfl
 
 lemma ne_empty_iff_exists_mem {s : finset α} : s ≠ ∅ ↔ ∃ x, x ∈ s :=
@@ -95,6 +98,15 @@ s₁ ∪ s₃ ⊆ s₂ ∪ s₄ := union_subset (subset_of_union_left s₄ h₁)
 lemma union_subset'_symm [decidable_eq α] {s₁ s₂ s₃ s₄ : finset α} (h₁ : s₁ ⊆ s₄) (h₂ : s₃ ⊆ s₂) :
 s₁ ∪ s₃ ⊆ s₂ ∪ s₄ := union_subset (subset_of_union_right s₂ h₁) (subset_of_union_left s₄ h₂)
 
+lemma mem_fold_union {β : Type*} [decidable_eq α] [decidable_eq β] {s : finset α} {a : β} {f : α → finset β} : 
+    {a} ⊆ s.fold (∪) ∅ f → ∃ b ∈ s, {a} ⊆ f b :=
+begin
+    apply finset.induction_on s, finish [subset_empty],
+    intros a' s' has' ih ha,
+    simp [subset_iff] at ha ih ⊢,
+    cases ha, apply exists.intro a', simp [ha],
+    cases ih ha, apply exists.intro w, finish,
+end
 
 section min 
 section decidable_linear_order
