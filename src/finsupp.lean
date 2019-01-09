@@ -324,9 +324,7 @@ begin
         apply h,
     end,
     begin
-        rwc [add_comm, coe_f],
-        unfold leading_term_sub_aux single; simp;
-        rw [←coe_f, add_apply]; simp [coe_f],
+        rwcs [add_comm, leading_term_sub_aux, single, add_apply],
         apply @eq.subst _ (λ x, b.to_fun ⟨nat.succ m, h₂⟩ +
             (x + (a.to_fun ⟨nat.succ m, h₂⟩ - b.to_fun ⟨nat.succ m, h₂⟩)) =
                 a.to_fun ⟨nat.succ m, h₂⟩) _ _ 
@@ -371,9 +369,8 @@ begin
             have IH := m_ih (nat.le_of_succ_le h₂) le_prf,
             cases n, cases h₂,
             simp [leading_term_sub_aux, single],
-            repeat { rw [←coe_f] }, rw [add_apply],
-            simp [coe_f], rw [logic.ite_false'],
-            rw add_comm, assumption,
+            rwcs [add_apply, logic.ite_false', add_comm], 
+            simp at IH, assumption,
             intro, 
             have : nat.succ m_n = t,
             from congr_arg (λ (x : fin (n + 1)), x.1) a_1,
