@@ -85,6 +85,9 @@ def single_eqz : Π {a : α} {b : β}, single a b = 0 ↔ b = 0 :=
 end, 
 λ h, by simp [h]⟩
 
+def single_neqz : Π {a : α} {b : β}, single a b ≠ 0 ↔ b ≠ 0 :=
+    λ _ _, not_iff_not.2 single_eqz
+
 lemma single_support' : Π (a : α), (single a 1).support = {a} := by finish
 
 lemma single_support : ∀ {s : α} {a : β}, a ≠ 0 → (single s a).support = {s} := 
@@ -255,7 +258,7 @@ def leading_term_sub_aux : Π {n : ℕ} (a b: fin n →₀ ℕ),
 | 0 a b prf m prf2 := 0
 | (nat.succ n) a b prf 0 prf2 := single 0 (a ⟨0, prf2⟩ - b ⟨0, prf2⟩)
 | (nat.succ n) a b prf (nat.succ m) prf2 
-    := single (nat.succ m) (a ⟨nat.succ m, prf2⟩ - b ⟨nat.succ m, prf2⟩) 
+    := single ⟨nat.succ m, prf2⟩ (a ⟨nat.succ m, prf2⟩ - b ⟨nat.succ m, prf2⟩) 
        + leading_term_sub_aux a b prf m (nat.lt_of_succ_lt prf2)
 
 def leading_term_sub : Π {n} (a b: fin n →₀ ℕ), leading_term_le b a → (fin n →₀ ℕ)
@@ -278,8 +281,122 @@ begin
     apply leading_term_sub_aux_zero,
 end
 
-lemma leading_term_sub_zero' {n} (a : fin n →₀ ℕ): Π (h : leading_term_le 0 a),
-    leading_term_sub a 0 h = a := sorry
+lemma leading_term_sub_lem_aux_gen {n} (a b: fin (n + 1) →₀ ℕ):
+    Π (h : ∀ x, b x ≤ a x) (m : ℕ) (h₂ : m < n + 1), ∀ t (h₃: t > m) (h₄: t < n + 1),
+    leading_term_sub_aux a b h m h₂
+        ⟨t, h₄⟩ = 0 :=
+begin
+    intros,
+    induction m,
+    begin
+        simp [coe_f, leading_term_sub_aux, single],
+        rw logic.ite_false', intro h',
+        have : 0 = t,
+        from congr_arg (λ x : fin (n + 1), x.1) h',
+        rw [←this] at h₃, cases h₃,
+    end,
+    begin
+        simp [coe_f, leading_term_sub_aux, single],
+        rw [←coe_f, add_apply],
+        simp [coe_f], constructor,
+        begin
+            apply m_ih,
+            exact nat.le_of_succ_le h₃,
+        end,
+        begin
+            rw logic.ite_false',
+            intro h', 
+            have : nat.succ m_n = t,
+            from congr_arg (λ x : fin (n + 1), x.1) h',
+            rw this at h₃, apply nat.lt_irrefl _ h₃,
+        end,
+    end,
+end
+lemma leading_term_sub_lem_aux' {n} (a b: fin n →₀ ℕ):
+    Π (h : ∀ x, b x ≤ a x) (m: ℕ) (h₂ : m < n),
+    leading_term_sub_aux a b h m h₂ ⟨m, h₂⟩ + b ⟨m, h₂⟩ = a ⟨m, h₂⟩ :=
+begin
+    intros, cases m; simp at *;
+    cases n; try { by cases h₂ },
+    begin
+        repeat { rw [coe_f] },
+        unfold leading_term_sub_aux single,
+        simp, 
+        have prf: ((0 : fin (n + 1)) = ⟨0, h₂⟩) := rfl,
+        rw [logic.ite_true' prf, ←coe_f, add_comm, nat.sub_add_cancel],
+        refl, apply h,
+    end,
+    begin
+        rw [add_comm, coe_f],
+        unfold leading_term_sub_aux single; simp;
+        rw [←coe_f, add_apply]; simp [coe_f],
+        apply @eq.subst _ (λ x, b.to_fun ⟨nat.succ m, h₂⟩ +
+            (x + (a.to_fun ⟨nat.succ m, h₂⟩ - b.to_fun ⟨nat.succ m, h₂⟩)) =
+                a.to_fun ⟨nat.succ m, h₂⟩) _ _ 
+            (leading_term_sub_lem_aux_gen a b h m 
+                (nat.le_of_succ_le h₂) (nat.succ m) (by constructor) h₂).symm,
+        simp; rw [add_comm, nat.sub_add_cancel],
+        apply h,
+    end,
+end
+
+lemma leading_term_sub_lem_aux {n} (a b: fin n →₀ ℕ):
+    Π (h : ∀ x, b x ≤ a x) (m: ℕ) (h₂ : m < n), ∀ t (h₃: t ≤ m),
+    leading_term_sub_aux a b h m h₂ ⟨t, nat.lt_of_le_of_lt h₃ h₂⟩ 
+    + b ⟨t, nat.lt_of_le_of_lt h₃ h₂⟩ 
+        = a ⟨t, nat.lt_of_le_of_lt h₃ h₂⟩ :=
+begin
+    intros, 
+    induction m,
+    begin
+        cases h₃; cases n, cases h₂,
+        simp [coe_f, leading_term_sub_aux, single],
+        rw logic.ite_true',
+        begin
+            rw [add_comm, nat.sub_add_cancel],
+            apply h,
+        end,
+        begin
+            refl,
+        end,
+    end,
+    begin
+        simp [coe_f, leading_term_sub_aux, single, add_apply],
+        by_cases eq_prf: t = nat.succ m_n,
+        begin
+            have lt_prf := nat.lt_of_le_of_lt h₃ h₂,
+            change b.to_fun ⟨t, lt_prf⟩ + (leading_term_sub_aux a b h (nat.succ m_n) h₂).to_fun ⟨t, lt_prf⟩ = a.to_fun ⟨t, lt_prf⟩,
+            revert lt_prf, rw [eq_prf], intro, rw [add_comm],
+            apply leading_term_sub_lem_aux',
+        end,
+        begin
+            have le_prf := nat.le_of_succ_le_succ (nat.lt_of_le_and_ne h₃ eq_prf),
+            have IH := m_ih (nat.le_of_succ_le h₂) le_prf,
+            cases n, cases h₂,
+            simp [leading_term_sub_aux, single],
+            repeat { rw [←coe_f] }, rw [add_apply],
+            simp [coe_f], rw [logic.ite_false'],
+            rw add_comm, assumption,
+            intro, 
+            have : nat.succ m_n = t,
+            from congr_arg (λ (x : fin (n + 1)), x.1) a_1,
+            exact absurd this.symm eq_prf,
+        end,
+    end,
+    
+
+end
+
+lemma leading_term_sub_lem {n} (a b: fin n →₀ ℕ): Π (h : leading_term_le b a),
+    leading_term_sub a b h + b = a :=
+begin
+    intro, apply finsupp.ext,
+    intros, simp [coe_f, add_apply],
+    rw [←(fin.eta a_1 a_1.2)], repeat { rw [←coe_f] }, rw [add_comm],
+    cases n, cases a_1, cases a_1_is_lt,
+    rw [coe_f, leading_term_sub, ←coe_f],
+    apply leading_term_sub_lem_aux, exact nat.le_of_succ_le_succ a_1.2,
+end
 
 def le_aux : ∀ m < (n + 1), ((fin $ n + 1) →₀ ℕ) → ((fin $ n + 1) →₀ ℕ) → Prop
 | 0 h := λ a b, a ⟨0, h⟩ ≤ b ⟨0, h⟩
