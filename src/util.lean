@@ -251,6 +251,21 @@ begin
     apply l_ih,
 end
 
+set_option trace.simplify.rewrite true
+lemma cons_iff_ne_nil : ∀ (l : list α), l ≠ [] ↔ ∃ hd tl, l = hd :: tl
+| [] := ⟨λ h, by finish, λ h, by finish⟩
+| (hd :: tl) := ⟨λ h, begin refine ⟨hd, ⟨tl, _⟩⟩, refl, end, 
+    λ h, by simp⟩
+
+lemma exists_mem_iff_ne_nil : ∀ (l : list α), l ≠ [] ↔ ∃ a, a ∈ l :=
+λ l, begin
+    rw [cons_iff_ne_nil], split; intro h,
+    rcases h with ⟨hd, ⟨tl, h⟩⟩, use hd, simp [h],
+    rw ←cons_iff_ne_nil,
+    cases h,
+    apply ne_nil_of_mem h_h,
+end
+
 end list
 
 namespace set
