@@ -1398,7 +1398,7 @@ def reduction_list : Π (a : mv_polynomial (fin n) α) (l : list (Σ' (p: mv_pol
    in if h: r = a
     then r
     else if h': a.leading_monomial = 0 
-         then a
+         then 0
          else have (reduction_list_aux a l).leading_monomial < a.leading_monomial,
          from reduction_list_aux_neq_lt a l h' h, 
          reduction_list r l
@@ -1480,8 +1480,9 @@ begin
             intro ltle,
             have : b.leading_monomial ≠ 0,
             by apply leading_monomiadl_neqz_of_ne_mv_const; assumption,
-            have b_lmz := leading_monomial_zero_of_le_zero h' ltle,
-            exact this b_lmz,
+            have this' : b.leading_monomial = 0,
+            from finsupp.fin_n.leading_term_le_antisymm ltle (finsupp.fin_n.leading_term_le_zero b.leading_monomial),
+            exact this this',
         end,
         begin
             let : (reduction_list_aux a l).leading_monomial < a.leading_monomial,
