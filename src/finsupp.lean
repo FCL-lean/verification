@@ -119,6 +119,7 @@ lemma ext_lem {a b : α →₀ β} : a = b ↔ ∀ x, a x = b x := ⟨λ h, by f
 lemma single_sum' {γ : Type*} [add_comm_monoid γ] (a : α) {b : β} (hb : b ≠ 0) (f : α → β → γ) : 
 (single a b).sum f = f a b := by simp [sum, single, hb, coe_f]
 
+
 section min
 variables [decidable_linear_order α]
 
