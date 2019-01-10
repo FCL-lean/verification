@@ -1509,49 +1509,48 @@ lemma zero_reduction_list_aux : ∀ (l : list (Σ' (p: mv_polynomial (fin n) α)
     by_cases h : leading_term_le (hd.fst) 0;
     simp [h, reduction_list_aux, reduction],
     by_cases h_hd : mv_is_const hd.fst;
-    simp [h_hd], any_goals {apply zero_reduction_list_aux tl},
+    simp [h_hd], swap, 
     have h_0 : leading_coeff (0 : mv_polynomial (fin n) α) = 0, apply zero_iff_leading_coeff_zero.2, refl, repeat {apply_instance},
     have h_hdc : hd.fst.leading_coeff ≠ 0, apply not_zero_iff_leading_coeff_not_zero.2 (nzero_of_ne_mv_is_const h_hd),
     simp [(div_eq_zero_iff h_hdc).2 h_0, monomial],
-    have h : -(hd.fst * 0) = 0, simp,
-    simp [h],
-    --rw [neg_mul_eq_neg_mul, mul_zero (-hd.fst)],
+    generalize hk : -(hd.fst * 0) = k, simp at hk,
+    rw ←hk, all_goals {apply zero_reduction_list_aux tl},
 end
 
-lemma reduction_list_aux_all_const : ∀ (l : list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0)) (a : mv_polynomial (fin n) α),
-    l ≠ [] → (mv_is_const a) → (∃ x : (Σ' (p: mv_polynomial (fin n) α), p ≠ 0), x ∈ l ∧ mv_is_const x.1) 
+lemma zero_reduction_list : ∀ (l : list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0)), reduction_list lt_wellfounded 0 l = 0
+| [] := by unfold reduction_list; simp [reduction_list_aux]
+| (hd :: tl) := begin
+    unfold reduction_list, simp [zero_reduction_list_aux lt_wellfounded (list.cons hd tl)],
+end
+
+lemma reduction_list_aux_exists_const : ∀ (l : list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0)) (a : mv_polynomial (fin n) α),
+    l ≠ [] → (∃ x : (Σ' (p: mv_polynomial (fin n) α), p ≠ 0), x ∈ l ∧ mv_is_const x.1) 
     → reduction_list_aux a l = 0 :=
 λ l, begin
     induction l, finish,
-    intros a _ ha hl,
+    intros a _ hl,
     simp [reduction_list_aux],
-    rcases hl with ⟨x, ⟨hxl, hx⟩⟩, 
-    have h_c_le : ∀ {x y : mv_polynomial (fin n) α}, mv_is_const x → mv_is_const y → leading_term_le x y,
-        intros x y hx hy, 
+    rcases hl with ⟨x, ⟨⟨hxl, hxl⟩, hx⟩⟩,
+    have h_le : leading_term_le (l_hd.fst) a,
         have hx' := eq_mv_is_const hx, cases hx' with x' hx',
-        have hy' := eq_mv_is_const hy, cases hy' with y' hy',
-        simp [hx', hy', leading_term_le, finsupp.leading_term_le, const_leading_monomial, fintype.fintype_fold_and_iff],
-    simp [h_c_le hx ha, reduction, hx],
-    
-    /-
-    have ha' := eq_mv_is_const ha, cases ha' with a' ha',
-    have h_hd' := eq_mv_is_const (hl l_hd (by simp)), cases h_hd' with hd' h_hd',
-    have h : leading_term_le l_hd.fst a,
-        simp [ha', h_hd', leading_term_le, finsupp.leading_term_le, const_leading_monomial, fintype.fintype_fold_and_iff],
-    simp [h, reduction, hl l_hd (by simp)],
-    have h_0 : mv_is_const (0 : mv_polynomial (fin n) α), apply eq_mv_is_const', use 0, simp,
-    cases l_tl, simp [reduction_list_aux],
-    apply l_ih 0 (by simp) h_0 (λ x hx, hl x (by simp [hx])),-/
+        simp [hx', leading_term_le, finsupp.leading_term_le, const_leading_monomial, fintype.fintype_fold_and_iff],
+    simp [h_le, reduction, hx],
+    apply zero_reduction_list_aux lt_wellfounded,
+    by_cases h_le : leading_term_le (l_hd.fst) a;
+    simp [h_le]; apply l_ih _ (list.ne_nil_of_mem hl_h_left);
+    refine ⟨x, ⟨hl_h_left, hx⟩⟩,
 end
 
-lemma reduction_list_all_const : ∀ (l : list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0)) (a : mv_polynomial (fin n) α),
-    l ≠ [] → (mv_is_const a) → (∀ x : (Σ' (p: mv_polynomial (fin n) α), p ≠ 0), x ∈ l → mv_is_const x.1) 
-    → reduction_list lt_wellfounded a l = a
+lemma reduction_list_exists_const : ∀ (l : list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0)) (a : mv_polynomial (fin n) α),
+    l ≠ [] → (∃ x : (Σ' (p: mv_polynomial (fin n) α), p ≠ 0), x ∈ l ∧ mv_is_const x.1) 
+    → reduction_list lt_wellfounded a l = 0
 | [] := by simp
-| (hd :: tl) := λ a _ ha hl, begin
-    unfold reduction_list, simp [reduction_list_aux_all_const lt_wellfounded (list.cons hd tl) a _x ha hl],
-    by_cases ha' : 0 = a;
-    simp [ha', leading_monomial_eq_zero_of_const ha],
+| (hd :: tl) := λ a _ hl, begin
+    unfold reduction_list, 
+    simp [reduction_list_aux_exists_const lt_wellfounded (list.cons hd tl) a _x hl],
+    by_cases ha' : 0 = a; simp [ha'],
+    by_cases hla : leading_monomial a = 0; simp [hla],
+    apply zero_reduction_list,
 end
 
 end div
@@ -1618,27 +1617,31 @@ def buch_one_step (s : list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0)) :=
     buch_div_result lt_wellfounded s $ filter_non_zero $ buch_s_polys $ buch_pairs s
 
 lemma buch_one_step_not_mem_span : ∀ (s s_poly : list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0))
-(h : buch_div_result lt_wellfounded s s_poly ≠ s), ∃ a : (Σ' (p: mv_polynomial (fin n) α), p ≠ 0),
+(h : buch_div_result lt_wellfounded s s_poly ≠ s) 
+(hs : ∀ a : (Σ' (p: mv_polynomial (fin n) α), p ≠ 0), a ∈ s → ¬ mv_is_const a.1),
+∃ a : (Σ' (p: mv_polynomial (fin n) α), p ≠ 0),
     a ∈ buch_div_result lt_wellfounded s s_poly ∧ a.fst ∉ non_zero_poly_to_ideal s
 | _ [] := by simp [buch_div_result]
-| [] (hd :: tl) := λ h, begin
+| [] (hd :: tl) := λ h hs, begin
     rw list.exists_mem_iff_ne_nil at h,
     cases h with a ha,
     use a, apply and.intro ha,
     simp [non_zero_poly_to_ideal, buch_pairs, buch_s_polys, filter_non_zero, buch_div_result, ideal.span],
     exact a.snd,
 end
-| (hd :: tl) (hd' :: tl') := λ hb, begin
+| (hd :: tl) (hd' :: tl') := λ hb hs, begin
     have ih := buch_one_step_not_mem_span (hd :: tl) tl',
     by_cases H : reduction_list lt_wellfounded hd'.fst (hd :: tl) ∉ list.map psigma.fst (hd :: tl);
-    simp [buch_div_result, list.foldl_cons, -list.mem_map, -list.map.equations._eqn_2, H] at hb ⊢ ih,
+    simp [buch_div_result, list.foldl_cons, -list.mem_map, -list.map.equations._eqn_2, H, -list.forall_mem_cons'] at hb ⊢ ih,
     by_cases h_red : reduction_list lt_wellfounded (hd'.fst) (hd :: tl) = 0;
-    simp [h_red] at hb ⊢ ih, any_goals {apply ih hb}, clear ih,
+    simp [h_red, -list.forall_mem_cons'] at hb ⊢ ih, apply ih hb (λ a ha, hs a (by simp [ha])), 
+    clear ih,
     use ⟨reduction_list lt_wellfounded (hd'.fst) (hd :: tl), h_red⟩,
     split, sorry,
-    by_cases h_cl : ∀ a : (Σ' (p: mv_polynomial (fin n) α), p ≠ 0), a ∈ (list.cons hd tl) → mv_is_const a.1,
+    have h := reduction_list_lem hd'.fst (hd :: tl),
+    /-by_cases h_cl : ∀ a : (Σ' (p: mv_polynomial (fin n) α), p ≠ 0), a ∈ (list.cons hd tl) → mv_is_const a.1,
         by_cases h_hd : mv_is_const hd'.fst,
-        --apply absurd (reduction_list_all_const lt_wellfounded (list.cons hd tl) hd'.fst (by simp) h_hd h_cl) h_red,
+        --apply absurd (reduction_list_all_const lt_wellfounded (list.cons hd tl) hd'.fst (by simp) h_hd h_cl) h_red,-/
 end
 
 lemma ideal_increase : ∀ (s : list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0)) (h : buch_one_step lt_wellfounded s ≠ s),
