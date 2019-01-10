@@ -1076,25 +1076,109 @@ end
 
 lemma coeff_single : ∀ {a : mv_polynomial (fin n) α} b c,
     (leading_coeff (a * finsupp.single b c)) = a.leading_coeff * c :=
-λ a b c, begin
-    by_cases hc : c = 0,
-    simp [hc, zero_iff_leading_coeff_zero], 
-    generalize ha : a * 0 = k, 
-    simp at ha, finish,
-    by_cases ha : a = 0,
-    simp [ha],
-    generalize hc' : 0 * c = k,
-    simp at hc', finish,
-    change leading_coeff (a * monomial b c) = leading_coeff a * c,
-    letI := @finsupp.fin_n.decidable_monomial_order n,
-    have inst : is_monomial_order (fin n →₀ ℕ) (≤),
-        constructor, apply _inst.mono_order,
-    simp [leading_coeff, leading_monomial_of_mul (and.intro ha (monomial_ne_zero_lem b hc)),
-        (leading_monomial_eq b hc).symm, -add_comm],
-    simp [has_mul.mul, monomial, finsupp.single_sum' b hc, -add_comm],
-    rwc [←finsupp.coe_f], 
-    simp [finsupp.sum_apply, finsupp.single_apply, -add_comm],
-    
+begin
+    intro a,
+    haveI : is_monomial_order ((fin n) →₀ ℕ) (≤) :=
+    by constructor; apply finsupp.fin_n.decidable_monomial_order.mono_order,
+
+    apply finsupp.induction a; intros,
+    begin
+        sorry,
+    end,
+    begin
+        rw right_distrib,
+        unfold leading_coeff leading_monomial,
+        by_cases ceq: c = 0,
+        begin
+            simp [ceq],
+            letI : ring ((fin n →₀ ℕ) →₀ α) := mv_polynomial.ring,
+            apply @eq.subst _ (λ x, (x + finsupp.single a_1 b * 0).to_fun (finset.sup 
+                    ((x + finsupp.single a_1 b * 0).support) id) = 0) _ _ (ring.mul_zero f).symm,
+            apply @eq.subst _ (λ (x : mv_polynomial (fin n) α), (0 + x).to_fun 
+                    (finset.sup ((0 + x).support) id) = 0) _ _ (ring.mul_zero (finsupp.single a_1 b)).symm,
+            apply @eq.subst _ (λ (x : mv_polynomial (fin n) α), x.to_fun (finset.sup (x.support) id) = 0) _ _ (ring.add_zero 0).symm,
+            apply @finsupp.zero_apply (fin n →₀ ℕ) α _ 0,
+        end,
+        begin
+            rwcs [finsupp.add_apply, sup_add],
+            by_cases a_1 ≤ f.support.sup id,
+            begin
+                by_cases h': f = 0,
+                begin
+                    sorry,
+                end,
+                begin
+                    unfold leading_coeff leading_monomial at a_4,
+                    have h'' := (finsupp.support_ne_empty f).1 h',
+                    have mem_sup := finset.mem_of_sup_id h'',
+
+                    rwcs [lattice.sup_of_le_right, finsupp.add_apply, 
+                            a_4, sup_add, lattice.sup_of_le_left, finsupp.single_mul_single, 
+                            finsupp.single_apply, logic.ite_false', finsupp.single_apply,
+                            logic.ite_false']; try {assumption},
+                    begin
+                        intro,
+                        exact a_2 (a_5.symm ▸ mem_sup),
+                    end,
+                    begin
+                        change ¬a_1 + b_1 = ((f * monomial b_1 c) : mv_polynomial (fin n) α).leading_monomial,
+                        rw @leading_monomial_of_mul_m_right _ _ _ _ _ _ _ _ _ _; try {assumption}; try {apply_instance},
+                        begin
+                            intro,
+                            rw finsupp.nat.add_right_cancel at a_5,
+                            unfold leading_monomial at a_5,
+                            exact a_2 (a_5.symm ▸ mem_sup),
+                        end,
+                    end,
+                    begin
+                        rw [finsupp.single_support, finset.sup_singleton];
+                        assumption,
+                    end,
+                    begin
+                        rw [disjoint, finsupp.single_support, finset.singleton_non_mem_inter_empty]; simp *,
+                    end,
+                    begin
+                        change ((finsupp.single a_1 b * finsupp.single b_1 c) : mv_polynomial (fin n) α).support.sup id ≤
+                            ((f * monomial b_1 c) : mv_polynomial (fin n) α).leading_monomial,
+                        rw [finsupp.single_mul_single, @leading_monomial_of_mul_m_right _ _ _ _ _ _ _ _ _ _, 
+                            finsupp.single_support, finset.sup_singleton, id]; try {assumption}; try {apply_instance},
+                        apply finsupp.fin_n.decidable_monomial_order.mono_order; assumption,
+                        simp [a_3, ceq],
+                    end,
+                end,
+            end,
+            begin
+                replace h := le_of_not_le h,
+                by_cases h': f = 0,
+                begin sorry, end,
+                begin
+                    unfold leading_coeff leading_monomial at a_4,
+                    have h'' := (finsupp.support_ne_empty f).1 h',
+                    have mem_sup := finset.mem_of_sup_id h'',
+
+                    rwcs [lattice.sup_of_le_left, finsupp.add_apply, finsupp.single_mul_single,
+                            finsupp.single_apply, sup_add, lattice.sup_of_le_right, finsupp.single_apply,
+                            finsupp.single_support, finset.sup_singleton, finsupp.single_support, finset.sup_singleton]; 
+                            try { simp [*, finsupp.single_support, finset.sup_singleton] };
+                            try { assumption }, 
+                    rw [ring.right_distrib],
+                    apply congr_arg (λ x, b * c + x),
+                    rwcs [finsupp.not_mem_support_iff.1], symmetry,
+                    apply mul_eq_zero_iff_eq_zero_or_eq_zero.2, left,
+                    apply finsupp.not_mem_support_iff.1 a_2,
+                    sorry,
+                    rw [←finset.singleton_eq_singleton, finset.sup_singleton], assumption,
+                    change ((f * monomial b_1 c) : mv_polynomial (fin n) α).leading_monomial ≤
+                        finset.sup ((finsupp.single a_1 b * finsupp.single b_1 c).support) id,
+                    rw @leading_monomial_of_mul_m_right _ _ _ _ _ _ _ _ _ _; try {assumption}; try {apply_instance},
+                    rw [finsupp.single_mul_single, finsupp.single_support, finset.sup_singleton],
+                    apply finsupp.fin_n.decidable_monomial_order.mono_order, assumption,
+                    simp [a_3, ceq],
+                end,
+            end,
+            sorry,
+        end,
+    end,
 end
 
 lemma sup_eq' : ∀ (a : fin n →₀ ℕ) (b: mv_polynomial (fin n) α) h,
