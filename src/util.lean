@@ -231,6 +231,14 @@ begin
     simp at h', assumption,
 end
 
+lemma subset_to_finset {l₁ l₂ : list α} : l₁ ⊆ l₂ ↔ l₁.to_finset ⊆ l₂.to_finset :=
+begin
+    apply iff.intro; unfold has_subset.subset list.subset;
+    intros h a ha, 
+    rw mem_to_finset at *, exact h ha,
+    rw ←mem_to_finset at *, exact h ha,
+end
+
 lemma subset_to_set {l₁ l₂ : list α} : l₁ ⊆ l₂ ↔ l₁.to_finset.to_set ⊆ l₂.to_finset.to_set :=
 begin
     apply iff.intro; unfold has_subset.subset list.subset set.subset;
