@@ -1083,25 +1083,67 @@ begin
     begin
         rw right_distrib,
         unfold leading_coeff leading_monomial,
-        rwcs [finsupp.add_apply, sup_add],
-        by_cases a_1 ≤ f.support.sup id,
+        by_cases ceq: c = 0,
         begin
-            by_cases h': f = 0,
-            begin
-                sorry,
-            end,
-            begin
-                unfold leading_coeff leading_monomial at a_4,
-                rwcs [lattice.sup_of_le_right, finsupp.add_apply, 
-                        a_4, sup_add, lattice.sup_of_le_left, finsupp.single_mul_single, 
-                        finsupp.single_apply, logic.ite_false', finsupp.single_apply,
-                        logic.ite_false'],
-            end,
-            
+            simp [ceq],
+            sorry,
         end,
         begin
-            have le' := le_of_not_le h,
+            rwcs [finsupp.add_apply, sup_add],
+            by_cases a_1 ≤ f.support.sup id,
+            begin
+                by_cases h': f = 0,
+                begin
+                    sorry,
+                end,
+                begin
+                    unfold leading_coeff leading_monomial at a_4,
+                    have h'' := (finsupp.support_ne_empty f).1 h',
+                    have mem_sup := finset.mem_of_sup_id h'',
 
+                    rwcs [lattice.sup_of_le_right, finsupp.add_apply, 
+                            a_4, sup_add, lattice.sup_of_le_left, finsupp.single_mul_single, 
+                            finsupp.single_apply, logic.ite_false', finsupp.single_apply,
+                            logic.ite_false']; try {assumption},
+                    begin
+                        intro,
+                        exact a_2 (a_5.symm ▸ mem_sup),
+                    end,
+                    begin
+                        haveI : is_monomial_order ((fin n) →₀ ℕ) (≤) :=
+                            by constructor; apply finsupp.fin_n.decidable_monomial_order.mono_order,
+                        change ¬a_1 + b_1 = ((f * monomial b_1 c) : mv_polynomial (fin n) α).leading_monomial,
+                        rw @leading_monomial_of_mul_m_right _ _ _ _ _ _ _ _ _ _; try {assumption}; try {apply_instance},
+                        begin
+                            intro,
+                            rw finsupp.nat.add_right_cancel at a_5,
+                            unfold leading_monomial at a_5,
+                            exact a_2 (a_5.symm ▸ mem_sup),
+                        end,
+                    end,
+                    begin
+                        rw [finsupp.single_support, finset.sup_singleton];
+                        assumption,
+                    end,
+                    begin
+                        rw [disjoint, finsupp.single_support, finset.singleton_non_mem_inter_empty]; simp *,
+                    end,
+                    begin
+                        haveI : is_monomial_order ((fin n) →₀ ℕ) (≤) :=
+                            by constructor; apply finsupp.fin_n.decidable_monomial_order.mono_order,
+                        change ((finsupp.single a_1 b * finsupp.single b_1 c) : mv_polynomial (fin n) α).support.sup id ≤
+                            ((f * monomial b_1 c) : mv_polynomial (fin n) α).leading_monomial,
+                        rw [finsupp.single_mul_single, @leading_monomial_of_mul_m_right _ _ _ _ _ _ _ _ _ _, 
+                            finsupp.single_support, finset.sup_singleton, id]; try {assumption}; try {apply_instance},
+                        apply finsupp.fin_n.decidable_monomial_order.mono_order; assumption,
+                        simp [a_3, ceq],
+                    end,
+                end,
+            end,
+            begin
+                have le' := le_of_not_le h,
+
+            end,
         end,
     end,
 end
@@ -1514,7 +1556,7 @@ lemma zero_reduction_list_aux : ∀ (l : list (Σ' (p: mv_polynomial (fin n) α)
     have h_hdc : hd.fst.leading_coeff ≠ 0, apply not_zero_iff_leading_coeff_not_zero.2 (nzero_of_ne_mv_is_const h_hd),
     simp [(div_eq_zero_iff h_hdc).2 h_0, monomial],
     have h : -(hd.fst * 0) = 0, simp,
-    simp [h],
+    rw [h],
     --rw [neg_mul_eq_neg_mul, mul_zero (-hd.fst)],
 end
 
