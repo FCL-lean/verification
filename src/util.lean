@@ -251,7 +251,6 @@ begin
     apply l_ih,
 end
 
-set_option trace.simplify.rewrite true
 lemma cons_iff_ne_nil : ∀ (l : list α), l ≠ [] ↔ ∃ hd tl, l = hd :: tl
 | [] := ⟨λ h, by finish, λ h, by finish⟩
 | (hd :: tl) := ⟨λ h, begin refine ⟨hd, ⟨tl, _⟩⟩, refl, end, 
@@ -265,6 +264,9 @@ lemma exists_mem_iff_ne_nil : ∀ (l : list α), l ≠ [] ↔ ∃ a, a ∈ l :=
     cases h,
     apply ne_nil_of_mem h_h,
 end
+
+lemma foldl_eq {β : Type*} : ∀ (l : list α) {a b : β} (f : β → α → β), a = b → l.foldl f a = l.foldl f b :=
+λ l a b f h, by simp [h]
 
 end list
 
