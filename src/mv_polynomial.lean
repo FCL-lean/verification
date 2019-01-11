@@ -695,13 +695,51 @@ begin
     apply absurd (finset.mem_of_sup_id (λ h, hq (finsupp.support_eq_empty.1 h))) ha,
 end
 
+lemma support_of_mul_single {a b : σ →₀ ℕ} {c : α} {f : mv_polynomial σ α} : 
+    f ≠ 0 → c ≠ 0 → a + b ∈ (f * finsupp.single b c).support → a ∈ f.support :=
+begin
+    letI := @finsupp.nat.decidable_linear_ordered_cancel_comm_monoid σ _ _ _ _ _,
+    letI : ring (mv_polynomial σ α) := mv_polynomial.ring,
+    intros, revert a b, apply finsupp.induction f,
+    begin
+        intros,
+        from @eq.subst _ (λ x : mv_polynomial σ α, a + b ∈ x.support) _ _ (@ring.zero_mul _ _inst_9 (finsupp.single b c)) a_3,
+    end,
+    begin
+        intros,
+        rw [right_distrib, finsupp.support_add_eq, finset.mem_union, finsupp.single_mul_single, finsupp.single_support] at a_3_1,
+        cases a_3_1,
+        begin
+            cases a_3_1, 
+            rw [add_right_cancel_iff] at a_3_1, cases a_3_1,
+            rw [finsupp.support_add_eq, finset.mem_union],
+            left, rw finsupp.single_support, simp,
+            assumption, rw [disjoint, finsupp.single_support, finset.singleton_non_mem_inter_empty'],
+            any_goals { assumption }, any_goals { by simp * }, cases a_3_1,
+        end,
+        begin
+            rw [finsupp.support_add_eq, finset.mem_union],
+            right, apply a_5, assumption,
+            rw [disjoint, finsupp.single_support, finset.singleton_non_mem_inter_empty'],
+            all_goals {simp *},
+        end,
+        by simp *,
+        begin
+            rw [disjoint, finsupp.single_mul_single, finsupp.single_support, finset.singleton_non_mem_inter_empty'],
+            any_goals { by simp * },
+            intro, apply a_3, apply a_5,
+            assumption,
+        end,
+    end,
+end
+
 lemma support_of_mul_single_iff {a b : σ →₀ ℕ} {c : α} {f : mv_polynomial σ α} : 
     f ≠ 0 → c ≠ 0 → (a ∈ f.support ↔ a + b ∈ (f * finsupp.single b c).support) :=
 begin
     letI : ring (mv_polynomial σ α) := mv_polynomial.ring,
     intros; apply iff.intro,
     begin
-        revert b a_1, apply finsupp.induction f,
+        revert a b a_1, apply finsupp.induction f,
         by finish,
         begin
             intros,
@@ -711,21 +749,40 @@ begin
                 rw [h] at *,
                 rw [add_zero, finsupp.single_support] at *, cases a_6, cases a_6,
                 left, rw finsupp.single_support, any_goals { by simp *}, cases a_6,
+
             end,
             begin
                 unfold disjoint, rw [finsupp.single_mul_single, finsupp.single_support],
                 rw finset.singleton_non_mem_inter_empty'; simp *,
-                apply @eq.subst _ (λ (x : mv_polynomial σ α), x.to_fun (a_1 + b_1) = 0) _ _ (@ring.zero_mul _ _inst (0 * finsupp.single b_1 c)).symm,
-                apply @finsupp.zero_apply (σ →₀ ℕ) α _ (a_1 + b_1),
+                apply @eq.subst _ (λ (x : mv_polynomial σ α), x.to_fun (a + b_1) = 0) _ _ (@ring.zero_mul _ _inst (0 * finsupp.single b_1 c)).symm,
+                apply @finsupp.zero_apply (σ →₀ ℕ) α _ (a + b_1),
                 simp *,
             end,
             begin
-                apply a_5,
+                rw [finsupp.support_add_eq, finset.mem_union] at a_6,
+                cases a_6,
+                left, rw [finsupp.single_support] at *,
+                cases a_6, cases a_6,
+                by constructor; refl,
+                by cases a_6,
+                by simp [a_2, a_3],
+                by assumption,
+                begin
+                    right,
+                    apply a_4; assumption,
+                end,
+                begin
+                    rw [disjoint, finsupp.single_support, finset.singleton_non_mem_inter_empty']; simp *,
+                end
+            end,
+            begin
+                rw [disjoint, finsupp.single_mul_single, finsupp.single_support, finset.singleton_non_mem_inter_empty']; try {by simp *},
+                intro, apply a_1, apply @support_of_mul_single _ _ _ _ _ _ _ _ _ _ _; try { apply_instance }; try { assumption },
             end,
         end,
     end,
     begin
-
+        apply @support_of_mul_single _ _ _ _ _ _ _ _ _ _ _; try { apply_instance }; try { assumption },
     end,
 end
 
@@ -1210,7 +1267,8 @@ begin
                     rwcs [finsupp.not_mem_support_iff.1], symmetry,
                     apply mul_eq_zero_iff_eq_zero_or_eq_zero.2, left,
                     apply finsupp.not_mem_support_iff.1 a_2,
-                    sorry,
+                    intro, rw [←(@support_of_mul_single_iff _ _ _ _ _ _ _ _ _ _)] at a_5; try {apply_instance}; try {assumption},
+                    exact a_2 a_5,
                     rw [←finset.singleton_eq_singleton, finset.sup_singleton], assumption,
                     change ((f * monomial b_1 c) : mv_polynomial (fin n) α).leading_monomial ≤
                         finset.sup ((finsupp.single a_1 b * finsupp.single b_1 c).support) id,
@@ -1220,7 +1278,22 @@ begin
                     simp [a_3, ceq],
                 end,
             end,
-            sorry,
+            begin
+                by_cases f = 0,
+                begin
+                    rw h at *,
+                    rw [finsupp.single_mul_single, finsupp.single_support, disjoint, finset.singleton_non_mem_inter_empty'],
+                    simp,
+                    apply @eq.subst _ (λ x : mv_polynomial (fin n) α, a_1 + b_1 ∉ x.support) _ _ (@ring.zero_mul _ _inst_3 (finsupp.single b_1 c)).symm,
+                    simp, simp *,
+                end,
+                begin
+                    rw [finsupp.single_mul_single, disjoint, finsupp.single_support, finset.singleton_non_mem_inter_empty'],
+                    any_goals { by simp * },
+                    intro, rw [←(@support_of_mul_single_iff _ _ _ _ _ _ _ _ _ _)] at a_5; try {apply_instance}; try {assumption},
+                    exact a_2 a_5,
+                end,
+            end,
         end,
     end,
 end
