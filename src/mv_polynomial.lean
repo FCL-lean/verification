@@ -8,7 +8,7 @@ import seq
 import bot_zero
 import field
 import ideal_linear
-
+set_option profiler true
 variables {σ : Type*} {α : Type*} {β : Type*} {γ : Type*} {δ : Type*} {ι : Type*}
 
 namespace mv_polynomial
