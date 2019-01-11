@@ -698,6 +698,7 @@ end
 lemma support_of_mul_single_iff {a b : σ →₀ ℕ} {c : α} {f : mv_polynomial σ α} : 
     f ≠ 0 → c ≠ 0 → (a ∈ f.support ↔ a + b ∈ (f * finsupp.single b c).support) :=
 begin
+    letI : ring (mv_polynomial σ α) := mv_polynomial.ring,
     intros; apply iff.intro,
     begin
         revert b a_1, apply finsupp.induction f,
@@ -712,7 +713,14 @@ begin
                 left, rw finsupp.single_support, any_goals { by simp *}, cases a_6,
             end,
             begin
-                right, apply a_4,
+                unfold disjoint, rw [finsupp.single_mul_single, finsupp.single_support],
+                rw finset.singleton_non_mem_inter_empty'; simp *,
+                apply @eq.subst _ (λ (x : mv_polynomial σ α), x.to_fun (a_1 + b_1) = 0) _ _ (@ring.zero_mul _ _inst (0 * finsupp.single b_1 c)).symm,
+                apply @finsupp.zero_apply (σ →₀ ℕ) α _ (a_1 + b_1),
+                simp *,
+            end,
+            begin
+                apply a_5,
             end,
         end,
     end,
