@@ -695,6 +695,32 @@ begin
     apply absurd (finset.mem_of_sup_id (λ h, hq (finsupp.support_eq_empty.1 h))) ha,
 end
 
+lemma support_of_mul_single_iff {a b : σ →₀ ℕ} {c : α} {f : mv_polynomial σ α} : 
+    f ≠ 0 → c ≠ 0 → (a ∈ f.support ↔ a + b ∈ (f * finsupp.single b c).support) :=
+begin
+    intros; apply iff.intro,
+    begin
+        revert b a_1, apply finsupp.induction f,
+        by finish,
+        begin
+            intros,
+            by_cases f_1 = 0;
+            rw [right_distrib, finsupp.support_add_eq, finsupp.single_mul_single, finset.mem_union],
+            begin
+                rw [h] at *,
+                rw [add_zero, finsupp.single_support] at *, cases a_6, cases a_6,
+                left, rw finsupp.single_support, any_goals { by simp *}, cases a_6,
+            end,
+            begin
+                right, apply a_4,
+            end,
+        end,
+    end,
+    begin
+
+    end,
+end
+
 lemma leading_monomial_of_mul {p q : mv_polynomial σ α} : (p ≠ 0 ∧ q ≠ 0)
 → (p * q).leading_monomial = p.leading_monomial + q.leading_monomial :=
 begin
@@ -1080,10 +1106,13 @@ begin
     intro a,
     haveI : is_monomial_order ((fin n) →₀ ℕ) (≤) :=
     by constructor; apply finsupp.fin_n.decidable_monomial_order.mono_order,
+    letI : ring ((fin n →₀ ℕ) →₀ α) := mv_polynomial.ring,
 
     apply finsupp.induction a; intros,
     begin
-        sorry,
+        rw @ring.zero_mul _ _inst_3,
+        change 0 = 0 * c,
+        rw ring.zero_mul,
     end,
     begin
         rw right_distrib,
@@ -1091,7 +1120,6 @@ begin
         by_cases ceq: c = 0,
         begin
             simp [ceq],
-            letI : ring ((fin n →₀ ℕ) →₀ α) := mv_polynomial.ring,
             apply @eq.subst _ (λ x, (x + finsupp.single a_1 b * 0).to_fun (finset.sup 
                     ((x + finsupp.single a_1 b * 0).support) id) = 0) _ _ (ring.mul_zero f).symm,
             apply @eq.subst _ (λ (x : mv_polynomial (fin n) α), (0 + x).to_fun 
@@ -1105,7 +1133,10 @@ begin
             begin
                 by_cases h': f = 0,
                 begin
-                    sorry,
+                    rw [h', @ring.zero_mul _ _inst_3],
+                    rwcs [finsupp.zero_apply, finsupp.single_mul_single, finsupp.single_apply, finsupp.single_support,
+                            finset.sup_singleton, finsupp.single_apply, finsupp.single_support, finset.sup_singleton];
+                    simp *,                    
                 end,
                 begin
                     unfold leading_coeff leading_monomial at a_4,
@@ -1150,7 +1181,12 @@ begin
             begin
                 replace h := le_of_not_le h,
                 by_cases h': f = 0,
-                begin sorry, end,
+                begin
+                    rw [h', @ring.zero_mul _ _inst_3],
+                    rwcs [finsupp.zero_apply, finsupp.single_mul_single, finsupp.single_apply, finsupp.single_support,
+                            finset.sup_singleton, finsupp.single_apply, finsupp.single_support, finset.sup_singleton];
+                    simp *, 
+                end,
                 begin
                     unfold leading_coeff leading_monomial at a_4,
                     have h'' := (finsupp.support_ne_empty f).1 h',
