@@ -108,6 +108,14 @@ begin
     cases ih ha, apply exists.intro w, finish,
 end
 
+lemma fold_eq_zero {β : Type*} [add_comm_monoid β] [decidable_eq α] (s : finset α) (f : α → β) :
+(∀ a ∈ s, f a = 0) → s.fold (+) 0 f = 0 :=
+begin
+    apply finset.induction_on s, simp,
+    intros a s ha ih hf,
+    simp [finset.fold_insert ha, hf a (by simp), ih (λ a ha, hf a (by simp [ha]))],
+end
+
 section min 
 section decidable_linear_order
 variables [decidable_linear_order α]

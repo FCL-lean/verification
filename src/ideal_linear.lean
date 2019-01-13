@@ -3,6 +3,7 @@ import linear_algebra.multivariate_polynomial
 import data.finsupp
 import finset
 import util
+import custom_tactic
 variables {σ : Type*} {α : Type*} 
 
 namespace ideal
@@ -30,6 +31,22 @@ begin
         apply absurd (hc ha) has',
         simp [finsupp.single_apply, add_mul, hca'],
     rw [hfc, ←hca], refl,
+end
+
+lemma linear_combination_of_subset_ideal (s₁ s₂ : finset α) (hs : s₁ ⊆ s₂) : 
+∀ a ∈ span (↑s₁ : set α), ∃ c : α →₀ α, c.support ⊆ s₂ ∧ a = s₂.fold (+) 0 (λ x, c.to_fun x * x) :=
+λ a ha, begin
+    rcases linear_combination _ _ ha with ⟨c, ⟨hc₁, hc₂⟩⟩,
+    refine ⟨c, ⟨finset.subset.trans hc₁ hs, _⟩⟩,
+    have h := @finset.fold_union_inter _ _ (+) _ _ (λ x, c.to_fun x * x) _ (s₂ \ s₁) s₁ 0 0,
+    simp [finset.sdiff_inter_self s₁ s₂, finset.sdiff_union_of_subset hs] at h,
+    have h_d : finset.fold has_add.add 0 (λ (x : α), c.to_fun x * x) (s₂ \ s₁) = 0,
+        apply finset.fold_eq_zero, intros a' ha',
+        have h_c : c.to_fun a' = 0,
+            rwc [←finsupp.not_mem_support_iff], intro ha'c,
+            apply (finset.mem_sdiff.1 ha').right (hc₁ ha'c),
+        rwcs [h_c],
+    simp [h, h_d, hc₂],
 end
 
 def is_linear_combination (a : α) (c : α →₀ α) (s : finset α) := c.support ⊆ s ∧ a = s.fold (+) 0 (λ x, c.to_fun x * x)
