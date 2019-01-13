@@ -90,10 +90,10 @@ private meta def rewritecs_target_trans (lem : expr) (cfg : rewrite_cfg) : tacti
     coe' ← (to_expr' ``(finsupp.coe_f')),
     rewrite_target lem cfg <|> 
         (do 
-            focus1 $ tactic.repeat (rewrite_target coe cfg),
+            tactic.repeat (rewrite_target coe cfg),
             rewrite_target lem cfg) <|> 
         (do 
-            focus1 $ tactic.repeat (rewrite_target coe' cfg),
+            tactic.repeat (rewrite_target coe' cfg),
             rewrite_target lem cfg) <|>
         (do `[simp],
             rewritecs_target_trans),
