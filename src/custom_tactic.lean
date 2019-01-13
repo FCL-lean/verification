@@ -90,10 +90,10 @@ private meta def rewritecs_target_trans (lem : expr) (cfg : rewrite_cfg) : tacti
     coe' ← (to_expr' ``(finsupp.coe_f')),
     rewrite_target lem cfg <|> 
         (do 
-            tactic.repeat (rewrite_target coe cfg),
+            focus1 $ tactic.repeat (rewrite_target coe cfg),
             rewrite_target lem cfg) <|> 
         (do 
-            tactic.repeat (rewrite_target coe' cfg),
+            focus1 $ tactic.repeat (rewrite_target coe' cfg),
             rewrite_target lem cfg) <|>
         (do `[simp],
             rewritecs_target_trans),
@@ -152,6 +152,7 @@ private meta def rwcs_hyp (cfg : rewrite_cfg) : list rw_rule → expr → tactic
     (eq_lemmas.empty)
 
 meta def rwc (rs : parse rw_rules) (loca : parse location) (cfg : rewrite_cfg := {}) : tactic unit :=
+tactic.focus1 $
 propagate_tags $
 match loca with
 | loc.wildcard := loca.try_apply (rwc_hyp cfg rs.rules) (rwc_goal cfg rs.rules)
@@ -160,6 +161,7 @@ end >> try (tactic.reflexivity reducible)
     >> (returnopt rs.end_pos >>= save_info <|> skip)
 
 meta def rwcs (rs : parse rw_rules) (loca : parse location) (cfg : rewrite_cfg := {}) : tactic unit :=
+tactic.focus1 $
 propagate_tags $
 match loca with
 | loc.wildcard := loca.try_apply (rwcs_hyp cfg rs.rules) (rwcs_goal cfg rs.rules)
