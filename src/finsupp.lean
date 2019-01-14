@@ -22,14 +22,11 @@ section has_le
 variables [has_le β]
 
 
-def leading_term_le (a b: α →₀ β): Prop 
-    := fina.elems.fold (∧) true (λ elem, a elem ≤ b elem)
+def leading_monomial_le (a b: α →₀ β): Prop 
+    := ∀ x, a x ≤ b x
 
 end has_le
 end fintype_dom
-
-lemma in_not (a : α →₀ β) : ∀ x : α, x ∈ a.support ∨ x ∉ a.support := 
-    by intro; apply classical.or_not
 
 lemma support_singleton_neq_zero {a : α →₀ β} {x : α} (h : a.support = {x}) : a x ≠ 0 :=
 by apply (a.mem_support_to_fun x).1; simp [h]
@@ -222,36 +219,20 @@ variable {n : ℕ}
 
 lemma fin_0_id (a b : fin 0 →₀ ℕ) : a = b := begin apply ext, intro x, cases x.2, end 
 
-lemma leading_term_le_all (a b: fin n →₀ ℕ): leading_term_le a b →
-    ∀ (x : fin n), a x ≤ b x :=
-λ hle, begin
-    unfold leading_term_le at hle, 
-    rw fintype.fintype_fold_and_iff at hle, 
-    assumption
-end
+lemma leading_monomial_le_zero (a : fin n →₀ ℕ):
+    leading_monomial_le 0 a :=
+by simp [leading_monomial_le]
 
-lemma leading_term_le_zero (a : fin n →₀ ℕ):
-    leading_term_le 0 a :=
-begin
-    unfold leading_term_le,
-    rw fintype.fintype_fold_and_iff; intros; apply zero_le,
-end
+lemma leading_monomial_le_refl: Π {n} {a : fin n →₀ ℕ},
+    leading_monomial_le a a :=
+by finish [leading_monomial_le]
 
-lemma leading_term_le_refl: Π {n} {a : fin n →₀ ℕ},
-    leading_term_le a a :=
+lemma leading_monomial_le_antisymm {a b: fin n →₀ ℕ}:
+    leading_monomial_le a b → leading_monomial_le b a → a = b :=
 begin
-    intros, cases n;
-    unfold leading_term_le,
-    rw fintype.fintype_fold_and_iff, intros; refl,
-end
-
-lemma leading_term_le_antisymm {a b: fin n →₀ ℕ}:
-    leading_term_le a b → leading_term_le b a → a = b :=
-begin
-    intros,
-    apply finsupp.ext,
-    intro val,
-    apply le_antisymm; apply leading_term_le_all; assumption,
+    simp [leading_monomial_le, ext_lem],
+    intros h₁ h₂ x,
+    apply antisymm (h₁ x) (h₂ x),
 end
 
 def leading_term_sub_aux : Π {n : ℕ} (a b: fin n →₀ ℕ),
@@ -262,10 +243,10 @@ def leading_term_sub_aux : Π {n : ℕ} (a b: fin n →₀ ℕ),
     := single ⟨nat.succ m, prf2⟩ (a ⟨nat.succ m, prf2⟩ - b ⟨nat.succ m, prf2⟩) 
        + leading_term_sub_aux a b prf m (nat.lt_of_succ_lt prf2)
 
-def leading_term_sub : Π {n} (a b: fin n →₀ ℕ), leading_term_le b a → (fin n →₀ ℕ)
+def leading_term_sub : Π {n} (a b: fin n →₀ ℕ), leading_monomial_le b a → (fin n →₀ ℕ)
 | 0 a b ltle := 0
 | (nat.succ n) a b ltle 
-    := leading_term_sub_aux a b (leading_term_le_all b a ltle) n (by constructor)
+    := leading_term_sub_aux a b ltle n (by constructor)
 
 lemma leading_term_sub_aux_zero : Π {n m: ℕ} p1 p2, 
     leading_term_sub_aux (0: fin n →₀ ℕ) 0 p1 m p2 = 0 :=
@@ -275,7 +256,7 @@ begin
     apply m_ih,
 end
 
-lemma leading_term_sub_zero : Π {n} (h: leading_term_le (0: fin n →₀ ℕ) 0),
+lemma leading_term_sub_zero : Π {n} (h: leading_monomial_le (0: fin n →₀ ℕ) 0),
     leading_term_sub 0 0 h = 0 :=
 begin
     intros, cases n; unfold leading_term_sub,
@@ -382,7 +363,7 @@ begin
 
 end
 
-lemma leading_term_sub_lem {n} (a b: fin n →₀ ℕ): Π (h : leading_term_le b a),
+lemma leading_term_sub_lem {n} (a b: fin n →₀ ℕ): Π (h : leading_monomial_le b a),
     leading_term_sub a b h + b = a :=
 begin
     intro, apply finsupp.ext,

@@ -10,7 +10,7 @@ variables [discrete_field α] (lt_wellfounded: @well_founded (fin n →₀ ℕ) 
 
 section reduction
 
-def reduction (a b : mv_polynomial (fin n) α) (h : leading_term_le b a) := 
+def reduction (a b : mv_polynomial (fin n) α) (h : leading_monomial_le b a) := 
     if mv_is_const b
     then 0
     else a - b * (monomial (leading_term_sub' a b h) (a.leading_coeff / b.leading_coeff))
@@ -25,7 +25,7 @@ lemma reduction_zero (a : mv_polynomial (fin n) α) : ∀ m,
     reduction 0 a m = 0 :=
 begin
     intro m, unfold reduction,
-    have : a.leading_monomial = 0 := finsupp.fin_n.leading_term_le_antisymm m (finsupp.fin_n.leading_term_le_zero _),
+    have : a.leading_monomial = 0 := finsupp.fin_n.leading_monomial_le_antisymm m (finsupp.fin_n.leading_monomial_le_zero _),
     have eqzconst := leading_monomial_eqz_const this,
     cases eqzconst, by_cases mv_is_const a; simp [h],
     apply false.elim, apply h, rw eqzconst_snd, simp,
@@ -34,7 +34,7 @@ end
 def reduction_list_aux : (mv_polynomial (fin n) α) → 
     (list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0)) → mv_polynomial (fin n) α
 | a [] := a
-| a (hd :: tl) := if h: leading_term_le hd.1 a
+| a (hd :: tl) := if h: leading_monomial_le hd.1 a
                   then reduction_list_aux (reduction a hd.1 h) tl
                   else reduction_list_aux a tl
 
@@ -51,7 +51,7 @@ begin
         induction s_tl; intros,
         begin
             unfold reduction_list_aux,
-            by_cases leading_term_le (s_hd.fst) (C 0); simp [h],
+            by_cases leading_monomial_le (s_hd.fst) (C 0); simp [h],
             unfold reduction,
             by_cases h': mv_is_const (s_hd.fst); simp [h'],
             rw [←(congr_arg leading_coeff C_0), leading_coeff_C],
@@ -64,16 +64,16 @@ begin
             have lem : reduction_list_aux (C 0) (s_hd :: s_tl_tl) = 0 := s_tl_ih (by simp),
             unfold reduction_list_aux at lem,
             rw C_0 at *,
-            by_cases h: leading_term_le (s_hd.fst) 0,
-            by_cases h': leading_term_le (s_tl_hd.fst) (reduction 0 (s_hd.fst) h), simp [h, h'] at *,
+            by_cases h: leading_monomial_le (s_hd.fst) 0,
+            by_cases h': leading_monomial_le (s_tl_hd.fst) (reduction 0 (s_hd.fst) h), simp [h, h'] at *,
             revert h,
-            change ∀ (h : leading_term_le (s_hd.fst) 0) (h' : leading_term_le (s_tl_hd.fst) (reduction 0 (s_hd.fst) h)),
+            change ∀ (h : leading_monomial_le (s_hd.fst) 0) (h' : leading_monomial_le (s_tl_hd.fst) (reduction 0 (s_hd.fst) h)),
                         reduction_list_aux (reduction 0 (s_hd.fst) h) s_tl_tl = 0 →
                             reduction_list_aux (reduction (reduction 0 (s_hd.fst) h) (s_tl_hd.fst) h') s_tl_tl = 0,
             intro h, rw reduction_zero, intros h' p, rw reduction_zero, assumption,
             simp [h, h'] at *, assumption,
             simp [h] at *, 
-            by_cases h': leading_term_le (s_tl_hd.fst) 0, simp [h'],
+            by_cases h': leading_monomial_le (s_tl_hd.fst) 0, simp [h'],
             rw reduction_zero, assumption, simp [h'], assumption,
         end,
     end
@@ -81,7 +81,7 @@ end
 
 
 lemma reduction_leading_monomial_le: Π (a b: mv_polynomial (fin n) α),
-    (b ≠ 0) → (a.leading_monomial ≠ 0) → Π (p: leading_term_le b a),
+    (b ≠ 0) → (a.leading_monomial ≠ 0) → Π (p: leading_monomial_le b a),
     leading_monomial (reduction a b p) < leading_monomial a :=
 begin
     intros, unfold reduction, 
@@ -106,7 +106,7 @@ begin
     induction l; intros,
     apply reduction_leading_monomial_le; assumption,
     unfold reduction_list_aux,
-    by_cases leh : leading_term_le (l_hd.fst) (reduction a b m); simp [leh],
+    by_cases leh : leading_monomial_le (l_hd.fst) (reduction a b m); simp [leh],
     begin
         by_cases eqz: leading_monomial (reduction a b m) = 0,
         begin
@@ -148,7 +148,7 @@ begin
     induction l; intros, 
     apply false.elim (a_2 rfl),
     unfold reduction_list_aux,
-    by_cases m: (leading_term_le (l_hd.fst) a); simp [m],
+    by_cases m: (leading_monomial_le (l_hd.fst) a); simp [m],
     swap,
     begin 
         apply l_ih a a_1, 
@@ -184,11 +184,11 @@ lemma reduction_list_lem_aux : Π (a : mv_polynomial (fin n) α)
     (l : list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0))
     (b : (Σ' (p: mv_polynomial (fin n) α), p ≠ 0)) 
     (b_ne_const: ¬ mv_is_const b.1), b ∈ l → 
-    reduction_list_aux a l = a → ¬ leading_term_le b.1 a :=
+    reduction_list_aux a l = a → ¬ leading_monomial_le b.1 a :=
 λ a l, begin
     induction l, finish, intros,
     cases a_1; unfold reduction_list_aux at a_2;
-    by_cases leading_term_le (l_hd.fst) a; simp [h] at a_2,
+    by_cases leading_monomial_le (l_hd.fst) a; simp [h] at a_2,
     {
         by_cases h': a.leading_monomial = 0,
         {
@@ -226,7 +226,7 @@ lemma reduction_list_lem :
     (l : list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0)),
     ∀ (b : (Σ' (p: mv_polynomial (fin n) α), p ≠ 0))
     (in_l : b ∈ l), ¬ mv_is_const b.1 → 
-        ¬ leading_term_le b.1 (reduction_list lt_wellfounded a l)
+        ¬ leading_monomial_le b.1 (reduction_list lt_wellfounded a l)
 | a l b in_l b_ne_const :=
 begin
     intros, unfold reduction_list,
@@ -241,7 +241,7 @@ begin
             have : b.1.leading_monomial ≠ 0,
                 apply leading_monomial_nez_of_ne_const b_ne_const, 
             have this' : b.1.leading_monomial = 0,
-            from finsupp.fin_n.leading_term_le_antisymm ltle (finsupp.fin_n.leading_term_le_zero b.1.leading_monomial),
+            from finsupp.fin_n.leading_monomial_le_antisymm ltle (finsupp.fin_n.leading_monomial_le_zero b.1.leading_monomial),
             exact this this',
         end,
         begin
@@ -265,7 +265,7 @@ end
 lemma zero_reduction_list_aux : ∀ (l : list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0)), reduction_list_aux 0 l = 0
 | [] := by simp [reduction_list_aux]
 | (hd :: tl) := begin
-    by_cases h : leading_term_le (hd.fst) 0;
+    by_cases h : leading_monomial_le (hd.fst) 0;
     simp [h, reduction_list_aux, reduction],
     by_cases h_hd : mv_is_const hd.fst;
     simp [h_hd], swap, 
@@ -290,12 +290,12 @@ lemma reduction_list_aux_exists_const : ∀ (l : list (Σ' (p: mv_polynomial (fi
     intros a _ hl,
     simp [reduction_list_aux],
     rcases hl with ⟨x, ⟨⟨hxl, hxl⟩, hx⟩⟩,
-    have h_le : leading_term_le (l_hd.fst) a,
+    have h_le : leading_monomial_le (l_hd.fst) a,
         have hx' := eq_mv_is_const hx, cases hx' with x' hx',
-        simp [hx', leading_term_le, finsupp.leading_term_le, const_leading_monomial, fintype.fintype_fold_and_iff],
+        simp [hx', leading_monomial_le, finsupp.leading_monomial_le, const_leading_monomial, fintype.fintype_fold_and_iff],
     simp [h_le, reduction, hx],
     apply zero_reduction_list_aux lt_wellfounded,
-    by_cases h_le : leading_term_le (l_hd.fst) a;
+    by_cases h_le : leading_monomial_le (l_hd.fst) a;
     simp [h_le]; apply l_ih _ (list.ne_nil_of_mem hl_h_left);
     refine ⟨x, ⟨hl_h_left, hx⟩⟩,
 end
@@ -320,8 +320,8 @@ variables [decidable_linear_order α]
 def s_poly (p q : mv_polynomial (fin n) α) : 
     p ≠ 0 → q ≠ 0 → mv_polynomial (fin n) α :=
 λ p_nz q_nz,
-    let fst := leading_term_sub' (leading_term_lcm p q p_nz q_nz) p.leading_term (leading_term_le_of_lcm_left p q p_nz q_nz) in
-    let snd := leading_term_sub' (leading_term_lcm p q p_nz q_nz) q.leading_term (leading_term_le_of_lcm_right p q p_nz q_nz) in
+    let fst := leading_term_sub' (leading_term_lcm p q p_nz q_nz) p.leading_term (leading_monomial_le_of_lcm_left p q p_nz q_nz) in
+    let snd := leading_term_sub' (leading_term_lcm p q p_nz q_nz) q.leading_term (leading_monomial_le_of_lcm_right p q p_nz q_nz) in
     (monomial fst 1) * p - (monomial snd 1) * q
 
 def buch_pairs (s : list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0)) 
@@ -409,7 +409,7 @@ lemma buch_one_step_not_mem_span : ∀ (s_poly s : list (Σ' (p: mv_polynomial (
         apply h_.left,
     },
     have h₁ := λ a ha, reduction_list_lem lt_wellfounded s_poly_hd.fst s a ha (hs a ha),
-    simp [leading_term_le, finsupp.leading_term_le, fintype.fintype_fold_and_iff,
+    simp [leading_monomial_le, finsupp.leading_monomial_le, fintype.fintype_fold_and_iff,
         -list.mem_cons_iff, -list.ball_cons] at h₁,
     have h₁' : ∀ a : mv_polynomial (fin n) α, 
         a ∈ (s.map (λ (x : Σ' (p : mv_polynomial (fin n) α), p ≠ 0), leading_term (x.fst))).to_finset 
