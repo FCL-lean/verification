@@ -6,9 +6,11 @@ namespace mv_polynomial
 namespace fin_n
 variables {n : ℕ}
 
-variables [discrete_field α] (lt_wellfounded: @well_founded (fin n →₀ ℕ) (<)) [bot_zero (fin n) ℕ]
+variables [discrete_field α] --[bot_zero (fin n) ℕ]
 
 section reduction
+
+instance : bot_zero (fin n) ℕ := {zero_bot := rfl}
 
 def reduction (a b : mv_polynomial (fin n) α) (h : leading_monomial_le b a) := 
     if mv_is_const b
@@ -163,8 +165,6 @@ begin
     end
 end
 
-include lt_wellfounded
-
 def reduction_list : Π (a : mv_polynomial (fin n) α) (l : list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0))
    , mv_polynomial (fin n) α
 | a l :=
@@ -177,7 +177,7 @@ def reduction_list : Π (a : mv_polynomial (fin n) α) (l : list (Σ' (p: mv_pol
          from reduction_list_aux_neq_lt a l h' h, 
          reduction_list r l
 using_well_founded 
-{ rel_tac := λ _ _, `[exact ⟨_, inv_image.wf (λ a, a.1.leading_monomial) lt_wellfounded⟩] 
+{ rel_tac := λ _ _, `[exact ⟨_, inv_image.wf (λ a, a.1.leading_monomial) finsupp.fin_n.lt_wf⟩] 
 , dec_tac := tactic.assumption }
 
 lemma reduction_list_lem_aux : Π (a : mv_polynomial (fin n) α) 
@@ -226,13 +226,13 @@ lemma reduction_list_lem :
     (l : list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0)),
     ∀ (b : (Σ' (p: mv_polynomial (fin n) α), p ≠ 0))
     (in_l : b ∈ l), ¬ mv_is_const b.1 → 
-        ¬ leading_monomial_le b.1 (reduction_list lt_wellfounded a l)
+        ¬ leading_monomial_le b.1 (reduction_list a l)
 | a l b in_l b_ne_const :=
 begin
     intros, unfold reduction_list,
     by_cases reduction_list_aux a l = a; simp [h],
     begin
-        apply reduction_list_lem_aux lt_wellfounded a l b b_ne_const in_l h,
+        apply reduction_list_lem_aux a l b b_ne_const in_l h,
     end,
     begin
         by_cases h': leading_monomial a = 0; simp [h'],
@@ -252,10 +252,10 @@ begin
     end,
 end
 using_well_founded 
-{ rel_tac := λ _ _, `[exact ⟨_, inv_image.wf (λ a, a.1.leading_monomial) lt_wellfounded⟩] 
+{ rel_tac := λ _ _, `[exact ⟨_, inv_image.wf (λ a, a.1.leading_monomial) finsupp.fin_n.lt_wf⟩] 
 , dec_tac := tactic.assumption }
 
-lemma reduction_list_empty (a : (mv_polynomial (fin n) α)) : reduction_list lt_wellfounded a [] = a :=
+lemma reduction_list_empty (a : (mv_polynomial (fin n) α)) : reduction_list a [] = a :=
 begin
     unfold reduction_list, 
     have h : reduction_list_aux a [] = a, simp [reduction_list_aux],
@@ -276,10 +276,10 @@ lemma zero_reduction_list_aux : ∀ (l : list (Σ' (p: mv_polynomial (fin n) α)
     rw ←hk, all_goals {apply zero_reduction_list_aux tl},
 end
 
-lemma zero_reduction_list : ∀ (l : list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0)), reduction_list lt_wellfounded 0 l = 0
+lemma zero_reduction_list : ∀ (l : list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0)), reduction_list 0 l = 0
 | [] := by unfold reduction_list; simp [reduction_list_aux]
 | (hd :: tl) := begin
-    unfold reduction_list, simp [zero_reduction_list_aux lt_wellfounded (list.cons hd tl)],
+    unfold reduction_list, simp [zero_reduction_list_aux (list.cons hd tl)],
 end
 
 lemma reduction_list_aux_exists_const : ∀ (l : list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0)) (a : mv_polynomial (fin n) α),
@@ -294,7 +294,7 @@ lemma reduction_list_aux_exists_const : ∀ (l : list (Σ' (p: mv_polynomial (fi
         have hx' := eq_mv_is_const hx, cases hx' with x' hx',
         simp [hx', leading_monomial_le, finsupp.leading_monomial_le, const_leading_monomial, fintype.fintype_fold_and_iff],
     simp [h_le, reduction, hx],
-    apply zero_reduction_list_aux lt_wellfounded,
+    apply zero_reduction_list_aux,
     by_cases h_le : leading_monomial_le (l_hd.fst) a;
     simp [h_le]; apply l_ih _ (list.ne_nil_of_mem hl_h_left);
     refine ⟨x, ⟨hl_h_left, hx⟩⟩,
@@ -302,11 +302,11 @@ end
 
 lemma reduction_list_exists_const : ∀ (l : list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0)) (a : mv_polynomial (fin n) α),
     (∃ x : (Σ' (p: mv_polynomial (fin n) α), p ≠ 0), x ∈ l ∧ mv_is_const x.1) 
-    → reduction_list lt_wellfounded a l = 0
+    → reduction_list a l = 0
 | [] := by simp
 | (hd :: tl) := λ a hl, begin
     unfold reduction_list, 
-    simp [reduction_list_aux_exists_const lt_wellfounded (list.cons hd tl) a (by simp) hl],
+    simp [reduction_list_aux_exists_const (list.cons hd tl) a (by simp) hl],
     by_cases ha' : 0 = a; simp [ha'],
     by_cases hla : leading_monomial a = 0; simp [hla],
     apply zero_reduction_list,
@@ -339,7 +339,7 @@ def buch_s_polys (pairs : list (Σ' (p: mv_polynomial (fin n) α × mv_polynomia
 
 def buch_div_result (s s_polys: list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0))
     := (list.foldl (λ a b, 
-    let div_result := reduction_list lt_wellfounded (b: (Σ' (p: mv_polynomial (fin n) α), p ≠ 0)).fst a
+    let div_result := reduction_list (b: (Σ' (p: mv_polynomial (fin n) α), p ≠ 0)).fst a
     in if div_result ∉ list.map psigma.fst a 
         then (if h: div_result = 0 then a else ⟨div_result, h⟩ :: a ) else a) s s_polys)
 
@@ -369,57 +369,55 @@ lemma mem_nez : ∀ (s : list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0)) (p :
     apply exists.intro a.fst.leading_monomial, apply exists.intro a.fst.leading_coeff, refl,
 end
 
-include lt_wellfounded
-
 def buch_one_step (s : list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0)) := 
-    buch_div_result lt_wellfounded s $ filter_non_zero $ buch_s_polys $ buch_pairs s
+    buch_div_result s $ filter_non_zero $ buch_s_polys $ buch_pairs s
 
 lemma subset_of_buch_div_result : ∀ (s_poly s : list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0)), 
-    s ⊆ buch_div_result lt_wellfounded s s_poly :=
+    s ⊆ buch_div_result s s_poly :=
 λ s_poly, begin
     induction s_poly, simp [buch_div_result],
     intro s,
-    by_cases h : reduction_list lt_wellfounded (s_poly_hd.fst) s ∉ list.map psigma.fst s;
+    by_cases h : reduction_list (s_poly_hd.fst) s ∉ list.map psigma.fst s;
     simp [buch_div_result, h, -list.mem_map, -list.map.equations._eqn_2, -list.cons_subset] at s_poly_ih ⊢,
-    by_cases h' : reduction_list lt_wellfounded (s_poly_hd.fst) s = 0;
+    by_cases h' : reduction_list (s_poly_hd.fst) s = 0;
     simp [h', -list.cons_subset] at s_poly_ih ⊢, 
     any_goals {exact s_poly_ih s},
-    have h_sub : s ⊆ (((⟨reduction_list lt_wellfounded s_poly_hd.fst s, h'⟩) : (Σ' (p: mv_polynomial (fin n) α), p ≠ 0)) :: s), simp,
+    have h_sub : s ⊆ (((⟨reduction_list s_poly_hd.fst s, h'⟩) : (Σ' (p: mv_polynomial (fin n) α), p ≠ 0)) :: s), simp,
     apply list.subset.trans h_sub,
     apply s_poly_ih,
 end
 
 set_option trace.simplify.rewrite true
 lemma buch_one_step_not_mem_span : ∀ (s_poly s : list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0))
-(h : buch_div_result lt_wellfounded s s_poly ≠ s) 
+(h : buch_div_result s s_poly ≠ s) 
 (hs : ∀ a : (Σ' (p: mv_polynomial (fin n) α), p ≠ 0), a ∈ s → ¬ mv_is_const a.1),
 ∃ a : (Σ' (p: mv_polynomial (fin n) α), p ≠ 0),
-    a ∈ buch_div_result lt_wellfounded s s_poly ∧ a.fst.leading_term ∉ non_zero_poly_to_ideal s :=
+    a ∈ buch_div_result s s_poly ∧ a.fst.leading_term ∉ non_zero_poly_to_ideal s :=
 λ s_poly, begin
     induction s_poly, finish, 
     intros s h hs,
-    by_cases H : reduction_list lt_wellfounded s_poly_hd.fst s ∉ list.map psigma.fst s;
+    by_cases H : reduction_list s_poly_hd.fst s ∉ list.map psigma.fst s;
     simp [buch_div_result, list.foldl_cons, -list.mem_map, -list.map.equations._eqn_2, H, -list.forall_mem_cons'] at h ⊢ s_poly_ih,
-    by_cases h_red : reduction_list lt_wellfounded (s_poly_hd.fst) s = 0;
+    by_cases h_red : reduction_list (s_poly_hd.fst) s = 0;
     simp [h_red, -list.mem_map, -list.forall_mem_cons'] at h ⊢ s_poly_ih, any_goals {apply s_poly_ih s h hs}, 
-    use ⟨reduction_list lt_wellfounded (s_poly_hd.fst) s, h_red⟩,
+    use ⟨reduction_list (s_poly_hd.fst) s, h_red⟩,
     split, { 
-        have h_ := subset_of_buch_div_result lt_wellfounded s_poly_tl ((⟨reduction_list lt_wellfounded (s_poly_hd.fst) s, h_red⟩ : (Σ' (p : mv_polynomial (fin n) α), p ≠ 0)) :: s),
+        have h_ := subset_of_buch_div_result s_poly_tl ((⟨reduction_list (s_poly_hd.fst) s, h_red⟩ : (Σ' (p : mv_polynomial (fin n) α), p ≠ 0)) :: s),
         simp [buch_div_result, -list.mem_map, -list.forall_mem_cons'] at h_,
         apply h_.left,
     },
-    have h₁ := λ a ha, reduction_list_lem lt_wellfounded s_poly_hd.fst s a ha (hs a ha),
+    have h₁ := λ a ha, reduction_list_lem s_poly_hd.fst s a ha (hs a ha),
     simp [leading_monomial_le, finsupp.leading_monomial_le, fintype.fintype_fold_and_iff,
         -list.mem_cons_iff, -list.ball_cons] at h₁,
     have h₁' : ∀ a : mv_polynomial (fin n) α, 
         a ∈ (s.map (λ (x : Σ' (p : mv_polynomial (fin n) α), p ≠ 0), leading_term (x.fst))).to_finset 
-        → (¬∀ x, (a.leading_monomial x ≤ (leading_monomial (reduction_list lt_wellfounded s_poly_hd.fst s)) x)),
+        → (¬∀ x, (a.leading_monomial x ≤ (leading_monomial (reduction_list s_poly_hd.fst s)) x)),
         simp, intros a a' ha' haa',
         rwcs [←haa', leading_term, ←(leading_monomial_eq a'.fst.leading_monomial (not_zero_iff_leading_coeff_not_zero.2 a'.snd))],
         apply h₁ a' ha',
     cases s, {
         simp [non_zero_poly_to_ideal, buch_pairs, buch_s_polys, buch_div_result, filter_non_zero, leading_term, ideal.span],
-        apply monomial_ne_zero_lem (leading_monomial (reduction_list lt_wellfounded s_poly_hd.fst [])),
+        apply monomial_ne_zero_lem (leading_monomial (reduction_list s_poly_hd.fst [])),
         apply not_zero_iff_leading_coeff_not_zero.2 h_red,
     },
     intro h_mem,
@@ -429,8 +427,8 @@ lemma buch_one_step_not_mem_span : ∀ (s_poly s : list (Σ' (p: mv_polynomial (
     have h' := monomial_mem_ideal ((list.cons s_hd s_tl).map (λ (a : (Σ' (p: mv_polynomial (fin n) α), p ≠ 0)), a.1.leading_term)).to_finset
         (by simp) _ _ h_mem _,
     rcases h' with ⟨q, ⟨hq, h⟩⟩,
-    have h_ := leading_monomial_eq (⟨reduction_list lt_wellfounded s_poly_hd.fst (list.cons s_hd s_tl), h_red⟩ : (Σ' (p : mv_polynomial (fin n) α), p ≠ 0)).fst.leading_monomial
-        (not_zero_iff_leading_coeff_not_zero.2 (⟨reduction_list lt_wellfounded s_poly_hd.fst (list.cons s_hd s_tl), h_red⟩ : (Σ' (p : mv_polynomial (fin n) α), p ≠ 0)).snd),
+    have h_ := leading_monomial_eq (⟨reduction_list s_poly_hd.fst (list.cons s_hd s_tl), h_red⟩ : (Σ' (p : mv_polynomial (fin n) α), p ≠ 0)).fst.leading_monomial
+        (not_zero_iff_leading_coeff_not_zero.2 (⟨reduction_list s_poly_hd.fst (list.cons s_hd s_tl), h_red⟩ : (Σ' (p : mv_polynomial (fin n) α), p ≠ 0)).snd),
     rwcs [leading_term, ←h_] at h,
     apply (h₁' q hq) h,
     {
@@ -442,52 +440,52 @@ lemma buch_one_step_not_mem_span : ∀ (s_poly s : list (Σ' (p: mv_polynomial (
         refine ⟨monomial_ne_zero_lem _ (not_zero_iff_leading_coeff_not_zero.2 p'.2), ⟨p'.fst.leading_monomial, ⟨p'.fst.leading_coeff, rfl⟩⟩⟩,
     }, 
     simp [leading_term],
-    refine ⟨monomial_ne_zero_lem (leading_monomial (reduction_list lt_wellfounded s_poly_hd.fst (list.cons s_hd s_tl))) (not_zero_iff_leading_coeff_not_zero.2 h_red), 
-            ⟨(leading_monomial (reduction_list lt_wellfounded s_poly_hd.fst (list.cons s_hd s_tl))),
-                ⟨(leading_coeff (reduction_list lt_wellfounded s_poly_hd.fst (list.cons s_hd s_tl))), rfl⟩⟩⟩,
+    refine ⟨monomial_ne_zero_lem (leading_monomial (reduction_list s_poly_hd.fst (list.cons s_hd s_tl))) (not_zero_iff_leading_coeff_not_zero.2 h_red), 
+            ⟨(leading_monomial (reduction_list s_poly_hd.fst (list.cons s_hd s_tl))),
+                ⟨(leading_coeff (reduction_list s_poly_hd.fst (list.cons s_hd s_tl))), rfl⟩⟩⟩,
 end
 
 lemma buch_div_result_eq_of_exists_const : ∀ (s s_poly : list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0)),
     (∃ x : (Σ' (p: mv_polynomial (fin n) α), p ≠ 0), x ∈ s ∧ mv_is_const x.1) 
-    → buch_div_result lt_wellfounded s s_poly = s :=
+    → buch_div_result s s_poly = s :=
 λ s s_poly hs, begin
     induction s_poly, simp [buch_div_result],
-    by_cases h : reduction_list lt_wellfounded (s_poly_hd.fst) s ∉ list.map psigma.fst s;
-    simp [buch_div_result, h, -list.mem_map, reduction_list_exists_const lt_wellfounded s s_poly_hd.fst hs] at s_poly_ih ⊢;
+    by_cases h : reduction_list (s_poly_hd.fst) s ∉ list.map psigma.fst s;
+    simp [buch_div_result, h, -list.mem_map, reduction_list_exists_const s s_poly_hd.fst hs] at s_poly_ih ⊢;
     assumption,
 end
 
-lemma ideal_increase (s : list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0)) (h : buch_one_step lt_wellfounded s ≠ s) :
-    non_zero_poly_to_ideal s < non_zero_poly_to_ideal (buch_one_step lt_wellfounded s) :=
+lemma ideal_increase (s : list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0)) (h : buch_one_step s ≠ s) :
+    non_zero_poly_to_ideal s < non_zero_poly_to_ideal (buch_one_step s) :=
 begin
     simp [buch_one_step, lt_iff_le_and_ne] at h ⊢, split,
     simp [non_zero_poly_to_ideal], 
     apply ideal.span_mono, simp [list.subset_to_finset.symm], apply list.map_subset, 
-    apply subset_of_buch_div_result lt_wellfounded (filter_non_zero (buch_s_polys (buch_pairs s))) s,
+    apply subset_of_buch_div_result (filter_non_zero (buch_s_polys (buch_pairs s))) s,
 
-    have H := buch_one_step_not_mem_span lt_wellfounded (filter_non_zero (buch_s_polys (buch_pairs s))) s h _,
+    have H := buch_one_step_not_mem_span (filter_non_zero (buch_s_polys (buch_pairs s))) s h _,
     intro h_eq,
     rcases H with ⟨a, ⟨ha₁, ha₂⟩⟩, rw h_eq at ha₂,
     have ha₂' : a.fst.leading_term ∈ 
-        (buch_div_result lt_wellfounded s (filter_non_zero (buch_s_polys (buch_pairs s)))).map 
+        (buch_div_result s (filter_non_zero (buch_s_polys (buch_pairs s)))).map 
             (λ (a : Σ' (p : mv_polynomial (fin n) α), p ≠ 0), leading_term (a.fst)) := list.mem_map_of_mem _ ha₁,
     rw [list.mem_to_set] at ha₂',
     apply ha₂ (ideal.mem_set ha₂'),
 
     intros a ha₁ ha₂, apply h,
-    apply buch_div_result_eq_of_exists_const lt_wellfounded s (filter_non_zero (buch_s_polys (buch_pairs s))),
+    apply buch_div_result_eq_of_exists_const s (filter_non_zero (buch_s_polys (buch_pairs s))),
     finish,
 end
 
 def buchberger : list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0) → 
     list (Σ' (p: mv_polynomial (fin n) α), p ≠ 0)
 | s :=
-    let result := buch_div_result lt_wellfounded s 
+    let result := buch_div_result s 
         $ filter_non_zero
         $ buch_s_polys
         $ buch_pairs s
         in if h : s = result then s else  
-            have non_zero_poly_to_ideal s < non_zero_poly_to_ideal result := ideal_increase lt_wellfounded s (ne.symm h),
+            have non_zero_poly_to_ideal s < non_zero_poly_to_ideal result := ideal_increase s (ne.symm h),
             buchberger result
 using_well_founded 
 { rel_tac := λ _ _, 
