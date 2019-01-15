@@ -6,6 +6,17 @@ universe u
 def not' : Type u → Prop := λ a, a → false
 notation `¬'` a := not' a
 
+inductive trans_closure {α : Sort u} (r : α → α → Prop) : α → α → Prop
+| base  : ∀ a b, r a b → trans_closure a b
+| trans : ∀ a b c, trans_closure a b → trans_closure b c → trans_closure a c
+
+inductive refl_trans_closure {α : Sort u} (r : α → α → Prop) : α → α → Prop
+| base  : ∀ a b, r a b → refl_trans_closure a b
+| refl  : ∀ a, refl_trans_closure a a
+| trans : ∀ a b c, refl_trans_closure a b → refl_trans_closure b c → refl_trans_closure a c
+
+
+
 section classes
 set_option old_structure_cmd true
 class is_monomial_order (α : Type u) (r : α → α → Prop) [has_add α] : Prop :=
