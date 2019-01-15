@@ -145,12 +145,13 @@ end
 section semilattice
 variables [lattice.semilattice_sup_bot (σ →₀ ℕ)]
 variables [bot_zero σ ℕ]
+
 def leading_monomial (a: mv_polynomial σ α): σ →₀ ℕ := a.support.sup id
 
 def leading_monomial_zero : (0: mv_polynomial σ α).leading_monomial = 0 :=
 begin
     unfold leading_monomial,
-    rw finsupp.support_eq_empty.2; try {simp}; try {trivial},
+    rw finsupp.support_eq_empty.2; try {simp}; try {trivial}, 
     rw _inst_5.zero_bot, by apply_instance,
 end
 
@@ -208,7 +209,7 @@ begin
     unfold leading_monomial_le finsupp.leading_monomial_le,
     apply decidable_of_iff (∀ e ∈ fins.elems, a.leading_monomial e ≤ b.leading_monomial e),
     split; intros,
-    apply a_1 elem, apply fins.complete,
+    apply a_1 x, apply fins.complete,
     apply a_1 e,
 end
 
@@ -384,26 +385,30 @@ lemma leading_monomial_ne_zero_coeff {a : mv_polynomial σ α} :
     apply neqz, rw _inst_4.zero_bot,
 end
 
-lemma leading_monomial_eqz_of_const' {p : mv_polynomial σ α} (h : p.leading_monomial = 0) : mv_is_const p :=
-begin 
+def leading_monomial_eqz_const {p : mv_polynomial σ α}:
+    p.leading_monomial = 0 → Σ' (a : α), p = C a :=
+λ h, begin 
     rw [_inst_4.zero_bot, leading_monomial] at h,
     have h' : p.support = ∅ ∨ p.support = {⊥}, from finset.sup_bot p.support h,
-    cases h', rw finsupp.support_eq_empty at h', simp [h'],
-    rw [←_inst_4.zero_bot] at h', 
-    apply eq_mv_is_const', apply psigma.mk (p.to_fun 0),
+    by_cases h'' : p.support = ∅,
+    rw finsupp.support_eq_empty at h'', simp [h''],
+    refine ⟨0, by finish⟩,
+    have h'' : p.support = {⊥},
+        cases h', apply absurd h' h'', assumption,
+    rw [←_inst_4.zero_bot] at h'', 
+    use (p.to_fun 0),
     apply finsupp.ext, intro x,
-    simp [finsupp.coe_f, C, monomial, finsupp.single],
+    rwcs [C, monomial, finsupp.single],
     by_cases hx: 0 = x; simp [hx],
-    rw [←finsupp.coe_f, ←finsupp.not_mem_support_iff, h'],
+    rwcs [←finsupp.not_mem_support_iff, h''],
     finish [finset.not_mem_singleton],
 end
 
+lemma leading_monomial_eqz_of_const' {p : mv_polynomial σ α} (h : p.leading_monomial = 0) : mv_is_const p :=
+eq_mv_is_const' (leading_monomial_eqz_const h)
+
 lemma leading_monomial_nez_of_ne_const {p : mv_polynomial σ α} (h : ¬ mv_is_const p) : p.leading_monomial ≠ 0 :=
 λ h', by apply h (leading_monomial_eqz_of_const' h')
-
-def leading_monomial_eqz_const {p : mv_polynomial σ α}:
-    p.leading_monomial = 0 → Σ' (a : α), p = C a :=
-λ h, by apply eq_mv_is_const (leading_monomial_eqz_of_const' h)
 
 lemma leading_monomial_lt_right_of_add {a b : mv_polynomial σ α} (h : a.leading_term + b.leading_term ≠ 0) :
     (a + b).leading_monomial ≥ b.leading_monomial :=

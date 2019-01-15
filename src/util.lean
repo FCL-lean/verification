@@ -216,6 +216,13 @@ begin
     apply false.elim, apply ev, assumption,
 end
 
+lemma or_elim' {a b : Prop} [decidable a] [decidable b] {c : Type*} : (a ∨ b) → (a → c) → (b → c) → c :=
+λ h hac hbc, begin
+    by_cases ha : a, exact hac ha,
+    apply hbc,
+    cases h, apply absurd h ha, assumption,
+end
+
 end logic
 universe α
 
