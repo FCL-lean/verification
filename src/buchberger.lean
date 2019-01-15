@@ -17,6 +17,20 @@ def reduction (a b : mv_polynomial (fin n) α) (h : leading_monomial_le b a) :=
     then 0
     else a - b * (monomial (leading_term_sub' a b h) (a.leading_coeff / b.leading_coeff))
 
+def red_one_step (S : list (mv_polynomial (fin n) α)) : rel (mv_polynomial (fin n) α) :=
+    λ a r, ∃ (b ∈ S) (h: leading_term_le b a), reduction a b h = r
+
+def red_plus (S : list (mv_polynomial (fin n) α)) : rel (mv_polynomial (fin n) α) := trans_closure (red_one_step S)
+
+def red_star (S : list (mv_polynomial (fin n) α)) : rel (mv_polynomial (fin n) α) := refl_trans_closure (red_one_step S)
+
+
+notation a `→[` S `]→` b := red_one_step S a b
+
+notation a `→⁺[` S `]→⁺` b := red_plus S a b
+
+notation a `→⋆[` S `]→⋆` b := red_star S a b
+
 lemma reduction_const (a : mv_polynomial (fin n) α) (b : α) : ∀ m, reduction a (C b) m = 0 :=
 begin
     intros, unfold reduction, 
