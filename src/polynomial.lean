@@ -175,22 +175,26 @@ def mon_insert {α : Type u} {n : ℕ} [discrete_field α] :
 def poly_add_insert {α : Type u} {n : ℕ} [discrete_field α] : 
     Π (t : poly_term α n) (l : list (poly_term α n)), polynomial α n l → polynomial α n (mon_insert t l) :=
 begin
-    intros, induction l with hd tl l_ih,
-    { cases a },
-    unfold mon_insert,
-    by_cases mon_le hd.mon t.mon; simp [h],
-    { by_cases h_eq : t.mon = hd.mon, simp [h_eq],
-      { cases a; constructor; simpa, },
-      { replace h_eq : t.mon ≠ hd.mon := h_eq, simp [h_eq], 
-        constructor,
-        { exact lt_of_le_of_ne h h_eq.symm, },
-        { assumption },
-      }
+    intros, induction a; unfold mon_insert,
+    by_cases h : a.mon ≤ t.mon; simp [h],
+    by_cases h_eq : t.mon = a.mon; simp [h_eq],
+    { constructor, },
+    { constructor, apply lt_of_le_of_ne h, intro, apply h_eq, symmetry, assumption,
+      constructor, },
+    { constructor, apply lt_of_not_ge' h, constructor, },
+    by_cases h : a_p.mon ≤ t.mon; simp [h],
+    by_cases h_eq : t.mon = a_p.mon; simp [h_eq],
+    { constructor; simpa },
+    { constructor, apply lt_of_le_of_ne h, intro, apply h_eq, symmetry, assumption, 
+      constructor; assumption, },
+    { by_cases h' : a_p'.mon ≤ t.mon; simp [h'],
+      { by_cases h'_eq : t.mon = a_p'.mon; simp [h'_eq], 
+        cases a_a_1; constructor; try { simpa }, constructor, constructor, assumption, 
+        assumption, constructor, apply lt_of_not_ge' h, constructor, apply lt_of_le_of_ne h',
+        intro, apply h'_eq, symmetry, assumption, assumption, }, 
+      { unfold mon_insert at a_ih; simp [h'] at a_ih,
+        constructor; assumption, }
     },
-    { generalize l_h : list.cons hd tl = l,
-      rw l_h at a,
-      induction a; sorry,
-    }
 end
 
 def poly_add {α : Type u} {n : ℕ} [discrete_field α] : polynomial' α n → polynomial' α n → polynomial' α n
