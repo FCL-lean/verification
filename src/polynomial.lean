@@ -163,7 +163,7 @@ inductive polynomial (α : Type u) (n : ℕ) [discrete_field α] : option (poly_
 | cons : Π (p p': poly_term α n), p'.mon < p.mon → polynomial (some p') → polynomial (some p)
 
 inductive polynomial' (α : Type u) (n : ℕ) [discrete_field α] : Type u
-| mk : Π (p : poly_term α n) (poly : polynomial α n p), polynomial'
+| mk : Π (p : option (poly_term α n)) (poly : polynomial α n p), polynomial'
 
 
 
