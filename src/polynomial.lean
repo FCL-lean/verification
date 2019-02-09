@@ -155,14 +155,17 @@ lemma zero_le_aux : ∀ (m < n + 1) (a : fin (n + 1) →₀ ℕ), le_aux m H 0 a
 lemma mon_zero_le : ∀ a : fin n →₀ ℕ, 0 ≤ a :=
 λ a, by cases n; simp [has_le.le, preorder.le, mon_le, zero_le_aux]
 
+-- def lifted_lt : option (poly_term α n) → 
 
-inductive polynomial (α : Type u) (n : ℕ) [discrete_field α] : list (poly_term α n) → Type u
-| nil : polynomial []
-| sing : Π (p : poly_term α n), polynomial [p]
-| cons : Π (p p': poly_term α n) (tail : list (poly_term α n)), p'.mon < p.mon → polynomial (p' :: tail) → polynomial (p :: p' :: tail)
+inductive polynomial (α : Type u) (n : ℕ) [discrete_field α] : option (poly_term α n) → Type u
+| nil : polynomial none
+| sing : Π (p : poly_term α n), polynomial (some p)
+| cons : Π (p p': poly_term α n), p'.mon < p.mon → polynomial (some p') → polynomial (some p)
 
 inductive polynomial' (α : Type u) (n : ℕ) [discrete_field α] : Type u
-| mk : Π (p : list (poly_term α n)) (poly : polynomial α n p), polynomial'
+| mk : Π (p : poly_term α n) (poly : polynomial α n p), polynomial'
+
+
 
 lemma polynomial_unique (α : Type u) (n : ℕ) [discrete_field α] (l : list (poly_term α n)) :
   Π (a b : polynomial α n l), a = b :=
@@ -197,6 +200,7 @@ def poly_add_insert {α : Type u} {n : ℕ} [discrete_field α] :
     Π (t : poly_term α n) (l : list (poly_term α n)), polynomial α n l → polynomial α n (mon_insert t l) :=
 begin
     intros, induction a; unfold mon_insert,
+    { constructor, },
     by_cases h : a.mon ≤ t.mon; simp [h],
     by_cases h_eq : t.mon = a.mon; simp [h_eq],
     { constructor, },
@@ -225,6 +229,7 @@ def poly_add' {α : Type u} {n : ℕ} [discrete_field α] : list (poly_term α n
 | (x :: x' :: xs) (y :: y' :: ys) := poly_add' (x' :: xs) (mon_insert x (y :: y' :: ys))
 
 def poly_add {α : Type u} {n : ℕ} [discrete_field α] : polynomial' α n → polynomial' α n → polynomial' α n
+| (polynomial'.mk [] poly) (polynomial'.mk )
 | (polynomial'.mk [hd] poly) (polynomial'.mk l poly') := polynomial'.mk _ $ poly_add_insert hd l poly'
 | (polynomial'.mk (p :: p' :: tl) poly) (polynomial'.mk [hd] poly') := polynomial'.mk _ $ poly_add_insert hd _ poly
 | (polynomial'.mk (p :: p' :: tl) (polynomial.cons .(p) .(p') .(tl) pf poly)) 
