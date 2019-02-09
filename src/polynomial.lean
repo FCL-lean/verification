@@ -165,14 +165,7 @@ inductive polynomial (α : Type u) (n : ℕ) [discrete_field α] : option (poly_
 inductive polynomial' (α : Type u) (n : ℕ) [discrete_field α] : Type u
 | mk : Π (p : option (poly_term α n)) (poly : polynomial α n p), polynomial'
 
-instance (α : Type u) (n : ℕ) [discrete_field α] : decidable_eq (polynomial' α n) :=
-begin
-    intros a b,
-    cases a; cases b,
-    induction a_poly; induction b_poly;
-    try { by right; simp }; try { by left; simp },
-    
-end
+
 @[elab_as_eliminator]
 def option_rec {α : Type u} : Π {C : option α → Sort w} (o : option α) (b₁ : o = none → C none) (b₂ : ∀ m, o = some m → C (some m)), C o :=
 begin
