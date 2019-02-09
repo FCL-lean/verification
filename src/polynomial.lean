@@ -9,7 +9,7 @@ universes u v
 def monomial : ℕ → Type := λ n, fin n →₀ ℕ
 
 structure poly_term (α : Type u) (n : ℕ) [discrete_field α] :=
-mk :: (coeff : α) (mon : monomial n)
+mk :: (coeff : α) (mon : monomial n) (coeff_neqz : coeff ≠ 0) (mon_neqz : mon.support ≠ ∅)
 
 
 variable {n : ℕ}
@@ -157,18 +157,39 @@ lemma mon_zero_le : ∀ a : fin n →₀ ℕ, 0 ≤ a :=
 
 
 inductive polynomial (α : Type u) (n : ℕ) [discrete_field α] : list (poly_term α n) → Type u
+| nil : polynomial []
 | sing : Π (p : poly_term α n), polynomial [p]
 | cons : Π (p p': poly_term α n) (tail : list (poly_term α n)), p'.mon < p.mon → polynomial (p' :: tail) → polynomial (p :: p' :: tail)
 
 inductive polynomial' (α : Type u) (n : ℕ) [discrete_field α] : Type u
 | mk : Π (p : list (poly_term α n)) (poly : polynomial α n p), polynomial'
 
+lemma polynomial_unique (α : Type u) (n : ℕ) [discrete_field α] (l : list (poly_term α n)) :
+  Π (a b : polynomial α n l), a = b :=
+begin
+    intros a b,
+    induction a; cases b,
+    { refl, },
+    { refl, },
+    { apply congr_arg, apply a_ih, }
+end
+
+@[extensionality]
+lemma polynomial'.ext (α : Type u) (n : ℕ) [discrete_field α] :
+   ∀ (p p' : list (poly_term α n)) (poly : polynomial α n p) (poly' : polynomial α n p'),
+   p = p' → polynomial'.mk p poly = polynomial'.mk p' poly' :=
+begin
+    intros, cases a,
+    rw polynomial_unique α n p poly poly',
+end
+
+
 def mon_insert {α : Type u} {n : ℕ} [discrete_field α] :
     Π (t : poly_term α n) (l : list (poly_term α n)), list (poly_term α n)
 | t [] := [t]
 | t (x :: xs) := if p : x.2 ≤ t.2 then 
                     (if p2 : t.2 = x.2 
-                     then poly_term.mk (t.1 + x.1) t.2 :: xs 
+                     then (if p3: t.1 + x.1 ≠ 0 then poly_term.mk (t.1 + x.1) t.2 p3 t.4 :: xs else xs)
                      else t :: x :: xs)
                  else x :: mon_insert t xs
 
@@ -196,6 +217,12 @@ begin
         constructor; assumption, }
     },
 end
+def poly_add' {α : Type u} {n : ℕ} [discrete_field α] : list (poly_term α n) → list (poly_term α n) → list (poly_term α n)
+| [] l := l
+| [x] l := mon_insert x l
+| l [] := l
+| l [x] := mon_insert x l
+| (x :: x' :: xs) (y :: y' :: ys) := poly_add' (x' :: xs) (mon_insert x (y :: y' :: ys))
 
 def poly_add {α : Type u} {n : ℕ} [discrete_field α] : polynomial' α n → polynomial' α n → polynomial' α n
 | (polynomial'.mk [hd] poly) (polynomial'.mk l poly') := polynomial'.mk _ $ poly_add_insert hd l poly'
@@ -203,4 +230,57 @@ def poly_add {α : Type u} {n : ℕ} [discrete_field α] : polynomial' α n → 
 | (polynomial'.mk (p :: p' :: tl) (polynomial.cons .(p) .(p') .(tl) pf poly)) 
                              pp@(polynomial'.mk (p'' :: p''' :: tl') (polynomial.cons .(p'') .(p''') .(tl') pf' poly')) 
       := poly_add (polynomial'.mk (p' :: tl) poly) $ polynomial'.mk (mon_insert p (p'' :: p''' :: tl')) (poly_add_insert p (p'' :: p''' :: tl') (by constructor; assumption))
- 
+
+lemma poly_add_iff_poly_add' {α : Type u} {n : ℕ} [discrete_field α] : 
+    Π (a b c d : list (poly_term α n)) (poly₁ : polynomial α n a) (poly₂ : polynomial α n b) (poly₃ : polynomial α n c) (poly₄ : polynomial α n d),
+        poly_add' a b = poly_add' c d ↔ poly_add (polynomial'.mk a poly₁) (polynomial'.mk b poly₂) = poly_add (polynomial'.mk c poly₃) (polynomial'.mk d poly₄) := sorry
+
+
+instance {α : Type u} {n : ℕ} [discrete_field α] : has_add (polynomial' α n) := has_add.mk poly_add
+
+lemma poly_add_comm {α : Type u} {n : ℕ} [discrete_field α] : ∀ (a b : polynomial' α n), a + b = b + a 
+| (polynomial'.mk [hd] poly) (polynomial'.mk l poly') :=
+begin
+    unfold has_add.add poly_add,
+    induction poly'; unfold poly_add,
+    apply polynomial'.ext,
+    unfold mon_insert,
+    by_cases h : poly'.mon ≤ hd.mon; simp [h], 
+    { by_cases h' : hd.mon = poly'.mon; simp [h'], 
+      { simp [le_of_eq (refl poly'.mon)], },
+      { have := lt_of_le_of_ne h (λ t, by rw t at *; exact h' rfl),
+          simp [not_le_of_lt this], }, },
+    { simp [le_of_not_le h],
+      by_cases h' : poly'.mon = hd.mon; simp [h'],
+      { apply false.elim, apply h, rw h', },  
+    },
+end
+| (polynomial'.mk (p :: p' :: tl) poly) (polynomial'.mk [hd] poly') :=
+begin
+    unfold has_add.add poly_add,
+    induction poly; unfold poly_add,
+    apply polynomial'.ext; unfold mon_insert, 
+    by_cases h : poly.mon ≤ hd.mon; simp [h], 
+    { by_cases h' : hd.mon = poly.mon; simp [h'], 
+      { simp [le_of_eq (refl poly.mon)], },
+      { have := lt_of_le_of_ne h (λ t, by rw t at *; exact h' rfl),
+          simp [not_le_of_lt this], }, },
+    { simp [le_of_not_le h],
+      by_cases h' : poly.mon = hd.mon; simp [h'],
+      { apply false.elim, apply h, rw h', },  
+    },
+end
+| (polynomial'.mk (p :: p' :: tl) (polynomial.cons .(p) .(p') .(tl) pf poly)) 
+                             (polynomial'.mk (p'' :: p''' :: tl') (polynomial.cons .(p'') .(p''') .(tl') pf' poly')) :=
+begin
+    have IH := poly_add_comm (polynomial'.mk (p' :: tl) poly) (polynomial'.mk (p''' :: tl') poly'), 
+    unfold has_add.add poly_add mon_insert at *,
+    rw [←poly_add_iff_poly_add'],
+    replace IH : poly_add' (p' :: tl) (p''' :: tl') = poly_add' (p''' :: tl') (p' :: tl),
+        { rwa poly_add_iff_poly_add', },
+    unfold mon_insert,
+    by_cases h : p''.mon ≤ p.mon; simp [h],
+
+    by_cases h' : p.mon ≤ p''.mon; simp [h'],
+
+end
