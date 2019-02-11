@@ -1,20 +1,13 @@
 import data.list
 import data.finsupp
 import data.fin
-
+import list
+import algebra.gcd_domain
 import util
+
 universes u v
 
-@[reducible]
-def monomial : ℕ → Type := λ n, fin n →₀ ℕ
-
-structure poly_term (α : Type u) (n : ℕ) [discrete_field α] :=
-mk :: (coeff : α) (mon : monomial n) (coeff_neqz : coeff ≠ 0) (mon_neqz : mon.support ≠ ∅)
-
-
 variable {n : ℕ}
-
-
 
 lemma fin_0_id (a b : fin 0 →₀ ℕ) : a = b := begin apply finsupp.ext, intro x, cases x.2, end 
 
@@ -22,7 +15,7 @@ def le_aux : ∀ m < (n + 1), ((fin $ n + 1) →₀ ℕ) → ((fin $ n + 1) →�
 | 0 h := λ a b, a ⟨0, h⟩ ≤ b ⟨0, h⟩
 | (m + 1) h := λ a b, a ⟨m + 1, h⟩ < b ⟨m + 1, h⟩ ∨ (a ⟨m + 1, h⟩ = b ⟨m + 1, h⟩ ∧ le_aux m (nat.lt_of_succ_lt h) a b)
 
-def mon_le: Π {n}, rel (fin n →₀ ℕ)
+def mon_le: Π {n}, (fin n →₀ ℕ) → (fin n →₀ ℕ) → Prop
 | 0 a b            := true
 | (nat.succ n) a b := le_aux n (nat.lt_succ_self n) a b
 
@@ -80,7 +73,7 @@ lemma mon_le_antisymm : ∀ a b : fin n →₀ ℕ, a ≤ b → b ≤ a → a = 
     intros hab hba, 
     apply fin_0_id,
     apply finsupp.ext, intro x, 
-    have h_add_sub : x.val + (n - x.val) = n, rw [←nat.add_sub_assoc (nat.le_of_lt_succ x.is_lt)], simp,
+    have h_add_sub : x.val + (n - x.val) = n, rw [←nat.add_sub_assoc (nat.le_of_lt_succ x.is_lt)], finish,
     have h := le_antisymm_aux x.val (n - x.val) (lt_of_le_of_lt (le_of_eq h_add_sub) (nat.lt_succ_self n)) a b, 
     simp [h_add_sub] at h,
     apply h hab hba,
@@ -118,7 +111,7 @@ instance decidable_le_aux (m : ℕ) (h : m < n + 1) : decidable_rel (le_aux m h)
     end
 end
 
-instance mon_le_decidable_rel : decidable_rel ((≤) : rel (fin n →₀ ℕ)) := λ a b,
+instance mon_le_decidable_rel : decidable_rel ((≤) : (fin n →₀ ℕ) → (fin n →₀ ℕ) → Prop) := λ a b,
 by cases n; unfold has_le.le preorder.le mon_le; apply_instance
 
 lemma le_mono_order_aux (m : ℕ) (h : m < n + 1) : ∀ a b w : (fin $ n + 1) →₀ ℕ, le_aux m h a b →  le_aux m h (a + w) (b + w) :=
@@ -155,137 +148,238 @@ lemma zero_le_aux : ∀ (m < n + 1) (a : fin (n + 1) →₀ ℕ), le_aux m H 0 a
 lemma mon_zero_le : ∀ a : fin n →₀ ℕ, 0 ≤ a :=
 λ a, by cases n; simp [has_le.le, preorder.le, mon_le, zero_le_aux]
 
--- def lifted_lt : option (poly_term α n) → 
+@[simp] lemma list_head'_none {α : Type*} : ∀ {l : list α}, l.head' = none ↔ l = [] 
+| [] := by simp
+| (hd :: tl) := by simp
 
-inductive polynomial (α : Type u) (n : ℕ) [discrete_field α] : option (poly_term α n) → Type u
-| nil : polynomial none
-| sing : Π (p : poly_term α n), polynomial (some p)
-| cons : Π (p p': poly_term α n), p'.mon < p.mon → polynomial (some p') → polynomial (some p)
-
-inductive polynomial' (α : Type u) (n : ℕ) [discrete_field α] : Type u
-| mk : Π (p : option (poly_term α n)) (poly : polynomial α n p), polynomial'
-
-
-
-lemma polynomial_unique (α : Type u) (n : ℕ) [discrete_field α] (l : list (poly_term α n)) :
-  Π (a b : polynomial α n l), a = b :=
+lemma ne_empty_iff_exists_mem {α : Type*} {s : finset α} : s ≠ ∅ ↔ ∃ x, x ∈ s :=
 begin
-    intros a b,
-    induction a; cases b,
-    { refl, },
-    { refl, },
-    { apply congr_arg, apply a_ih, }
+    simp [finset.eq_empty_iff_forall_not_mem],
+    apply @not_forall_not _ _ (classical.dec _),
 end
+
+@[simp] lemma finset_sort_empty {α : Type*} {r : α → α → Prop} 
+[decidable_eq α] [decidable_rel r] [is_trans α r] [is_antisymm α r] [is_total α r] : (∅ : finset α).sort r = [] :=
+by apply quot.lift_beta id; intros; assumption
+
+@[simp] lemma finset_sort_empty' {α : Type*} {r : α → α → Prop} 
+[decidable_eq α] [decidable_rel r] [is_trans α r] [is_antisymm α r] [is_total α r] : ∀ {s : finset α}, s.sort r = [] ↔ s = ∅ :=
+λ s, begin
+    apply iff.intro; intro h,
+    from if hs : s = ∅ 
+    then by assumption
+    else begin 
+        rw [←ne.def, ne_empty_iff_exists_mem] at hs,
+        cases hs, rw [←finset.mem_sort r, h] at hs_h,
+        cases hs_h,
+    end,
+    rw h, apply finset_sort_empty,
+end
+
+structure order_poly (α : Type*) (β : Type*) [has_zero β] (r : α → α → Prop) := 
+(support : list α)
+(to_fun : α → β)
+(mem_support_to_fun : ∀a, a ∈ support ↔ to_fun a ≠ 0)
+(order : list.sorted r support)
+(nodup : support.nodup)
+
+notation β ` ⬝ ` α ` /ᵣ ` r  := order_poly α β r
+
+namespace order_poly
+section basic
+
+variables {α : Type*} {β : Type*} {r : α → α → Prop} [has_zero β]
+instance : has_coe_to_fun (β ⬝ α /ᵣ r) := ⟨λ_, α → β, order_poly.to_fun⟩
+instance : has_zero (β ⬝ α /ᵣ r) := ⟨⟨[], (λ_, 0), (λ _, ⟨false.elim, λ H, H rfl⟩), by finish, by finish⟩⟩
+
+@[simp] lemma zero_apply {a : α} : (0 : β ⬝ α /ᵣ r) a = 0 := rfl
+
+@[simp] lemma support_zero : (0 : β ⬝ α /ᵣ r).support = [] := rfl
+
+instance : inhabited (β ⬝ α /ᵣ r) := ⟨0⟩
+
+@[simp] lemma mem_support_iff {p : β ⬝ α /ᵣ r} : ∀{a}, a ∈ p.support ↔ p a ≠ 0 :=
+p.mem_support_to_fun
+
+lemma not_mem_support_iff {p : β ⬝ α /ᵣ r} {a} : a ∉ p.support ↔ p a = 0 :=
+by haveI := classical.dec; exact not_iff_comm.1 mem_support_iff.symm
 
 @[extensionality]
-lemma polynomial'.ext (α : Type u) (n : ℕ) [discrete_field α] :
-   ∀ (p p' : list (poly_term α n)) (poly : polynomial α n p) (poly' : polynomial α n p'),
-   p = p' → polynomial'.mk p poly = polynomial'.mk p' poly' :=
-begin
-    intros, cases a,
-    rw polynomial_unique α n p poly poly',
+lemma ext [is_antisymm α r] : ∀{p q : β ⬝ α /ᵣ r }, (∀a, p a = q a) → p = q
+| ⟨s, f, hf, of, nf⟩ ⟨t, g, hg, og, ng⟩ h := begin
+    have : f = g, { funext a, exact h a },
+    subst this,
+    have : s = t, 
+        apply list.sorted_nodup_ext of og nf ng, intro a,
+        exact (hf a).trans (hg a).symm,
+    subst this,
 end
 
+instance [decidable_eq α] [decidable_eq β] [is_antisymm α r] : decidable_eq (β ⬝ α /ᵣ r) := 
+λ p q, decidable_of_iff (p.support = q.support ∧ ∀ a ∈ p.support, p a = q a) 
+⟨λ ⟨h₁, h₂⟩, ext $ λ a, if h : a ∈ p.support then h₂ a h else
+    have hp : p a = 0, by rwa [mem_support_iff, not_not] at h,
+    have hq : q a = 0, by rwa [h₁, mem_support_iff, not_not] at h,
+    by rw [hp, hq], 
+by rintro rfl; finish⟩
 
-def mon_insert {α : Type u} {n : ℕ} [discrete_field α] :
-    Π (t : poly_term α n) (l : list (poly_term α n)), list (poly_term α n)
-| t [] := [t]
-| t (x :: xs) := if p : x.2 ≤ t.2 then 
-                    (if p2 : t.2 = x.2 
-                     then (if p3: t.1 + x.1 ≠ 0 then poly_term.mk (t.1 + x.1) t.2 p3 t.4 :: xs else xs)
-                     else t :: x :: xs)
-                 else x :: mon_insert t xs
+end basic
 
-def poly_add_insert {α : Type u} {n : ℕ} [discrete_field α] : 
-    Π (t : poly_term α n) (l : list (poly_term α n)), polynomial α n l → polynomial α n (mon_insert t l) :=
-begin
-    intros, induction a; unfold mon_insert,
-    { constructor, },
-    by_cases h : a.mon ≤ t.mon; simp [h],
-    by_cases h_eq : t.mon = a.mon; simp [h_eq],
-    { constructor, },
-    { constructor, apply lt_of_le_of_ne h, intro, apply h_eq, symmetry, assumption,
-      constructor, },
-    { constructor, apply lt_of_not_ge' h, constructor, },
-    by_cases h : a_p.mon ≤ t.mon; simp [h],
-    by_cases h_eq : t.mon = a_p.mon; simp [h_eq],
-    { constructor; simpa },
-    { constructor, apply lt_of_le_of_ne h, intro, apply h_eq, symmetry, assumption, 
-      constructor; assumption, },
-    { by_cases h' : a_p'.mon ≤ t.mon; simp [h'],
-      { by_cases h'_eq : t.mon = a_p'.mon; simp [h'_eq], 
-        cases a_a_1; constructor; try { simpa }, constructor, constructor, assumption, 
-        assumption, constructor, apply lt_of_not_ge' h, constructor, apply lt_of_le_of_ne h',
-        intro, apply h'_eq, symmetry, assumption, assumption, }, 
-      { unfold mon_insert at a_ih; simp [h'] at a_ih,
-        constructor; assumption, }
+section single
+variables {α : Type*} {β : Type*} {r : α → α → Prop} [decidable_eq α] [decidable_eq β] [has_zero β] 
+
+def single (a : α) (b : β) : β ⬝ α /ᵣ r :=
+⟨if b = 0 then [] else [a], λ a', if a = a' then b else 0, 
+    λ a', begin by_cases hb : b = 0; by_cases a = a'; finish, end, 
+by by_cases hb : b = 0; finish, by by_cases hb : b = 0; finish⟩
+
+end single
+
+section on_list
+variables {α : Type*} {β : Type*} {r : α → α → Prop} [decidable_eq β] [has_zero β]
+
+def on_list (s : list α) (f : α → β) (hf : ∀a, f a ≠ 0 → a ∈ s) (os : s.sorted r) (ns : s.nodup) : β ⬝ α /ᵣ r := 
+⟨s.filter (λa, f a ≠ 0), f,
+  assume a, classical.by_cases
+    (assume h : f a = 0, by rw list.mem_filter; exact ⟨and.right, λ H, (H h).elim⟩)
+    (assume h : f a ≠ 0, by rw list.mem_filter; simp only [iff_true_intro h, hf a h, true_and]), 
+    list.sorted_filter s os _, list.nodup_filter _ ns⟩
+
+end on_list
+
+section decidable
+variables {α : Type*} {β : Type*} {r : α → α → Prop}
+variables [decidable_eq α] [decidable_eq β]
+
+section add_monoid
+variables [add_monoid β]
+
+def add [decidable_rel r] [is_trans α r] [is_total α r] (p q : β ⬝ α /ᵣ r) : β ⬝ α /ᵣ r := 
+    on_list (list.erase_dup (list.merge r p.support q.support)) (λ a, p a + q a) 
+    (λ a h, by finish [not_and_distrib.symm] ) 
+    (begin 
+        apply list.sorted_nodup,
+        exact list.sorted_merge _ p.order q.order, 
+    end) (by apply list.nodup_erase_dup)
+
+/-
+on_finset (g₁.support ∪ g₂.support) (λa, f (g₁ a) (g₂ a)) $ λ a H, begin
+  haveI := classical.dec_eq β₁,
+  simp only [mem_union, mem_support_iff, ne], rw [← not_and_distrib],
+  rintro ⟨h₁, h₂⟩, rw [h₁, h₂] at H, exact H hf
+end
+-/
+
+instance : has_add (β ⬝ α /ᵣ r) := begin
+
+end
+
+end add_monoid
+
+instance [has_zero α] [has_zero β] [has_one β] : has_one  (β ⬝ α /ᵣ r) := ⟨single 0 1⟩
+
+end decidable
+/-
+section comm_semiring
+variables [comm_semiring α]
+
+
+
+
+
+end comm_semiring
+-/
+end order_poly
+
+/-
+section comm_semiring
+variables {α : Type*} [comm_semiring α] [decidable_eq α]
+
+def is_const (p : mv_polynomial (fin n) α) := p = 0 ∨ p.support = {0}
+def is_const' (p : mv_polynomial (fin n) α) := p.support = {0}
+
+instance decidable_is_const (p : mv_polynomial (fin n) α): decidable (is_const p) :=
+    by apply or.decidable
+instance decidable_is_const' (p : mv_polynomial (fin n) α): decidable (is_const' p) :=
+    by simp [is_const']; apply_instance
+
+def lm (p : mv_polynomial (fin n) α) := (p.support.sort mon_le).head
+def lc (p : mv_polynomial (fin n) α) := p.to_fun p.lm
+
+lemma lm_zero (p : mv_polynomial (fin n) α) : p = 0 → lm p = 0 :=
+λ h, begin
+    have hp : p.support = ∅, finish,
+    simp [lm, hp], constructor,
+end
+
+def m_lcm (a b : (fin n) →₀ ℕ) : (fin n) →₀ ℕ :=
+    if a = 0 ∨ b = 0 then 0
+    else finsupp.zip_with max (max_self 0) a b
+
+def m_sub (a b : (fin n →₀ ℕ)) : (fin n) →₀ ℕ :=
+    finsupp.zip_with (nat.sub) (by finish) a b
+
+end comm_semiring
+
+section gcd_domain 
+variables {α : Type*} [gcd_domain α] [decidable_eq α]
+
+def lm_lcm (p q : mv_polynomial (fin n) α) : mv_polynomial (fin n) α :=
+    monomial (m_lcm p.lm q.lm) (lcm p.lc q.lc)
+
+end gcd_domain
+
+section discrete_field
+variables {α : Type*} [discrete_field α] [decidable_eq α]
+
+instance discrete_field_is_gcd_domain : gcd_domain α := {
+    eq_zero_or_eq_zero_of_mul_eq_zero := discrete_field.eq_zero_or_eq_zero_of_mul_eq_zero,
+    norm_unit := λ a, if h : a = 0 then 1 else {
+        val := a⁻¹,
+        inv := a⁻¹⁻¹,
+        val_inv := mul_inv_cancel (inv_ne_zero h),
+        inv_val := inv_mul_cancel (inv_ne_zero h),
     },
-end
-def poly_add' {α : Type u} {n : ℕ} [discrete_field α] : list (poly_term α n) → list (poly_term α n) → list (poly_term α n)
-| [] l := l
-| [x] l := mon_insert x l
-| l [] := l
-| l [x] := mon_insert x l
-| (x :: x' :: xs) (y :: y' :: ys) := poly_add' (x' :: xs) (mon_insert x (y :: y' :: ys))
+    norm_unit_zero := by simp,
+    norm_unit_mul := λ a b ha hb, begin
+        simp [ha, hb, has_mul.mul, units.mul],
+        split,
+        change (a * b)⁻¹ = a⁻¹ * b⁻¹, finish [mul_inv'],
+        finish,
+    end,
+    norm_unit_coe_units := λ u, begin 
+        simp [units.ext_iff, units.val_coe], 
+        generalize h_inv : u⁻¹ = k,
+        unfold has_inv.inv units.inv' at h_inv, simp [h_inv.symm], 
+        have h : u.val * u.val⁻¹ = u.val * u.inv, simp [units.val_inv], apply division_ring.mul_inv_cancel (units.ne_zero u),
+        have h' :  u.inv * u.val * u.val⁻¹ = u.inv * u.val * u.inv, simp [mul_assoc, h], 
+        finish [h', units.inv_val],
+    end,
+    gcd := λ a b, if a = 0 ∧ b = 0 then 0 else 1,
+    lcm := λ a b, if a = 0 ∨ b = 0 then 0 else 1,
+    gcd_dvd_left := λ a b, if h : a = 0 ∧ b = 0 then by simp [h] else by simp [h],
+    gcd_dvd_right := λ a b, if h : a = 0 ∧ b = 0 then by simp [h] else by simp [h],
+    dvd_gcd := λ a b c hac hab, if h : c = 0 ∧ b = 0 then by simp [h] else begin 
+            simp [h], apply dvd.intro a⁻¹, apply mul_inv_cancel, intro ha, rw [ha, zero_dvd_iff] at hac hab,
+            apply absurd (and.intro hac hab) h,
+        end,
+    norm_unit_gcd := λ a b, if h : a = 0 ∧ b = 0 then by simp [h] else begin 
+        simp [h, units.ext_iff, units.val_coe], 
+        unfold has_one.one, simp, apply one_inv_eq,
+    end,
+    gcd_mul_lcm := λ a b, if h : a = 0 ∧ b = 0 then by simp [h] else begin 
+        simp [h], by_cases h' : a = 0 ∨ b = 0; simp [h', units.val_coe],
+    end,
+    lcm_zero_left := λ a, by simp,
+    lcm_zero_right := λ a, by simp,
+    .._inst_1,    
+}
 
-def poly_add {α : Type u} {n : ℕ} [discrete_field α] : polynomial' α n → polynomial' α n → polynomial' α n
-| (polynomial'.mk [] poly) (polynomial'.mk )
-| (polynomial'.mk [hd] poly) (polynomial'.mk l poly') := polynomial'.mk _ $ poly_add_insert hd l poly'
-| (polynomial'.mk (p :: p' :: tl) poly) (polynomial'.mk [hd] poly') := polynomial'.mk _ $ poly_add_insert hd _ poly
-| (polynomial'.mk (p :: p' :: tl) (polynomial.cons .(p) .(p') .(tl) pf poly)) 
-                             pp@(polynomial'.mk (p'' :: p''' :: tl') (polynomial.cons .(p'') .(p''') .(tl') pf' poly')) 
-      := poly_add (polynomial'.mk (p' :: tl) poly) $ polynomial'.mk (mon_insert p (p'' :: p''' :: tl')) (poly_add_insert p (p'' :: p''' :: tl') (by constructor; assumption))
-
-lemma poly_add_iff_poly_add' {α : Type u} {n : ℕ} [discrete_field α] : 
-    Π (a b c d : list (poly_term α n)) (poly₁ : polynomial α n a) (poly₂ : polynomial α n b) (poly₃ : polynomial α n c) (poly₄ : polynomial α n d),
-        poly_add' a b = poly_add' c d ↔ poly_add (polynomial'.mk a poly₁) (polynomial'.mk b poly₂) = poly_add (polynomial'.mk c poly₃) (polynomial'.mk d poly₄) := sorry
+def s_poly (p q : mv_polynomial (fin n) α) : mv_polynomial (fin n) α :=
+    let X := m_lcm p.lm q.lm in 
+    let Xc := lcm p.lc q.lc in
+    monomial (m_sub X p.lm) (Xc / p.lc) * p - monomial (m_sub X q.lm) (Xc / q.lc) * q
 
 
-instance {α : Type u} {n : ℕ} [discrete_field α] : has_add (polynomial' α n) := has_add.mk poly_add
-
-lemma poly_add_comm {α : Type u} {n : ℕ} [discrete_field α] : ∀ (a b : polynomial' α n), a + b = b + a 
-| (polynomial'.mk [hd] poly) (polynomial'.mk l poly') :=
-begin
-    unfold has_add.add poly_add,
-    induction poly'; unfold poly_add,
-    apply polynomial'.ext,
-    unfold mon_insert,
-    by_cases h : poly'.mon ≤ hd.mon; simp [h], 
-    { by_cases h' : hd.mon = poly'.mon; simp [h'], 
-      { simp [le_of_eq (refl poly'.mon)], },
-      { have := lt_of_le_of_ne h (λ t, by rw t at *; exact h' rfl),
-          simp [not_le_of_lt this], }, },
-    { simp [le_of_not_le h],
-      by_cases h' : poly'.mon = hd.mon; simp [h'],
-      { apply false.elim, apply h, rw h', },  
-    },
-end
-| (polynomial'.mk (p :: p' :: tl) poly) (polynomial'.mk [hd] poly') :=
-begin
-    unfold has_add.add poly_add,
-    induction poly; unfold poly_add,
-    apply polynomial'.ext; unfold mon_insert, 
-    by_cases h : poly.mon ≤ hd.mon; simp [h], 
-    { by_cases h' : hd.mon = poly.mon; simp [h'], 
-      { simp [le_of_eq (refl poly.mon)], },
-      { have := lt_of_le_of_ne h (λ t, by rw t at *; exact h' rfl),
-          simp [not_le_of_lt this], }, },
-    { simp [le_of_not_le h],
-      by_cases h' : poly.mon = hd.mon; simp [h'],
-      { apply false.elim, apply h, rw h', },  
-    },
-end
-| (polynomial'.mk (p :: p' :: tl) (polynomial.cons .(p) .(p') .(tl) pf poly)) 
-                             (polynomial'.mk (p'' :: p''' :: tl') (polynomial.cons .(p'') .(p''') .(tl') pf' poly')) :=
-begin
-    have IH := poly_add_comm (polynomial'.mk (p' :: tl) poly) (polynomial'.mk (p''' :: tl') poly'), 
-    unfold has_add.add poly_add mon_insert at *,
-    rw [←poly_add_iff_poly_add'],
-    replace IH : poly_add' (p' :: tl) (p''' :: tl') = poly_add' (p''' :: tl') (p' :: tl),
-        { rwa poly_add_iff_poly_add', },
-    unfold mon_insert,
-    by_cases h : p''.mon ≤ p.mon; simp [h],
-
-    by_cases h' : p.mon ≤ p''.mon; simp [h'],
-
-end
+end discrete_field
+-/
