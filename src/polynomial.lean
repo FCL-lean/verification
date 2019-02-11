@@ -148,148 +148,23 @@ lemma zero_le_aux : ∀ (m < n + 1) (a : fin (n + 1) →₀ ℕ), le_aux m H 0 a
 lemma mon_zero_le : ∀ a : fin n →₀ ℕ, 0 ≤ a :=
 λ a, by cases n; simp [has_le.le, preorder.le, mon_le, zero_le_aux]
 
-@[simp] lemma list_head'_none {α : Type*} : ∀ {l : list α}, l.head' = none ↔ l = [] 
-| [] := by simp
-| (hd :: tl) := by simp
+section order_poly
+variables (α : Type*) (β : Type*) [has_zero β] [decidable_eq α]
+variables (r : α → α → Prop) [decidable_rel r] [is_trans α r] [is_antisymm α r] [is_total α r]
 
-lemma ne_empty_iff_exists_mem {α : Type*} {s : finset α} : s ≠ ∅ ↔ ∃ x, x ∈ s :=
-begin
-    simp [finset.eq_empty_iff_forall_not_mem],
-    apply @not_forall_not _ _ (classical.dec _),
-end
+structure order_poly extends finsupp α β :=
+(l := support.sort r)
+ 
+instance : has_coe (order_poly α β r) (finsupp α β) := ⟨order_poly.to_finsupp⟩
 
-@[simp] lemma finset_sort_empty {α : Type*} {r : α → α → Prop} 
-[decidable_eq α] [decidable_rel r] [is_trans α r] [is_antisymm α r] [is_total α r] : (∅ : finset α).sort r = [] :=
-by apply quot.lift_beta id; intros; assumption
-
-@[simp] lemma finset_sort_empty' {α : Type*} {r : α → α → Prop} 
-[decidable_eq α] [decidable_rel r] [is_trans α r] [is_antisymm α r] [is_total α r] : ∀ {s : finset α}, s.sort r = [] ↔ s = ∅ :=
-λ s, begin
-    apply iff.intro; intro h,
-    from if hs : s = ∅ 
-    then by assumption
-    else begin 
-        rw [←ne.def, ne_empty_iff_exists_mem] at hs,
-        cases hs, rw [←finset.mem_sort r, h] at hs_h,
-        cases hs_h,
-    end,
-    rw h, apply finset_sort_empty,
-end
-
-structure order_poly (α : Type*) (β : Type*) [has_zero β] (r : α → α → Prop) := 
-(support : list α)
-(to_fun : α → β)
-(mem_support_to_fun : ∀a, a ∈ support ↔ to_fun a ≠ 0)
-(order : list.sorted r support)
-(nodup : support.nodup)
-
-notation β ` ⬝ ` α ` /ᵣ ` r  := order_poly α β r
-
-namespace order_poly
-section basic
-
-variables {α : Type*} {β : Type*} {r : α → α → Prop} [has_zero β]
-instance : has_coe_to_fun (β ⬝ α /ᵣ r) := ⟨λ_, α → β, order_poly.to_fun⟩
-instance : has_zero (β ⬝ α /ᵣ r) := ⟨⟨[], (λ_, 0), (λ _, ⟨false.elim, λ H, H rfl⟩), by finish, by finish⟩⟩
-
-@[simp] lemma zero_apply {a : α} : (0 : β ⬝ α /ᵣ r) a = 0 := rfl
-
-@[simp] lemma support_zero : (0 : β ⬝ α /ᵣ r).support = [] := rfl
-
-instance : inhabited (β ⬝ α /ᵣ r) := ⟨0⟩
-
-@[simp] lemma mem_support_iff {p : β ⬝ α /ᵣ r} : ∀{a}, a ∈ p.support ↔ p a ≠ 0 :=
-p.mem_support_to_fun
-
-lemma not_mem_support_iff {p : β ⬝ α /ᵣ r} {a} : a ∉ p.support ↔ p a = 0 :=
-by haveI := classical.dec; exact not_iff_comm.1 mem_support_iff.symm
-
-@[extensionality]
-lemma ext [is_antisymm α r] : ∀{p q : β ⬝ α /ᵣ r }, (∀a, p a = q a) → p = q
-| ⟨s, f, hf, of, nf⟩ ⟨t, g, hg, og, ng⟩ h := begin
-    have : f = g, { funext a, exact h a },
-    subst this,
-    have : s = t, 
-        apply list.sorted_nodup_ext of og nf ng, intro a,
-        exact (hf a).trans (hg a).symm,
-    subst this,
-end
-
-instance [decidable_eq α] [decidable_eq β] [is_antisymm α r] : decidable_eq (β ⬝ α /ᵣ r) := 
-λ p q, decidable_of_iff (p.support = q.support ∧ ∀ a ∈ p.support, p a = q a) 
-⟨λ ⟨h₁, h₂⟩, ext $ λ a, if h : a ∈ p.support then h₂ a h else
-    have hp : p a = 0, by rwa [mem_support_iff, not_not] at h,
-    have hq : q a = 0, by rwa [h₁, mem_support_iff, not_not] at h,
-    by rw [hp, hq], 
-by rintro rfl; finish⟩
-
-end basic
-
-section single
-variables {α : Type*} {β : Type*} {r : α → α → Prop} [decidable_eq α] [decidable_eq β] [has_zero β] 
-
-def single (a : α) (b : β) : β ⬝ α /ᵣ r :=
-⟨if b = 0 then [] else [a], λ a', if a = a' then b else 0, 
-    λ a', begin by_cases hb : b = 0; by_cases a = a'; finish, end, 
-by by_cases hb : b = 0; finish, by by_cases hb : b = 0; finish⟩
-
-end single
-
-section on_list
-variables {α : Type*} {β : Type*} {r : α → α → Prop} [decidable_eq β] [has_zero β]
-
-def on_list (s : list α) (f : α → β) (hf : ∀a, f a ≠ 0 → a ∈ s) (os : s.sorted r) (ns : s.nodup) : β ⬝ α /ᵣ r := 
-⟨s.filter (λa, f a ≠ 0), f,
-  assume a, classical.by_cases
-    (assume h : f a = 0, by rw list.mem_filter; exact ⟨and.right, λ H, (H h).elim⟩)
-    (assume h : f a ≠ 0, by rw list.mem_filter; simp only [iff_true_intro h, hf a h, true_and]), 
-    list.sorted_filter s os _, list.nodup_filter _ ns⟩
-
-end on_list
-
-section decidable
-variables {α : Type*} {β : Type*} {r : α → α → Prop}
-variables [decidable_eq α] [decidable_eq β]
+end order_poly
 
 section add_monoid
-variables [add_monoid β]
+variables (α : Type*) (β : Type*) [add_monoid β] [decidable_eq α] [decidable_eq β]
+variables (r : α → α → Prop) [decidable_rel r] [is_trans α r] [is_antisymm α r] [is_total α r]
 
-def add [decidable_rel r] [is_trans α r] [is_total α r] (p q : β ⬝ α /ᵣ r) : β ⬝ α /ᵣ r := 
-    on_list (list.erase_dup (list.merge r p.support q.support)) (λ a, p a + q a) 
-    (λ a h, by finish [not_and_distrib.symm] ) 
-    (begin 
-        apply list.sorted_nodup,
-        exact list.sorted_merge _ p.order q.order, 
-    end) (by apply list.nodup_erase_dup)
-
-/-
-on_finset (g₁.support ∪ g₂.support) (λa, f (g₁ a) (g₂ a)) $ λ a H, begin
-  haveI := classical.dec_eq β₁,
-  simp only [mem_union, mem_support_iff, ne], rw [← not_and_distrib],
-  rintro ⟨h₁, h₂⟩, rw [h₁, h₂] at H, exact H hf
-end
--/
-
-instance : has_add (β ⬝ α /ᵣ r) := begin
-
-end
 
 end add_monoid
-
-instance [has_zero α] [has_zero β] [has_one β] : has_one  (β ⬝ α /ᵣ r) := ⟨single 0 1⟩
-
-end decidable
-/-
-section comm_semiring
-variables [comm_semiring α]
-
-
-
-
-
-end comm_semiring
--/
-end order_poly
 
 /-
 section comm_semiring
