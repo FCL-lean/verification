@@ -12,7 +12,7 @@ variables (r : α → α → Prop) [decidable_rel r] [is_trans α r] [is_antisym
 ⟨λ h, begin
     have h' : ↑(sort r s) = (∅ : multiset α),
         simp [h],
-    simp at h', assumption,
+    simpa using h', 
 end, 
 λ h, by finish⟩
 
@@ -23,8 +23,7 @@ lemma sort_singleton [decidable_eq α] {s : finset α} {a} : (s.sort r) = [a] �
     have h := @mem_sort _ r _ _ _ _ s,
     split; intro ha',
     rwa [←@h a', hs] at ha',
-    simp at ha',
-    simp [ha', (@h a).symm, hs],
+    simpa [(@h a').symm, hs] using ha',
 end, λ h, begin finish [h], end⟩
 
 lemma sort_hd_rel [inhabited α] [decidable_eq α] {s : finset α} : ∀ a ∈ (s.sort r).tail, r (s.sort r).head a := begin

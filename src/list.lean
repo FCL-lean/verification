@@ -38,8 +38,7 @@ lemma sorted_nodup_ext [is_antisymm _ r] :
         have ha₂ : a ≠ hd₂,
             intro hahd, rw hahd at ha, {rw h₂ at ha, exact hhd₁ ha} <|> {rw ←h₁ at ha, exact hhd₁ ha} <|> {exact hhd₂ ha},
         let ha' := h a, 
-        simp [ha₁, ha₂, ha] at ha',
-        assumption,
+        simpa [ha₁, ha₂, ha] using ha',
     },
 end
 
@@ -67,7 +66,7 @@ end
     simp [or_assoc (a = hd₁), @or.left_comm (a = hd₂)], rw [or_assoc] at h', assumption,
 end
 
-lemma sorted_nodup [decidable_eq α] (l : list α) (h : l.sorted r) : l.erase_dup.sorted r :=
+lemma sorted_of_sorted_erase_dup [decidable_eq α] (l : list α) (h : l.sorted r) : l.erase_dup.sorted r :=
 begin
     induction l, simp,
     simp at h,
