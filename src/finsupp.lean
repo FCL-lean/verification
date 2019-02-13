@@ -1,5 +1,6 @@
 --import data.finsupp
 import linear_algebra.multivariate_polynomial
+import has_dec_linear_order
 import algebra.gcd_domain
 import discrete_field
 import finset
@@ -40,21 +41,23 @@ end monomial
 
 section order_finsupp
 variables {α : Type*} {β : Type*} 
-variables (r : α → α → Prop) [decidable_rel r] [is_trans α r] [is_antisymm α r] [is_total α r]
+variables [has_dec_linear_order α]
+
+def dlo : has_dec_linear_order α := by apply_instance
 
 section s_support
 variables [has_zero β]
 
-def s_support (f : α →₀ β) := f.support.sort r
+def s_support (f : α →₀ β) := f.support.sort dlo.r
 
-lemma mem_s_support {f : α →₀ β} {a : α} : a ∈ f.s_support r ↔ a ∈ f.support := by simp [s_support]
+lemma mem_s_support {f : α →₀ β} {a : α} : a ∈ f.s_support ↔ a ∈ f.support := by simp [s_support]
 
-lemma support_empty_of_s_nil {f : α →₀ β} : f.s_support r = [] ↔ f.support = ∅ := by simp [s_support]
-lemma support_ne_empty_of_s_ne_nil {f : α →₀ β} : f.s_support r ≠ [] ↔ f.support ≠ ∅ := by simp [s_support, support_empty_of_s_nil]
-lemma eq_zero_of_s_nil [decidable_eq β] {f : α →₀ β} : f.s_support r = [] ↔ f = 0 := by simp [s_support]
-lemma ne_zero_of_s_ne_nil [decidable_eq β] {f : α →₀ β} : f.s_support r ≠ [] ↔ f ≠ 0 := by simp [s_support, eq_zero_of_s_nil]
+lemma support_empty_of_s_nil {f : α →₀ β} : f.s_support = [] ↔ f.support = ∅ := by simp [s_support]
+lemma support_ne_empty_of_s_ne_nil {f : α →₀ β} : f.s_support ≠ [] ↔ f.support ≠ ∅ := by simp [s_support, support_empty_of_s_nil]
+lemma eq_zero_of_s_nil [decidable_eq β] {f : α →₀ β} : f.s_support = [] ↔ f = 0 := by simp [s_support]
+lemma ne_zero_of_s_ne_nil [decidable_eq β] {f : α →₀ β} : f.s_support ≠ [] ↔ f ≠ 0 := by simp [s_support, eq_zero_of_s_nil]
 
-lemma s_support_singleton [decidable_eq α] [decidable_eq β] {f : α →₀ β} {a} (h : f.s_support r = [a]) : f = single a (f a) :=
+lemma s_support_singleton [decidable_eq α] [decidable_eq β] {f : α →₀ β} {a} (h : f.s_support = [a]) : f = single a (f a) :=
 begin
     simp [s_support, finset.sort_singleton] at h,
     ext x,
@@ -67,40 +70,40 @@ end s_support
 section basic
 variables [has_zero β] [inhabited α]
 
-def hd (f : α →₀ β) := (s_support r f).head
-def hd_val (f : α →₀ β) := f (s_support r f).head
+def hd (f : α →₀ β) := (s_support f).head
+def hd_val (f : α →₀ β) := f (s_support f).head
 
 def tl [decidable_eq α] (f : α →₀ β) : α →₀ β := 
-let hd := f.hd r in
+let hd := f.hd in
 ⟨(f.support.erase hd), λ a, if a = hd then 0 else f a, 
 λ a, begin
     split; simp_intros, simp [a_1],
     by_cases a = hd; finish,
 end⟩ 
 
-lemma tl_apply [decidable_eq α] (f : α →₀ β) : ∀ a ≠ hd r f, (tl r f) a = f a := 
+lemma tl_apply [decidable_eq α] (f : α →₀ β) : ∀ a ≠ hd f, (tl f) a = f a := 
 λ a h, by rw coe_f; finish [tl]
 
-lemma tl_apply_hd [decidable_eq α] (f : α →₀ β) : (tl r f) (hd r f) = 0 := 
+lemma tl_apply_hd [decidable_eq α] (f : α →₀ β) : (tl f) (hd f) = 0 := 
     by rw ←not_mem_support_iff; simp [tl]
 
-lemma hd_mem_s_support [decidable_eq β] (f : α →₀ β) (h : f ≠ 0) : f.hd r ∈ s_support r f:= begin
-    rw [←support_ne_empty, ←finset.sort_ne_nil r] at h,
+lemma hd_mem_s_support [decidable_eq β] (f : α →₀ β) (h : f ≠ 0) : f.hd ∈ s_support f:= begin
+    rw [←support_ne_empty, ←finset.sort_ne_nil] at h,
     unfold hd s_support, rw [←list.cons_head_tail h],
     simp,
 end
 
-lemma hd_mem_support [decidable_eq β] (f : α →₀ β) (h : f ≠ 0) : f.hd r ∈ f.support := 
-    by rw ←finset.mem_sort r; apply hd_mem_s_support _ _ h
+lemma hd_mem_support [decidable_eq β] (f : α →₀ β) (h : f ≠ 0) : f.hd  ∈ f.support := 
+    by rw ←finset.mem_sort dlo.r; apply hd_mem_s_support _ h
 
-lemma hd_not_mem_tl [decidable_eq α] {f : α →₀ β} : f.hd r ∉ (tl r f).support := by simp [tl]
+lemma hd_not_mem_tl [decidable_eq α] {f : α →₀ β} : f.hd ∉ (tl f).support := by simp [tl]
 
-lemma tl_eq_s_tl [decidable_eq α] [decidable_eq β] {f : α →₀ β} : s_support r (tl r f) = (s_support r f).tail := begin
-    by_cases hf : s_support r f = [], 
-    simp [hf, tl, (support_empty_of_s_nil r).1 hf], 
-    apply (eq_zero_of_s_nil r).2, apply eq_zero_lem, apply_instance,
+lemma tl_eq_s_tl [decidable_eq α] [decidable_eq β] {f : α →₀ β} : s_support (tl f) = (s_support f).tail := begin
+    by_cases hf : s_support f = [], 
+    simp [hf, tl, support_empty_of_s_nil.1 hf], 
+    apply eq_zero_of_s_nil.2, apply eq_zero_lem, apply_instance,
 
-    apply list.sorted_nodup_ext r, simp [s_support], 
+    apply list.sorted_nodup_ext, simp [s_support], 
     apply list.sorted_tail, simp [s_support],
     simp [s_support],
     apply @list.nodup_of_nodup_cons _ (s_support r f).head,
