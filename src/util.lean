@@ -36,6 +36,8 @@ lemma some_lem {a : α} : (a : option α) = some a := by finish
 
 end option
 
+lemma lt_lt_antisym {α : Type u} [preorder α] : ∀ {a b : α}, a < b → b < a → false 
+| a b le₀ le₁ := begin apply (absurd le₀ (not_lt_of_ge (le_of_lt le₁))), end
 namespace nat
 
 lemma many_step 

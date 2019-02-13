@@ -155,7 +155,6 @@ lemma zero_le_aux : ∀ (m < n + 1) (a : fin (n + 1) →₀ ℕ), le_aux m H 0 a
 lemma mon_zero_le : ∀ a : fin n →₀ ℕ, 0 ≤ a :=
 λ a, by cases n; simp [has_le.le, preorder.le, mon_le, zero_le_aux]
 
--- def lifted_lt : option (poly_term α n) → 
 
 inductive polynomial (α : Type u) (n : ℕ) [discrete_field α] : option (poly_term α n) → Type u
 | nil : polynomial none
@@ -206,4 +205,48 @@ def poly_add {α : Type u} {n : ℕ} [discrete_field α] : polynomial' α n → 
 
 instance {α : Type u} {n : ℕ} [discrete_field α] : has_add (polynomial' α n) := has_add.mk poly_add
 
-lemma poly_add_comm {α : Type u} {n : ℕ} [discrete_field α] : ∀ (a b : polynomial' α n), a + b = b + a := sorry
+lemma poly_sing_eq {α : Type u} {n : ℕ} [discrete_field α] : Π (a b: poly_term α n), a = b → polynomial.sing a == polynomial.sing b := by finish
+lemma poly_add_comm {α : Type u} {n : ℕ} [discrete_field α] : ∀ (a b : polynomial' α n), a + b = b + a :=
+λ a b, begin
+    unfold has_add.add,
+    cases a; revert b,
+    induction a_poly; intro b; cases b; cases b_poly; unfold poly_add poly_add_insert,
+    { by_cases h : b_poly_1.mon < a_poly.mon,
+      { replace h :  b_poly_1.mon < a_poly.mon := h; simp [h],
+        by_cases h' : a_poly.mon < b_poly_1.mon,
+        { apply false.elim, apply lt_lt_antisym h h', },
+        { replace h' : ¬ a_poly.mon < b_poly_1.mon := h'; simp [h'],
+          by_cases h'' : a_poly.mon = b_poly_1.mon; simp [h''],
+          rw h'' at h; apply false.elim (lt_irrefl _ h),
+        }
+      },
+      { replace h :  ¬ b_poly_1.mon < a_poly.mon := h; simp [h], 
+        by_cases h' : a_poly.mon < b_poly_1.mon,
+        { replace h' : a_poly.mon < b_poly_1.mon := h'; simp [h'], 
+          by_cases h'' : b_poly_1.mon = a_poly.mon; simp [h''],
+          { rw h'' at h', apply false.elim (lt_irrefl _ h'), }
+        },
+        { replace h' : ¬ a_poly.mon < b_poly_1.mon := h'; simp [h'],
+          by_cases h'' : b_poly_1.mon = a_poly.mon; simp [h''],
+          { by_cases h''' : b_poly_1.coeff + a_poly.coeff = 0; simp [h'''],
+            { rw add_comm at h'''; simp [h'''], },
+            { rw add_comm at h'''; simp [h'''], 
+              apply and.intro, assumption, apply poly_sing_eq,
+              conv { to_lhs, congr, rw add_comm, skip, rw h'', skip, }, }
+          },
+          { cases eq_or_lt_of_not_lt h, exact false.elim (h'' h_1), exact false.elim (h' h_1), }
+        }
+      }
+    },
+    { by_cases h : b_poly_p.mon < a_poly_p.mon,
+      { replace h : b_poly_p.mon < a_poly_p.mon := h; simp [h], 
+        by_cases h' : a_poly_p.mon < b_poly_p.mon,
+        { apply false.elim, apply lt_lt_antisym h h', },
+        { replace h' : ¬ a_poly_p.mon < b_poly_p.mon := h'; simp [h'],
+          by_cases h'' : a_poly_p.mon = b_poly_p.mon; simp [h''],
+          { rw h'' at h, apply false.elim, apply lt_irrefl _ h, },
+          { rw a_poly_ih,
+               } }
+      }
+    }
+end
