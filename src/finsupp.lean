@@ -137,7 +137,7 @@ lemma hd_tl_eq (f : α →₀ β) : (single (hd f) (hd_val f)) + (tl f) = f:= be
     ext a, simp [single_apply],
     by_cases ha : hd f = a; simp [ha],
     simp [hd_val, ha.symm, tl_apply_hd], refl,
-    exact (tl_apply r f _ (ne.symm ha)),
+    exact (tl_apply f _ (ne.symm ha)),
 end
 
 @[elab_as_eliminator]
