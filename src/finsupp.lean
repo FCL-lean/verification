@@ -44,7 +44,7 @@ variables {α : Type*} {β : Type*}
 variables [has_dec_linear_order α]
 
 def dlo : has_dec_linear_order α := by apply_instance
-
+def R : α → α → Prop := dlo.r
 section s_support
 variables [has_zero β]
 
@@ -103,39 +103,39 @@ lemma tl_eq_s_tl [decidable_eq α] [decidable_eq β] {f : α →₀ β} : s_supp
     simp [hf, tl, support_empty_of_s_nil.1 hf], 
     apply eq_zero_of_s_nil.2, apply eq_zero_lem, apply_instance,
 
-    apply list.sorted_nodup_ext, simp [s_support], 
+    apply @list.sorted_nodup_ext _ dlo.r (is_antisymm_has_dec_linear_order dlo), simp [s_support], 
     apply list.sorted_tail, simp [s_support],
-    simp [s_support],
-    apply @list.nodup_of_nodup_cons _ (s_support r f).head,
+    apply finset.sort_sorted, simp [s_support],
+    apply @list.nodup_of_nodup_cons _ (s_support f).head,
     rw list.cons_head_tail hf, all_goals {simp [s_support, hd, tl, -mem_support_iff]},
     intro a, unfold s_support at hf,
-    rw [←finset.mem_sort r, ←list.cons_head_tail hf],
+    rw [←finset.mem_sort dlo.r, ←list.cons_head_tail hf],
     simp [and_or_distrib_left],
     split; intro h,
     exact h.right,
     split,
-    have nh := finset.sort_nodup r f.support, rw ←list.cons_head_tail hf at nh,
+    have nh := finset.sort_nodup dlo.r f.support, rw ←list.cons_head_tail hf at nh,
     simp at nh, intro ha, rw ha at h, exact nh.left h,
     assumption,
 end 
 
-lemma cons_hd_tl [decidable_eq α] [decidable_eq β] {f : α →₀ β} (hf : f ≠ 0) : list.cons (hd r f) (s_support r (tl r f)) = s_support r f := 
+lemma cons_hd_tl [decidable_eq α] [decidable_eq β] {f : α →₀ β} (hf : f ≠ 0) : list.cons (hd f) (s_support (tl f)) = s_support f := 
     by simp [tl_eq_s_tl, hd]; apply list.cons_head_tail; rwa ne_zero_of_s_ne_nil
 
-lemma hd_val_nez [decidable_eq β] (f : α →₀ β) (h : f ≠ 0) : hd_val r f ≠ 0 := begin
-    unfold hd_val, rw ←mem_support_iff, apply hd_mem_support r f h,
+lemma hd_val_nez [decidable_eq β] (f : α →₀ β) (h : f ≠ 0) : hd_val f ≠ 0 := begin
+    unfold hd_val, rw ←mem_support_iff, apply hd_mem_support f h,
 end
 
-lemma hd_rel [decidable_eq α] [decidable_eq β] {f : α →₀ β} : ∀ a, a ∈ (tl r f).support → r (hd r f) a := λ a, 
-    by rw [←mem_s_support r, tl_eq_s_tl, hd]; apply finset.sort_hd_rel
+lemma hd_rel [decidable_eq α] [decidable_eq β] {f : α →₀ β} : ∀ a, a ∈ (tl f).support → R (hd f) a := λ a, 
+    by rw [←mem_s_support, tl_eq_s_tl, hd]; apply finset.sort_hd_rel
 
 end basic
 section add_monoid
 variables [decidable_eq α] [decidable_eq β] [inhabited α] [add_monoid β]
 
-lemma hd_tl_eq (f : α →₀ β) : (single (hd r f) (hd_val r f)) + (tl r f) = f:= begin
+lemma hd_tl_eq (f : α →₀ β) : (single (hd f) (hd_val f)) + (tl f) = f:= begin
     ext a, simp [single_apply],
-    by_cases ha : hd r f = a; simp [ha],
+    by_cases ha : hd f = a; simp [ha],
     simp [hd_val, ha.symm, tl_apply_hd], refl,
     exact (tl_apply r f _ (ne.symm ha)),
 end
@@ -143,31 +143,31 @@ end
 @[elab_as_eliminator]
 lemma induction_on [inhabited α] [decidable_eq α] [decidable_eq β] {C : (α →₀ β) → Prop} (f : α →₀ β) 
     (C₀ : C 0)
-    (Cₙ : ∀ (f : α →₀ β), C (tl r f) → C f) : C f := 
-    suffices ∀ l (f : α →₀ β), f.s_support r = l → C f, from this _ _ rfl,
-    λ l, @list.rec_on _ (λ l, (∀ (f : α →₀ β), s_support r f = l → C f)) l
+    (Cₙ : ∀ (f : α →₀ β), C (tl f) → C f) : C f := 
+    suffices ∀ l (f : α →₀ β), f.s_support = l → C f, from this _ _ rfl,
+    λ l, @list.rec_on _ (λ l, (∀ (f : α →₀ β), s_support f = l → C f)) l
     (λ f hf, by rw eq_zero_of_s_nil at hf; rwa hf) 
     begin
         simp_intros l_hd l_tl ih f hf,
         apply Cₙ, apply ih,
         rw ←cons_hd_tl at hf, simp at hf, exact hf.right,
-        rw [←ne_zero_of_s_ne_nil r, hf], simp, apply_instance,
+        rw [←ne_zero_of_s_ne_nil, hf], simp,
     end
 
 @[elab_as_eliminator]
 lemma induction_on' [inhabited α] [decidable_eq α] [decidable_eq β] {C : (α →₀ β) → Prop} (f : α →₀ β) 
     (C₀ : C 0)
-    (Cₙ : ∀ (f : α →₀ β) a b, a ∉ f.support → (∀ x ∈ f.support, r a x) → C f → C (single a b + f)) : C f := 
-    suffices ∀ l (f : α →₀ β), f.s_support r = l → C f, from this _ _ rfl,
-    λ l, @list.rec_on _ (λ l, (∀ (f : α →₀ β), s_support r f = l → C f)) l
+    (Cₙ : ∀ (f : α →₀ β) a b, a ∉ f.support → (∀ x ∈ f.support, R a x) → C f → C (single a b + f)) : C f := 
+    suffices ∀ l (f : α →₀ β), f.s_support = l → C f, from this _ _ rfl,
+    λ l, @list.rec_on _ (λ l, (∀ (f : α →₀ β), s_support f = l → C f)) l
     (λ f hf, by rw eq_zero_of_s_nil at hf; rwa hf) 
     begin 
         simp_intros l_hd l_tl ih f hf,
-        have h := Cₙ (tl r f) (hd r f) (hd_val r f) (by simp [tl]) (hd_rel r),
+        have h := Cₙ (tl f) (hd f) (hd_val f) (by simp [tl]) hd_rel,
         rw hd_tl_eq at h, apply h,
         apply ih,
         rw ←cons_hd_tl at hf, simp at hf, exact hf.right,
-        rw [←ne_zero_of_s_ne_nil r, hf], simp, apply_instance,
+        rw [←ne_zero_of_s_ne_nil, hf], simp,
     end
 
 end add_monoid
@@ -180,20 +180,20 @@ namespace mv_polynomial
 
 section gcd_domain 
 variables {σ : Type*} {α : Type*} [gcd_domain α] [decidable_eq α] [decidable_eq σ]
-variables (r : (σ →₀ ℕ) → (σ →₀ ℕ) → Prop) [decidable_rel r] [is_trans (σ →₀ ℕ) r] [is_antisymm (σ →₀ ℕ) r] [is_total (σ →₀ ℕ) r]
+variables [has_dec_linear_order (σ →₀ ℕ)]
 
 def lm_lcm (p q : mv_polynomial σ α) : mv_polynomial σ α :=
-    monomial (m_lcm (p.hd r) (q.hd r)) (lcm (p.hd_val r) (q.hd_val r))
+    monomial (m_lcm p.hd q.hd ) (lcm p.hd_val q.hd_val)
 
 end gcd_domain
 
 section discrete_field
 variables {σ : Type*} {α : Type*} [decidable_eq σ] [decidable_eq α] [discrete_field α]
-variables (r : (σ →₀ ℕ) → (σ →₀ ℕ) → Prop) [decidable_rel r] [is_trans (σ →₀ ℕ) r] [is_antisymm (σ →₀ ℕ) r] [is_total (σ →₀ ℕ) r]
+variables [has_dec_linear_order (σ →₀ ℕ)]
 
 def s_poly (p q : mv_polynomial σ α) : mv_polynomial σ α := 
-    let lm : (σ →₀ ℕ →₀ α) → (σ →₀ ℕ) := hd r in
-    let lc : (σ →₀ ℕ →₀ α) → α := hd_val r in
+    let lm : (σ →₀ ℕ →₀ α) → (σ →₀ ℕ) := hd in
+    let lc : (σ →₀ ℕ →₀ α) → α := hd_val in
     let X := m_lcm (lm p) (lm q) in
     let Xc := lcm (lc p) (lc q) in
     monomial (m_sub X (lm p)) (Xc / (lc p)) * p - monomial (m_sub X (lm q)) (Xc / (lc q)) * q
