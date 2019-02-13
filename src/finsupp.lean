@@ -28,10 +28,20 @@ variables {σ : Type*} [decidable_eq σ]
 
 def m_lcm (a b : σ →₀ ℕ) : σ →₀ ℕ :=
     if a = 0 ∨ b = 0 then 0
-    else finsupp.zip_with max (max_self 0) a b
+    else zip_with max (max_self 0) a b
 
-def m_sub (a b : (σ →₀ ℕ)) : σ →₀ ℕ :=
-    finsupp.zip_with (nat.sub) (by finish) a b
+--def m_div (a b : (σ →₀ ℕ)) : σ →₀ ℕ :=
+--    zip_with (nat.sub) (by finish) a b
+
+def has_div (a b : σ →₀ ℕ) : Prop := ∀ x, a x ≥ b x
+
+def m_div (a b : σ →₀ ℕ) (h : has_div a b) : σ →₀ ℕ := 
+    zip_with (nat.sub) (by finish) a b
+
+notation a ` /ₘ ` b `◂` h := m_div a b h
+
+lemma m_lcm_has_div_left (a b : σ →₀ ℕ) : has_div (m_lcm a b) a := sorry
+lemma m_lcm_has_div_right (a b : σ →₀ ℕ) : has_div (m_lcm a b) b := sorry
 
 end monomial
 
