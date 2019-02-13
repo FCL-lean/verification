@@ -45,6 +45,7 @@ variables [has_dec_linear_order α]
 
 def dlo : has_dec_linear_order α := by apply_instance
 def R : α → α → Prop := dlo.r
+
 section s_support
 variables [has_zero β]
 
