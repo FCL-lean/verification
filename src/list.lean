@@ -3,7 +3,12 @@ import data.list.sort
 
 namespace list
 section sorted
-variables {α : Type*} {r : α → α → Prop} 
+variables {α : Type*} (r : α → α → Prop)
+
+lemma sorted_tail {l : list α} (h : sorted r l) : sorted r l.tail := begin
+    cases l; simp,
+    exact sorted_of_sorted_cons h,
+end 
 
 lemma sorted_nodup_ext [is_antisymm _ r] :
 ∀ {l₁ l₂ : list α}, sorted r l₁ → sorted r l₂ → (nodup l₁) → (nodup l₂) 

@@ -3,6 +3,7 @@ import linear_algebra.multivariate_polynomial
 import algebra.gcd_domain
 import discrete_field
 import finset
+import list
 
 namespace finsupp
 section basic
@@ -12,6 +13,12 @@ lemma support_ne_empty [decidable_eq β] (f : α →₀ β) : f.support ≠ ∅ 
 
 lemma coe_f : Π (f : α →₀ β) (a : α), f a = f.to_fun a := λ f a, rfl
 lemma coe_f' : Π (f : α →₀ β) (a : α), f.to_fun a = f a := λ f a, rfl
+
+lemma eq_zero_lem [decidable_eq β] : ∀ {f : α → β} {l}, ({support := ∅, to_fun := f, mem_support_to_fun := l} : α →₀ β) = 0 :=
+begin
+    intros,
+    rw support_eq_empty.1 (rfl : ({support := ∅, to_fun := f, mem_support_to_fun := l} : α →₀ β).support = ∅),
+end
 
 lemma eq_zero_apply (f : α →₀ β) : f = 0 ↔ ∀ {a}, f a = 0 := 
 ⟨λ h a, by rw [coe_f, h, coe_f', zero_apply], 
@@ -35,12 +42,27 @@ section order_finsupp
 variables {α : Type*} {β : Type*} 
 variables (r : α → α → Prop) [decidable_rel r] [is_trans α r] [is_antisymm α r] [is_total α r]
 
-def s_support [has_zero β] (f : α →₀ β) := f.support.sort r
+section s_support
+variables [has_zero β]
 
-lemma support_empty_of_s_nil [has_zero β] {f : α →₀ β} : f.s_support r = [] ↔ f.support = ∅ := sorry
-lemma support_ne_empty_of_s_ne_nil [has_zero β] {f : α →₀ β} : f.s_support r ≠ [] ↔ f.support ≠ ∅ := sorry
-lemma eq_zero_of_s_nil [has_zero β] {f : α →₀ β} : f.s_support r = [] ↔ f = 0 := sorry
-lemma ne_zero_of_s_ne_nil [has_zero β] {f : α →₀ β} : f.s_support r ≠ [] ↔ f ≠ 0 := sorry
+def s_support (f : α →₀ β) := f.support.sort r
+
+lemma mem_s_support {f : α →₀ β} {a : α} : a ∈ f.s_support r ↔ a ∈ f.support := by simp [s_support]
+
+lemma support_empty_of_s_nil {f : α →₀ β} : f.s_support r = [] ↔ f.support = ∅ := by simp [s_support]
+lemma support_ne_empty_of_s_ne_nil {f : α →₀ β} : f.s_support r ≠ [] ↔ f.support ≠ ∅ := by simp [s_support, support_empty_of_s_nil]
+lemma eq_zero_of_s_nil [decidable_eq β] {f : α →₀ β} : f.s_support r = [] ↔ f = 0 := by simp [s_support]
+lemma ne_zero_of_s_ne_nil [decidable_eq β] {f : α →₀ β} : f.s_support r ≠ [] ↔ f ≠ 0 := by simp [s_support, eq_zero_of_s_nil]
+
+lemma s_support_singleton [decidable_eq α] [decidable_eq β] {f : α →₀ β} {a} (h : f.s_support r = [a]) : f = single a (f a) :=
+begin
+    simp [s_support, finset.sort_singleton] at h,
+    ext x,
+    by_cases ha : a = x; simp [single_apply, ha], 
+    rw [←not_mem_support_iff, h, finset.not_mem_singleton], exact ne.symm ha,
+end
+
+end s_support
 
 section basic
 variables [has_zero β] [inhabited α]
@@ -55,8 +77,6 @@ let hd := f.hd r in
     split; simp_intros, simp [a_1],
     by_cases a = hd; finish,
 end⟩ 
-
-lemma cons_hd_tl [decidable_eq α]  {f : α →₀ β} : s_support r f = (hd r f) :: (s_support r (tl r f)) := sorry
 
 lemma tl_apply [decidable_eq α] (f : α →₀ β) : ∀ a ≠ hd r f, (tl r f) a = f a := 
 λ a h, by rw coe_f; finish [tl]
@@ -73,12 +93,38 @@ end
 lemma hd_mem_support [decidable_eq β] (f : α →₀ β) (h : f ≠ 0) : f.hd r ∈ f.support := 
     by rw ←finset.mem_sort r; apply hd_mem_s_support _ _ h
 
-lemma hd_not_mem_tl [decidable_eq α] {f : α →₀ β} : f.hd r ∉ (tl r f).support := sorry
-lemma hd_rel_tl_hd [decidable_eq α] {f : α →₀ β} (h : f ≠ 0) : r (hd r f) (hd r (tl r f)) := sorry
+lemma hd_not_mem_tl [decidable_eq α] {f : α →₀ β} : f.hd r ∉ (tl r f).support := by simp [tl]
+
+lemma tl_eq_s_tl [decidable_eq α] [decidable_eq β] {f : α →₀ β} : s_support r (tl r f) = (s_support r f).tail := begin
+    by_cases hf : s_support r f = [], 
+    simp [hf, tl, (support_empty_of_s_nil r).1 hf], 
+    apply (eq_zero_of_s_nil r).2, apply eq_zero_lem, apply_instance,
+
+    apply list.sorted_nodup_ext r, simp [s_support], 
+    apply list.sorted_tail, simp [s_support],
+    simp [s_support],
+    apply @list.nodup_of_nodup_cons _ (s_support r f).head,
+    rw list.cons_head_tail hf, all_goals {simp [s_support, hd, tl, -mem_support_iff]},
+    intro a, unfold s_support at hf,
+    rw [←finset.mem_sort r, ←list.cons_head_tail hf],
+    simp [and_or_distrib_left],
+    split; intro h,
+    exact h.right,
+    split,
+    have nh := finset.sort_nodup r f.support, rw ←list.cons_head_tail hf at nh,
+    simp at nh, intro ha, rw ha at h, exact nh.left h,
+    assumption,
+end 
+
+lemma cons_hd_tl [decidable_eq α] [decidable_eq β] {f : α →₀ β} (hf : f ≠ 0) : list.cons (hd r f) (s_support r (tl r f)) = s_support r f := 
+    by simp [tl_eq_s_tl, hd]; apply list.cons_head_tail; rwa ne_zero_of_s_ne_nil
 
 lemma hd_val_nez [decidable_eq β] (f : α →₀ β) (h : f ≠ 0) : hd_val r f ≠ 0 := begin
     unfold hd_val, rw ←mem_support_iff, apply hd_mem_support r f h,
 end
+
+lemma hd_rel [decidable_eq α] [decidable_eq β] {f : α →₀ β} : ∀ a, a ∈ (tl r f).support → r (hd r f) a := λ a, 
+    by rw [←mem_s_support r, tl_eq_s_tl, hd]; apply finset.sort_hd_rel
 
 end basic
 section add_monoid
@@ -94,17 +140,32 @@ end
 @[elab_as_eliminator]
 lemma induction_on [inhabited α] [decidable_eq α] [decidable_eq β] {C : (α →₀ β) → Prop} (f : α →₀ β) 
     (C₀ : C 0)
-    (Cₙ : ∀ (f : α →₀ β) a b, a ∉ f.support → r a (hd r f) → C f → C (single a b + f)) : C f := 
-suffices ∀ l (f : α →₀ β), f.s_support r = l → C f, from this _ _ rfl,
-λ l, @list.rec_on _ (λ l, (∀ (f : α →₀ β), s_support r f = l → C f)) l
+    (Cₙ : ∀ (f : α →₀ β), C (tl r f) → C f) : C f := 
+    suffices ∀ l (f : α →₀ β), f.s_support r = l → C f, from this _ _ rfl,
+    λ l, @list.rec_on _ (λ l, (∀ (f : α →₀ β), s_support r f = l → C f)) l
     (λ f hf, by rw eq_zero_of_s_nil at hf; rwa hf) 
-    (begin 
+    begin
         simp_intros l_hd l_tl ih f hf,
-        have h := Cₙ (tl r f) (hd r f) (hd_val r f) (hd_not_mem_tl _) (hd_rel_tl_hd _ _),
-        simp [hd_tl_eq] at h,
-        apply h, apply ih, rw cons_hd_tl at hf, finish,
-        rw [←ne_zero_of_s_ne_nil r, hf], simp,
-    end)
+        apply Cₙ, apply ih,
+        rw ←cons_hd_tl at hf, simp at hf, exact hf.right,
+        rw [←ne_zero_of_s_ne_nil r, hf], simp, apply_instance,
+    end
+
+@[elab_as_eliminator]
+lemma induction_on' [inhabited α] [decidable_eq α] [decidable_eq β] {C : (α →₀ β) → Prop} (f : α →₀ β) 
+    (C₀ : C 0)
+    (Cₙ : ∀ (f : α →₀ β) a b, a ∉ f.support → (∀ x ∈ f.support, r a x) → C f → C (single a b + f)) : C f := 
+    suffices ∀ l (f : α →₀ β), f.s_support r = l → C f, from this _ _ rfl,
+    λ l, @list.rec_on _ (λ l, (∀ (f : α →₀ β), s_support r f = l → C f)) l
+    (λ f hf, by rw eq_zero_of_s_nil at hf; rwa hf) 
+    begin 
+        simp_intros l_hd l_tl ih f hf,
+        have h := Cₙ (tl r f) (hd r f) (hd_val r f) (by simp [tl]) (hd_rel r),
+        rw hd_tl_eq at h, apply h,
+        apply ih,
+        rw ←cons_hd_tl at hf, simp at hf, exact hf.right,
+        rw [←ne_zero_of_s_ne_nil r, hf], simp, apply_instance,
+    end
 
 end add_monoid
 
