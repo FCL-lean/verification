@@ -1,6 +1,4 @@
-import order_mv_polynomial
-import lex_order
-import util
+import mv_polynomial lex_order util ideal_list
 
 open mv_polynomial
 open finsupp
@@ -74,11 +72,19 @@ def nfL (S : list (mv_polynomial σ α)) : list (mv_polynomial σ α) :=
 section fin
 variables {n : ℕ}
 
+lemma ideal_increase (S : list (mv_polynomial (fin n) α)) (p : mv_polynomial (fin n) α) (h : red_list p S ≠ 0) :
+    S.to_ideal < (list.cons (red_list p S) S).to_ideal := sorry
+
 def buchberger : list (mv_polynomial (fin n) α) → list (mv_polynomial (fin n) α) → list (mv_polynomial (fin n) α)
 | l₁ [] := l₁
 | l₁ (p :: l₂) := let a := red_list p l₁ in
-                    if a = 0 then buch l₁ l₂
-                    else buch (a :: l₁) (s_polyL a l₂ l₁)
+                    if h : a = 0 then buchberger l₁ l₂
+                    else have l₁.to_ideal < (list.cons a l₁).to_ideal := ideal_increase l₁ p h,
+                    buchberger (a :: l₁) (s_polyL a l₂ l₁)
+using_well_founded 
+{ rel_tac := λ _ _, 
+`[exact ⟨_, inv_image.wf (λ l, l.1.to_ideal) ideal_wf⟩] 
+, dec_tac := tactic.assumption }
 
 end fin
 
