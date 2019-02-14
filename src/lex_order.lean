@@ -3,6 +3,7 @@ import data.fin
 import finsupp
 import util
 
+namespace finsupp.fin
 variables {n : ℕ} {α : Type*} [decidable_linear_ordered_cancel_comm_monoid α]
 
 lemma fin_0_id (a b : fin 0 →₀ α) : a = b := by ext x; cases x.2
@@ -11,14 +12,14 @@ def le_aux : ∀ m < (n + 1), ((fin $ n + 1) →₀ α) → ((fin $ n + 1) →�
 | 0 h := λ a b, a ⟨0, h⟩ ≤ b ⟨0, h⟩
 | (m + 1) h := λ a b, a ⟨m + 1, h⟩ < b ⟨m + 1, h⟩ ∨ (a ⟨m + 1, h⟩ = b ⟨m + 1, h⟩ ∧ le_aux m (nat.lt_of_succ_lt h) a b)
 
-def mon_le: Π {n}, (fin n →₀ α) → (fin n →₀ α) → Prop
+def le : Π {n}, (fin n →₀ α) → (fin n →₀ α) → Prop
 | 0 a b            := true
 | (n + 1) a b := le_aux n (nat.lt_succ_self n) a b
 
 lemma le_refl_aux (m : ℕ) (h : m < n + 1) : ∀ a : (fin $ n + 1) →₀ α, le_aux m h a a := 
 λ a, by induction m; simp [le_aux]; right; exact m_ih (nat.lt_of_succ_lt h)
 
-lemma mon_le_refl : ∀ a : fin n →₀ α, mon_le a a := λ a, by cases n; simp [mon_le]; apply le_refl_aux
+lemma le_refl : ∀ a : fin n →₀ α, le a a := λ a, by cases n; simp [le]; apply le_refl_aux
 
 lemma le_trans_aux (m : ℕ) (h : m < n + 1) :
 ∀ a b c : (fin $ n + 1) →₀ α, le_aux m h a b → le_aux m h b c → le_aux m h a c := 
@@ -31,15 +32,15 @@ lemma le_trans_aux (m : ℕ) (h : m < n + 1) :
     right, refine ⟨eq.trans hab₁ hbc₁, m_ih (nat.lt_of_succ_lt h) hab₂ hbc₂⟩,
 end
 
-lemma mon_le_trans : ∀ a b c : fin n →₀ α, 
-    mon_le a b → mon_le b c → mon_le a c := 
-λ a b c, by cases n; simp [mon_le]; apply le_trans_aux
+lemma le_trans : ∀ a b c : fin n →₀ α, 
+    le a b → le b c → le a c := 
+λ a b c, by cases n; simp [le]; apply le_trans_aux
 
 instance : preorder (fin n →₀ α) :=
 {
-    le := mon_le,
-    le_refl := mon_le_refl,
-    le_trans := mon_le_trans,
+    le := le,
+    le_refl := le_refl,
+    le_trans := le_trans,
 }
 
 lemma le_antisymm_aux (m₁ m₂ : ℕ) (h : m₁ + m₂ < n + 1) : ∀ a b : (fin $ n + 1) →₀ α, 
@@ -56,7 +57,7 @@ lemma le_antisymm_aux (m₁ m₂ : ℕ) (h : m₁ + m₂ < n + 1) : ∀ a b : (f
     apply m₂_ih _ hab₂ hba₂,
 end
 
-lemma mon_le_antisymm : ∀ a b : fin n →₀ α, a ≤ b → b ≤ a → a = b := 
+lemma le_antisymm : ∀ a b : fin n →₀ α, a ≤ b → b ≤ a → a = b := 
 λ a b, begin
     cases n; intros hab hba, 
     apply fin_0_id,
@@ -77,8 +78,8 @@ lemma le_total_aux (m : ℕ) (h : m < n + 1) : ∀ a b : (fin $ n + 1) →₀ α
     right, left, exact h_1,
 end
 
-lemma mon_le_total : ∀ a b : fin n →₀ α, a ≤ b ∨ b ≤ a :=
-λ a b, by cases n; simp [has_le.le, preorder.le, mon_le]; apply le_total_aux n
+lemma le_total : ∀ a b : fin n →₀ α, a ≤ b ∨ b ≤ a :=
+λ a b, by cases n; simp [has_le.le, preorder.le, le]; apply le_total_aux n
 
 instance decidable_le_aux (m : ℕ) (h : m < n + 1) : decidable_rel (@le_aux _ α _ m h) :=
 λ a b, begin
@@ -98,8 +99,8 @@ instance decidable_le_aux (m : ℕ) (h : m < n + 1) : decidable_rel (@le_aux _ �
     end
 end
 
-instance mon_le_decidable_rel : decidable_rel ((≤) : (fin n →₀ α) → (fin n →₀ α) → Prop) := 
-λ a b, by cases n; unfold has_le.le preorder.le mon_le; apply_instance
+instance le_decidable_rel : decidable_rel ((≤) : (fin n →₀ α) → (fin n →₀ α) → Prop) := 
+λ a b, by cases n; unfold has_le.le preorder.le le; apply_instance
 
 lemma le_mono_order_aux (m : ℕ) (h : m < n + 1) : ∀ a b w : (fin $ n + 1) →₀ α, le_aux m h a b →  le_aux m h (a + w) (b + w) :=
 λ a b w, begin
@@ -111,18 +112,18 @@ lemma le_mono_order_aux (m : ℕ) (h : m < n + 1) : ∀ a b w : (fin $ n + 1) �
 end
 
 lemma le_mono_order : ∀ (a b w : fin n →₀ α), (a ≤ b) → ((a + w) ≤ (b + w)) := 
-λ a b w, by cases n; simp [has_le.le, preorder.le, mon_le]; apply le_mono_order_aux
+λ a b w, by cases n; simp [has_le.le, preorder.le, le]; apply le_mono_order_aux
 
 lemma le_mono_order' : ∀ (a b w : fin n →₀ α), (a ≤ b) → ((w + a) ≤ (w + b)) :=
 by simp [add_comm]; apply le_mono_order
 
 instance : decidable_linear_order (fin n →₀ α) := {
-    le := mon_le,
-    le_refl := mon_le_refl,
-    le_trans := mon_le_trans,
-    le_antisymm := mon_le_antisymm,
-    le_total := mon_le_total,
-    decidable_le := mon_le_decidable_rel,
+    le := le,
+    le_refl := le_refl,
+    le_trans := le_trans,
+    le_antisymm := le_antisymm,
+    le_total := le_total,
+    decidable_le := by apply_instance,
 }
 
 instance : decidable_linear_ordered_cancel_comm_monoid (fin n →₀ α) := {
@@ -136,6 +137,10 @@ instance : decidable_linear_ordered_cancel_comm_monoid (fin n →₀ α) := {
         have h_eq := (finsupp.add_left_cancel a c b).1 (antisymm h' h),
         apply absurd h_eq hbc.right,
     end,
-    ..finsupp.decidable_linear_order,
+    ..finsupp.fin.decidable_linear_order,
     ..finsupp.add_comm_monoid
 }
+
+lemma lt_wf : well_founded ((<) : (fin n →₀ ℕ) → (fin n →₀ ℕ) → Prop) := sorry
+
+end finsupp.fin

@@ -33,15 +33,17 @@ def m_lcm (a b : σ →₀ ℕ) : σ →₀ ℕ :=
 --def m_div (a b : (σ →₀ ℕ)) : σ →₀ ℕ :=
 --    zip_with (nat.sub) (by finish) a b
 
-def has_div (a b : σ →₀ ℕ) : Prop := ∀ x, a x ≥ b x
+def has_div (a b : σ →₀ ℕ) : Prop := ∀ x, a x ≤ b x
+notation a ` |ₘ ` b := has_div a b
 
-def m_div (a b : σ →₀ ℕ) (h : has_div a b) : σ →₀ ℕ := 
+def m_div (a b : σ →₀ ℕ) (h : b |ₘ a) : σ →₀ ℕ := 
     zip_with (nat.sub) (by finish) a b
-
 notation a ` /ₘ ` b `◂` h := m_div a b h
 
-lemma m_lcm_has_div_left (a b : σ →₀ ℕ) : has_div (m_lcm a b) a := sorry
-lemma m_lcm_has_div_right (a b : σ →₀ ℕ) : has_div (m_lcm a b) b := sorry
+instance decidable_has_div (a b : σ →₀ ℕ) : decidable (a |ₘ b) := sorry
+
+lemma m_lcm_has_div_left (a b : σ →₀ ℕ) : a |ₘ (m_lcm a b) := sorry
+lemma m_lcm_has_div_right (a b : σ →₀ ℕ) : b |ₘ (m_lcm a b) := sorry
 
 end monomial
 

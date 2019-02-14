@@ -14,3 +14,16 @@ instance is_trans_has_dec_linear_order {α : Type*} (a : has_dec_linear_order α
  := ⟨a.is_lin.trans⟩
 instance decidable_rel_has_dec_linear_order {α : Type*} (a : has_dec_linear_order α) : decidable_rel a.r := a.is_dec
 end dec_linear_order
+
+
+instance decidable_linear_order_is_antisymm {α : Type*} (h : decidable_linear_order α) : is_antisymm α h.le := ⟨h.le_antisymm⟩
+
+instance decidable_linear_order_is_partial_order {α : Type*} (h : decidable_linear_order α) : is_partial_order α h.le := ⟨h.le⟩
+
+instance decidable_linear_order_is_linear_order {α : Type*} (h : decidable_linear_order α) : is_linear_order α h.le := ⟨h.le⟩
+
+instance decidable_linear_order_has_dec_linear_order {α : Type*} [decidable_linear_order α] : has_dec_linear_order α := {
+    r := _inst_1.le,
+    is_lin := by apply_instance,
+    is_dec := by apply_instance,
+}
