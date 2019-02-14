@@ -55,17 +55,31 @@ def s_poly (p q : mv_polynomial σ α) : mv_polynomial σ α :=
     let Xc := lcm (hd_val p) (hd_val q) in
     monomial (X /ₘ (hd p) ◂ (by apply m_lcm_has_div_left)) (Xc / (hd_val p)) * p - monomial (X /ₘ (hd q) ◂ (by apply m_lcm_has_div_right)) (Xc / (hd_val q)) * q
 
-def s_polys (S : finset (mv_polynomial σ α)) : finset (mv_polynomial σ α) :=
+/-
+def s_polys (S : list (mv_polynomial σ α)) : list (mv_polynomial σ α) :=
 do
-    S.bind (λ a, 
-        S.bind (λ b, 
-            if a = b 
-            then ∅
-            else {s_poly a b}
-        )
-    )
+    a ← S, 
+    b ← S, 
+        if a = b 
+        then []
+        else [s_poly a b]
+-/
+def s_polyL : mv_polynomial σ α → list (mv_polynomial σ α) → list (mv_polynomial σ α) → list (mv_polynomial σ α)
+| p l₁ [] := l₁
+| p l₁ (q :: l₂) := s_poly p q :: s_polyL p l₁ l₂
+        
+def nf (S : list (mv_polynomial σ α)) : list (mv_polynomial σ α) := 
+    list.filter (λ a, a ≠ 0) S
 
-def fileter_zero (S : finset (mv_polynomial σ α)) : finset (mv_polynomial σ α) := 
-    finset.filter (λ a, a ≠ 0) S
+section fin
+variables {n : ℕ}
+
+def buch : list (mv_polynomial (fin n) α) → list (mv_polynomial (fin n) α) → list (mv_polynomial (fin n) α)
+| l₁ [] := l₁
+| l₁ (p :: l₂) := let a := red_list p l₁ in
+                    if a = 0 then buch l₁ l₂
+                    else buch (a :: l₁) (s_polyL a l₂ l₁)
+
+end fin
 
 end buch
