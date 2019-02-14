@@ -11,7 +11,7 @@ variables [decidable_linear_order (σ →₀ ℕ)]
 
 section reduction
 
-def reduction (a b : mv_polynomial σ α) (h : b.hd |ₘ a.hd ) := a - b * (monomial (a.hd /ₘ b.hd ◂ h) (a.hd_val / b.hd_val))
+def reduction (a b : mv_polynomial σ α) := a - b * (monomial (a.hd /ₘ b.hd) (a.hd_val / b.hd_val))
 
 def red_one_step (S : finset (mv_polynomial σ α)) : mv_polynomial σ α → mv_polynomial σ α → Prop :=
     λ p q, ∃ (r : mv_polynomial σ α) (h₁ : r ∈ S) (h₂ : r.hd |ₘ  p.hd ), reduction p r h₂ = q
@@ -28,7 +28,7 @@ notation a `→[` S `]⋆` b := red_star S a b
 
 def red_list_aux : mv_polynomial σ α → list (mv_polynomial σ α) → mv_polynomial σ α
 | a [] := a
-| a (hd :: tl) := if h : hd.hd |ₘ a.hd  then red_list_aux (reduction a hd h) tl else red_list_aux a tl
+| a (hd :: tl) := if h : hd.hd |ₘ a.hd  then red_list_aux (reduction a hd) tl else red_list_aux a tl
 
 section fin
 variables {n : ℕ}
@@ -53,7 +53,7 @@ end reduction
 def s_poly (p q : mv_polynomial σ α) : mv_polynomial σ α := 
     let X := m_lcm (hd p) (hd q) in
     let Xc := lcm (hd_val p) (hd_val q) in
-    monomial (X /ₘ (hd p) ◂ (by apply m_lcm_has_div_left)) (Xc / (hd_val p)) * p - monomial (X /ₘ (hd q) ◂ (by apply m_lcm_has_div_right)) (Xc / (hd_val q)) * q
+    monomial (X /ₘ p.hd) (Xc / (hd_val p)) * p - monomial (X /ₘ q.hd) (Xc / (hd_val q)) * q
 
 /-
 def s_polys (S : list (mv_polynomial σ α)) : list (mv_polynomial σ α) :=
@@ -68,13 +68,13 @@ def s_polyL : mv_polynomial σ α → list (mv_polynomial σ α) → list (mv_po
 | p l₁ [] := l₁
 | p l₁ (q :: l₂) := s_poly p q :: s_polyL p l₁ l₂
         
-def nf (S : list (mv_polynomial σ α)) : list (mv_polynomial σ α) := 
+def nfL (S : list (mv_polynomial σ α)) : list (mv_polynomial σ α) := 
     list.filter (λ a, a ≠ 0) S
 
 section fin
 variables {n : ℕ}
 
-def buch : list (mv_polynomial (fin n) α) → list (mv_polynomial (fin n) α) → list (mv_polynomial (fin n) α)
+def buchberger : list (mv_polynomial (fin n) α) → list (mv_polynomial (fin n) α) → list (mv_polynomial (fin n) α)
 | l₁ [] := l₁
 | l₁ (p :: l₂) := let a := red_list p l₁ in
                     if a = 0 then buch l₁ l₂

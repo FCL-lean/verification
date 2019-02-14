@@ -36,9 +36,9 @@ def m_lcm (a b : σ →₀ ℕ) : σ →₀ ℕ :=
 def has_div (a b : σ →₀ ℕ) : Prop := ∀ x, a x ≤ b x
 notation a ` |ₘ ` b := has_div a b
 
-def m_div (a b : σ →₀ ℕ) (h : b |ₘ a) : σ →₀ ℕ := 
+def m_div (a b : σ →₀ ℕ) : σ →₀ ℕ := 
     zip_with (nat.sub) (by finish) a b
-notation a ` /ₘ ` b `◂` h := m_div a b h
+notation a ` /ₘ ` b := m_div a b
 
 instance decidable_has_div (a b : σ →₀ ℕ) : decidable (a |ₘ b) := sorry
 

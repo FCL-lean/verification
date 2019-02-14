@@ -1,7 +1,7 @@
 import has_dec_linear_order
 import discrete_field
 import finset
-import list
+import sorted_list
 import finsupp
 
 namespace finsupp
