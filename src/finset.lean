@@ -2,6 +2,14 @@ import data.finset
 import has_dec_linear_order
 namespace finset
 variables {α : Type*}
+section 
+    @[simp] lemma subset_to_set (s₁ s₂ : finset α) : s₁.to_set ⊆ s₂.to_set ↔ s₁ ⊆ s₂  := by finish
+    @[simp] lemma mem_to_set (s : finset α) : ∀ a, a ∈ s.to_set ↔ a ∈ s := by finish
+
+    lemma insert_to_set [decidable_eq α] (s : finset α) (a : α) : (insert a s).to_set = insert a (s.to_set) :=
+        by ext x; finish
+end
+
 
 section sort
 variables [has_dec_linear_order α]

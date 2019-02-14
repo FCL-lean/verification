@@ -10,4 +10,6 @@ lemma ideal_wf : well_founded ((>) : ideal (mv_polynomial σ α) → ideal (mv_p
     rw ←is_noetherian_iff_well_founded, exact HBT,
 end
 
+lemma ideal_wf' {n : ℕ} : well_founded ((>) : ideal (mv_polynomial (fin n) α) → ideal (mv_polynomial (fin n) α) → Prop) := sorry
+
 end mv_polynomial
