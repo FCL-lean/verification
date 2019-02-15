@@ -1,10 +1,11 @@
 import data.finsupp
 import data.fin
 import finsupp
+import classes
 import util
 
 namespace finsupp.fin
-variables {n : ℕ} {α : Type*} [decidable_linear_ordered_cancel_comm_monoid α]
+variables {n : ℕ} {α : Type*} [decidable_canonically_ordered_monoid α]
 
 lemma fin_0_id (a b : fin 0 →₀ α) : a = b := by ext x; cases x.2
 
@@ -140,6 +141,22 @@ instance : decidable_linear_ordered_cancel_comm_monoid (fin n →₀ α) := {
     ..finsupp.fin.decidable_linear_order,
     ..finsupp.add_comm_monoid
 }
+
+lemma zero_le_aux : ∀ (m < n + 1) (a : fin (n + 1) →₀ α), le_aux m H 0 a := 
+λ m H a, begin
+    induction m; simp [le_aux],
+    by_cases 0 < a ⟨m_n + 1, H⟩,
+    simp [h], 
+    right, refine ⟨(le_zero_iff_eq.1 (le_of_not_lt h)).symm, m_ih (nat.lt_of_succ_lt H)⟩,
+end
+
+lemma zero_le : ∀ a : fin n →₀ α, 0 ≤ a :=
+λ a, by cases n; simp [has_le.le, preorder.le, le, zero_le_aux]
+
+lemma le_zero_iff {a : fin n →₀ α} : a ≤ 0 ↔ a = 0 := ⟨λ ha, begin
+    apply antisymm ha,
+    apply zero_le,
+end, λ h, by simp [h]⟩
 
 lemma lt_wf : well_founded ((<) : (fin n →₀ ℕ) → (fin n →₀ ℕ) → Prop) := sorry
 

@@ -15,11 +15,22 @@ begin
     rw support_eq_empty.1 (rfl : ({support := ∅, to_fun := f, mem_support_to_fun := l} : α →₀ β).support = ∅),
 end
 
-lemma eq_zero_apply (f : α →₀ β) : f = 0 ↔ ∀ {a}, f a = 0 := 
-⟨λ h a, by rw [coe_f, h, coe_f', zero_apply], 
-λ h, by ext a; finish⟩
+lemma eq_zero_apply (f : α →₀ β) : (∀ {a}, f a = 0) ↔ f = 0 := 
+⟨λ h, by ext a; finish, λ h a, by rw [coe_f, h, coe_f', zero_apply]⟩
 
 lemma ext_lem {a b : α →₀ β} : a = b ↔ ∀ x, a x = b x := ⟨λ h, by finish, λ h, by apply finsupp.ext; assumption⟩
+
+lemma single_eq_zero_iff [decidable_eq α] [decidable_eq β] {a : α} {b : β} : single a b = 0 ↔ b = 0 := begin
+    simp [(eq_zero_apply _).symm, single_apply], split; intros,
+    simpa using @a_1 a,
+    by_cases a = a_2; simp [h], assumption,
+end
+
+lemma support_single_eq [decidable_eq α] [decidable_eq β] {a : α} {b : β} (hb : b ≠ 0) : (single a b).support = {a} :=
+    by simp [single, hb]
+
+lemma single_sum' [decidable_eq α] [decidable_eq β] {γ : Type*} [add_comm_monoid γ] (a : α) {b : β} (hb : b ≠ 0) (f : α → β → γ) : 
+(single a b).sum f = f a b := by simp [sum, single, hb, coe_f]
 
 end basic
 
@@ -33,17 +44,27 @@ def m_lcm (a b : σ →₀ ℕ) : σ →₀ ℕ :=
 --def m_div (a b : (σ →₀ ℕ)) : σ →₀ ℕ :=
 --    zip_with (nat.sub) (by finish) a b
 
-def has_div (a b : σ →₀ ℕ) : Prop := ∀ x, a x ≤ b x
-notation a ` |ₘ ` b := has_div a b
+def dvd (a b : σ →₀ ℕ) : Prop := ∀ x, a x ≤ b x
+instance : has_dvd (σ →₀ ℕ) := ⟨dvd⟩
+notation a ` ∤ ` b := ¬ a ∣ b
+
+instance decidable_has_div [fintype σ] (a b : σ →₀ ℕ) : decidable (a ∣ b) := by simp [has_dvd.dvd, dvd]; apply_instance
+
+lemma dvd_of_add {a b c : σ →₀ ℕ} (h : a = b + c) : b ∣ a := begin
+    rw h, intro x, simp,
+end
 
 def m_div (a b : σ →₀ ℕ) : σ →₀ ℕ := 
     zip_with (nat.sub) (by finish) a b
-notation a ` /ₘ ` b := m_div a b
+instance : has_sub (σ →₀ ℕ) := ⟨m_div⟩
 
-instance decidable_has_div (a b : σ →₀ ℕ) : decidable (a |ₘ b) := sorry
+lemma sub_zero (f : σ →₀ ℕ) : f - 0 = f := begin
+    simp [has_sub.sub, m_div],
+    ext a, simp, apply nat.sub_zero,
+end
 
-lemma m_lcm_has_div_left (a b : σ →₀ ℕ) : a |ₘ (m_lcm a b) := sorry
-lemma m_lcm_has_div_right (a b : σ →₀ ℕ) : b |ₘ (m_lcm a b) := sorry
+lemma m_lcm_has_div_left (a b : σ →₀ ℕ) : a ∣ (m_lcm a b) := sorry
+lemma m_lcm_has_div_right (a b : σ →₀ ℕ) : b ∣ (m_lcm a b) := sorry
 
 end monomial
 

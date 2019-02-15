@@ -16,14 +16,19 @@ instance decidable_rel_has_dec_linear_order {α : Type*} (a : has_dec_linear_ord
 end dec_linear_order
 
 
-instance decidable_linear_order_is_antisymm {α : Type*} (h : decidable_linear_order α) : is_antisymm α h.le := ⟨h.le_antisymm⟩
+instance decidable_linear_order_is_antisymm {α : Type*} (h : decidable_linear_order α) : is_antisymm α (≥) := 
+    ⟨λ a b hab hba, by apply h.le_antisymm; assumption⟩
+instance decidable_linear_order_is_refl {α : Type*} [decidable_linear_order α] : is_refl α (≥) := ⟨λ a, by apply le_refl⟩
+instance decidable_linear_order_is_trans {α : Type*} [decidable_linear_order α] : is_trans α (≥) := ⟨λ a b c hab hbc, begin apply le_trans, apply hbc, apply hab, end⟩
+instance decidable_linear_order_is_total {α : Type*} [decidable_linear_order α] : is_total α (≥) := ⟨λ a b, by apply le_total⟩ 
+instance decidable_linear_order_is_preorder {α : Type*} [decidable_linear_order α] : is_preorder α (≥) := @is_preorder.mk α (≥) decidable_linear_order_is_refl _
+instance decidable_linear_order_is_partial_order {α : Type*} [decidable_linear_order α] : is_partial_order α (≥) := @is_partial_order.mk _ (≥) decidable_linear_order_is_preorder _
 
-instance decidable_linear_order_is_partial_order {α : Type*} (h : decidable_linear_order α) : is_partial_order α h.le := ⟨h.le⟩
-
-instance decidable_linear_order_is_linear_order {α : Type*} (h : decidable_linear_order α) : is_linear_order α h.le := ⟨h.le⟩
+instance decidable_linear_order_is_linear_order {α : Type*} [decidable_linear_order α] : is_linear_order α (≥) := 
+    @is_linear_order.mk _ (≥) decidable_linear_order_is_partial_order _
 
 instance decidable_linear_order_has_dec_linear_order {α : Type*} [decidable_linear_order α] : has_dec_linear_order α := {
-    r := _inst_1.le,
+    r := (≥),
     is_lin := by apply_instance,
     is_dec := by apply_instance,
 }
