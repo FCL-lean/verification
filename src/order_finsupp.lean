@@ -50,6 +50,16 @@ end⟩
 @[simp] lemma zero_hd_val : (0 : α →₀ β).hd_val = 0 := by finish
 lemma eq_zero_hd {p : α →₀ β} : p = 0 → p.hd = inhabited.default α := by finish
 
+lemma hd_val_eqz_iff [decidable_eq α] [decidable_eq β] {f : α →₀ β} : f = 0 ↔ f.hd_val = 0 := begin
+    rw [hd_val, hd, ←not_mem_support_iff, ←not_mem_s_support, ←eq_zero_of_s_nil],
+    split; intro h, simp [h],
+    by_cases h' : f.s_support = [], assumption,
+    rw ←list.cons_head_tail h' at h, simpa using h,
+end
+
+lemma hd_val_nez_iff [decidable_eq α] [decidable_eq β] {f : α →₀ β} : f ≠ 0 ↔ f.hd_val ≠ 0 :=
+    by simp [hd_val_eqz_iff]
+
 lemma singleton_hd [decidable_eq α] {f : α →₀ β} {a : α} (h : f.support = {a}) : f.hd = a := by finish [hd, s_support, h]
 lemma singleton_eq_single [decidable_eq α] [decidable_eq β] {f : α →₀ β} {a : α} (h : f.support = {a}) : f = single a (f a) := begin
     ext x, 

@@ -131,8 +131,9 @@ end
 
 
 lemma red_list_not_div : ∀ (p : mv_polynomial (fin n) α) (l : list (mv_polynomial (fin n) α)) (h : red_list p l ≠ 0)
-    (q : mv_polynomial (fin n) α) (hq₁ : q ∈ l) (h1₂ : ¬ is_const q), q.hd ∤  (red_list p l).hd
-| p l := λ h q hq₁ hq₂, begin
+    (q : mv_polynomial (fin n) α) (hq₁ : q ∈ l), q.hd ∤ (red_list p l).hd
+| p l := λ h q hq₁, begin
+    have hq₂ := red_list_nez_no_const l p h _ hq₁,
     unfold red_list, 
     by_cases hp₁ : red_list_aux p l = p; simp [hp₁],
     apply red_list_aux_not_div; assumption,
@@ -176,7 +177,10 @@ variables {n : ℕ}
 
 lemma red_list_not_mem_span : ∀ (l : list (mv_polynomial (fin n) α)) (p : mv_polynomial (fin n) α) (h : red_list p l ≠ 0),
     monomial (red_list p l).hd (red_list p l).hd_val ∉ monomial_ideal l :=
-begin
+λ l p h h_mem, begin
+    have h_nd := red_list_not_div p l h,
+    rcases monomial_mem_ideal _ l h_mem with ⟨q, ⟨hq₁, hq₂⟩⟩, 
+    apply h_nd; assumption, rwa ←hd_val_nez_iff,
 end
 
 lemma ideal_increase (l : list (mv_polynomial (fin n) α)) (p : mv_polynomial (fin n) α) (h : red_list p l ≠ 0) :
