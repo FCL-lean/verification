@@ -1,5 +1,5 @@
 import data.finset
-import has_dec_linear_order
+
 namespace finset
 variables {α : Type*}
 section 
@@ -36,33 +36,29 @@ begin
 end
 
 section sort
-variables [has_dec_linear_order α]
-def dlo : has_dec_linear_order α := by apply_instance
---@[simp] lemma sort_empty : sort dlo.r ∅ = [] := by finish
+variables [decidable_linear_order α]
 
-@[simp] lemma sort_eq_nil (s : finset α) : s.sort dlo.r = [] ↔ s = ∅ := 
+@[simp] lemma sort_eq_nil (s : finset α) : s.sort (≥) = [] ↔ s = ∅ := 
 ⟨λ h, begin
-    have h' : ↑(sort dlo.r s) = (∅ : multiset α),
+    have h' : ↑(sort (≥) s) = (∅ : multiset α),
         simp [h],
     simpa using h', 
 end, 
 λ h, by finish⟩
 
-lemma sort_ne_nil (s : finset α) : (s.sort dlo.r) ≠ [] ↔ s ≠ ∅ := by simp
+lemma sort_ne_nil (s : finset α) : (s.sort (≥)) ≠ [] ↔ s ≠ ∅ := by simp
 
-lemma sort_singleton [decidable_eq α] {s : finset α} {a} : (s.sort dlo.r) = [a] ↔ s = {a} := ⟨λ hs, begin
+lemma sort_singleton [decidable_eq α] {s : finset α} {a} : (s.sort (≥)) = [a] ↔ s = {a} := ⟨λ hs, begin
     ext a', 
-    have h := @mem_sort _ dlo.r _ _ _ _ s,
+    have h := @mem_sort _ (≥) _ _ _ _ s,
     split; intro ha',
     rwa [←@h a', hs] at ha',
     simpa [(@h a').symm, hs] using ha',
 end, λ h, begin finish [h], end⟩
 
-lemma sort_hd_rel [inhabited α] [decidable_eq α] {s : finset α} : ∀ a ∈ (s.sort dlo.r).tail, (dlo.r : α → α → Prop) (s.sort dlo.r).head a := begin
-    have h := sort_sorted dlo.r s,
-    generalize hl : sort dlo.r s = l,
-    rw hl at h,
-    cases l; finish,
+lemma sort_hd_rel [inhabited α] [decidable_eq α] {s : finset α} : ∀ a ∈ (s.sort (≥)).tail, (s.sort (≥)).head ≥ a := begin
+    have h := sort_sorted (≥) s,
+    cases (s.sort (≥)); simp at h ⊢, exact h.left,
 end
 
 end sort

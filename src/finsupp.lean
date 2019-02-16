@@ -15,7 +15,7 @@ begin
     rw support_eq_empty.1 (rfl : ({support := ∅, to_fun := f, mem_support_to_fun := l} : α →₀ β).support = ∅),
 end
 
-lemma eq_zero_apply (f : α →₀ β) : (∀ {a}, f a = 0) ↔ f = 0 := 
+lemma eq_zero_apply (f : α →₀ β) : (∀ a, f a = 0) ↔ f = 0 := 
 ⟨λ h, by ext a; finish, λ h a, by rw [coe_f, h, coe_f', zero_apply]⟩
 
 lemma ext_lem {a b : α →₀ β} : a = b ↔ ∀ x, a x = b x := ⟨λ h, by finish, λ h, by apply finsupp.ext; assumption⟩
@@ -41,9 +41,6 @@ def m_lcm (a b : σ →₀ ℕ) : σ →₀ ℕ :=
     if a = 0 ∨ b = 0 then 0
     else zip_with max (max_self 0) a b
 
---def m_div (a b : (σ →₀ ℕ)) : σ →₀ ℕ :=
---    zip_with (nat.sub) (by finish) a b
-
 def dvd (a b : σ →₀ ℕ) : Prop := ∀ x, a x ≤ b x
 instance : has_dvd (σ →₀ ℕ) := ⟨dvd⟩
 notation a ` ∤ ` b := ¬ a ∣ b
@@ -63,10 +60,32 @@ lemma sub_zero (f : σ →₀ ℕ) : f - 0 = f := begin
     ext a, simp, apply nat.sub_zero,
 end
 
+lemma sub_apply_dvd {f g : σ →₀ ℕ} (h : g ∣ f) : ∀ x, (f - g) x = f x - g x := 
+λ x, begin
+    simp [coe_f, has_sub.sub, m_div],
+    rw [coe_f', zip_with_apply], refl,
+end
+
+lemma add_sub_cancel' {n m : σ →₀ ℕ} (h : m ∣ n) : m + (n - m) = n := begin
+    ext a, simp [sub_apply_dvd h], apply nat.add_sub_cancel',
+    simpa [has_dvd.dvd, dvd] using h a,
+end
+
 lemma m_lcm_has_div_left (a b : σ →₀ ℕ) : a ∣ (m_lcm a b) := sorry
 lemma m_lcm_has_div_right (a b : σ →₀ ℕ) : b ∣ (m_lcm a b) := sorry
 
 end monomial
+
+section comm_ring
+variables {α : Type*} {β : Type*} [comm_ring β] [decidable_eq α] [decidable_eq β]
+
+lemma mem_sub_support {f g : α →₀ β} : ∀ x ∈ (f - g).support, x ∈ f.support ∪ g.support := 
+λ x hx, begin
+    simp [-mem_support_iff] at hx, rw ←@support_neg _ _ _ _ _ g,
+    apply support_add hx,
+end
+
+end comm_ring
 
 section decidable_linear_ordered_cancel_comm_monoid
 variables {α : Type*} {β : Type*} [decidable_eq α] [decidable_linear_ordered_cancel_comm_monoid β]

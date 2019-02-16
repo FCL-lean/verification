@@ -30,14 +30,29 @@ def red_list_aux : mv_polynomial σ α → list (mv_polynomial σ α) → mv_pol
 | a [] := a
 | a (hd :: tl) := if h : hd.hd ∣ a.hd  then red_list_aux (reduction a hd) tl else red_list_aux a tl
 
-lemma red_list_aux_hd_lt (l : list (mv_polynomial σ α)) (p : mv_polynomial σ α) (hp : p.hd ≠ 0) : 
-(red_list_aux p l).hd < p.hd := 
-begin
-    sorry,
-end
 
 section fin
 variables {n : ℕ}
+lemma reduction_hd_lt {a b : mv_polynomial (fin n) α} (ha : a.hd ≠ 0) (hba : b.hd ∣ a.hd) : (reduction a b).hd < a.hd := begin
+    by_cases is_const b; simp [reduction, h],
+    apply lt_of_le_of_ne (finsupp.fin.zero_le a.hd) (ne.symm ha),
+    apply sub_hd_lt,
+    rw [hd_of_mul (nez_of_not_const h) (div_ne_zero _ (lc_nez_of_not_const h)), add_sub_cancel' hba],
+    apply lc_nez_of_not_const (not_const_of_div h hba),
+    simp [hd_val_of_mul (nez_of_not_const h), mul_div_cancel' _ (lc_nez_of_not_const h)],
+    assumption,
+end
+
+lemma red_list_aux_hd_lt (l : list (mv_polynomial (fin n) α)) (p q : mv_polynomial (fin n) α) (hp : p.hd ≠ 0) : 
+(red_list_aux (reduction p q) l).hd < p.hd := 
+begin
+end
+
+lemma red_list_aux_hd_lt' (l : list (mv_polynomial (fin n) α)) (p : mv_polynomial (fin n) α) (hp : p.hd ≠ 0) 
+(h_red : red_list_aux p l ≠ p) : 
+(red_list_aux p l).hd < p.hd := 
+begin
+end
 
 def red_list : mv_polynomial (fin n) α → list (mv_polynomial (fin n) α) → mv_polynomial (fin n) α
 | a l := 
@@ -46,7 +61,7 @@ def red_list : mv_polynomial (fin n) α → list (mv_polynomial (fin n) α) → 
     then r
     else if h₂ : a.hd = 0
         then 0
-        else have r.hd < a.hd := red_list_aux_hd_lt _ _ h₂,
+        else have r.hd < a.hd := red_list_aux_hd_lt' _ _ h₂ h₁,
             red_list r l
 using_well_founded 
 { rel_tac := λ _ _, `[exact ⟨_, inv_image.wf (λ a, a.1.hd) fin.lt_wf⟩] 
@@ -61,8 +76,7 @@ lemma zero_red_list_aux : ∀ (l : list (mv_polynomial (fin n) α)), red_list_au
         by_cases hq : is_const q;
         simp [hq],
         exact zero_red_list_aux l',
-        generalize hx : hd_val 0 = x, simp at hx,
-        simp [hx.symm, monomial], 
+        simp [monomial], 
         generalize hq : -(q * 0) = q', simp at hq,
         simp [hq.symm],
         exact zero_red_list_aux l',
@@ -112,7 +126,7 @@ lemma red_list_aux_not_div : ∀ (l : list (mv_polynomial (fin n) α)) (p : mv_p
     simp_intros [red_list_aux], cases hq₁;
     by_cases hrp : hd r ∣ hd p; simp [hrp] at h,
     {
-        have h_r := red_list_aux_hd_lt (r :: l') p (not_const_of_lm_nez.1 (not_const_of_div hq₂ a)),
+        have h_r := red_list_aux_hd_lt l' p r (not_const_iff_lm_nez.1 (not_const_of_div hq₂ a)),
         simp [red_list_aux, h, hq₁, hrp] at h_r,
         apply lt_irrefl _ h_r,
     },
@@ -122,7 +136,7 @@ lemma red_list_aux_not_div : ∀ (l : list (mv_polynomial (fin n) α)) (p : mv_p
         simp [reduction, hr, zero_red_list_aux] at h,
         apply not_const_of_div hq₂ a,
         left, exact h.symm,
-        have h_r := red_list_aux_hd_lt (r :: l') p (not_const_of_lm_nez.1 (not_const_of_div hr hrp)),
+        have h_r := red_list_aux_hd_lt l' p r (not_const_iff_lm_nez.1 (not_const_of_div hr hrp)),
         simp [red_list_aux, h, hrp] at h_r,
         apply lt_irrefl _ h_r,
     },
@@ -139,7 +153,7 @@ lemma red_list_not_div : ∀ (p : mv_polynomial (fin n) α) (l : list (mv_polyno
     apply red_list_aux_not_div; assumption,
     by_cases hp₂ : p.hd = 0; simp [hp₂],
     intro hq₃, apply hq₂, rwa [eq_zero_of_div_zero, ←is_const_of_lm_eqz] at hq₃,
-    let : (red_list_aux p l).hd < p.hd, from red_list_aux_hd_lt l p hp₂,
+    let : (red_list_aux p l).hd < p.hd, from red_list_aux_hd_lt' l p hp₂ hp₁,
     apply red_list_not_div, unfold red_list at h, simp [hp₁, hp₂] at h,
     assumption',
 end

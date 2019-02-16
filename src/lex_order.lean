@@ -1,8 +1,4 @@
-import data.finsupp
-import data.fin
-import finsupp
-import classes
-import util
+import data.finsupp data.fin finsupp classes util
 
 namespace finsupp.fin
 variables {n : ℕ} {α : Type*} [decidable_canonically_ordered_monoid α]

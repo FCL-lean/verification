@@ -1,5 +1,4 @@
-import data.list
-import data.list.sort
+import data.list data.list.sort
 
 namespace list
 section sorted

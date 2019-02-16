@@ -1,18 +1,15 @@
-import has_dec_linear_order discrete_field finset sorted_list finsupp
+import discrete_field finset sorted_list finsupp
 
 namespace finsupp
 section order_finsupp
 
 variables {α : Type*} {β : Type*} 
-variables [has_dec_linear_order α]
-
-def dlo : has_dec_linear_order α := by apply_instance
-def R : α → α → Prop := dlo.r
+variables [decidable_linear_order α]
 
 section s_support
 variables [has_zero β]
 
-def s_support (f : α →₀ β) := f.support.sort dlo.r
+def s_support (f : α →₀ β) := f.support.sort (≥)
 
 lemma mem_s_support {f : α →₀ β} {a : α} : a ∈ f.s_support ↔ a ∈ f.support := by simp [s_support]
 lemma not_mem_s_support {f : α →₀ β} {a : α} : a ∉ f.s_support ↔ a ∉ f.support := by simp [s_support]
@@ -70,7 +67,8 @@ end
 lemma hd_of_single [decidable_eq α] [decidable_eq β] {a : α} {b : β} (hb : b ≠ 0): (single a b).hd = a := 
     by simp [singleton_hd (support_single_eq hb)]
 
-lemma hd_val_of_single [decidable_eq α] [decidable_eq β] {a : α} {b : β} (hb : b ≠ 0): (single a b).hd_val = b := begin
+lemma hd_val_of_single [decidable_eq α] [decidable_eq β] {a : α} {b : β} : (single a b).hd_val = b := begin
+    by_cases hb : b = 0, simp [hb],
     simp [hd_val, single_apply, singleton_hd (support_single_eq hb)], 
 end
 
@@ -86,41 +84,67 @@ lemma hd_mem_s_support [decidable_eq β] (f : α →₀ β) (h : f ≠ 0) : f.hd
     simp,
 end
 
-lemma hd_mem_support [decidable_eq β] (f : α →₀ β) (h : f ≠ 0) : f.hd  ∈ f.support := 
-    by rw ←finset.mem_sort dlo.r; apply hd_mem_s_support _ h
+lemma hd_mem_support [decidable_eq β] {f : α →₀ β} (h : f ≠ 0) : f.hd  ∈ f.support := 
+    by rw ←finset.mem_sort (≥); apply hd_mem_s_support _ h
+
+lemma hd_not_mem [decidable_eq β] {f : α →₀ β} : f.hd ∉ f.support ↔ f = 0 := ⟨λ h, begin
+    by_cases hf : f = 0, assumption, 
+    apply absurd (hd_mem_support hf) h,
+end, λ h, by simp [h]⟩
 
 lemma hd_not_mem_tl [decidable_eq α] {f : α →₀ β} : f.hd ∉ (tl f).support := by simp [tl]
 
 lemma tl_eq_s_tl [decidable_eq α] [decidable_eq β] {f : α →₀ β} : s_support (tl f) = (s_support f).tail := begin
     by_cases hf : s_support f = [], 
-    simp [hf, tl, support_empty_of_s_nil.1 hf], 
-    apply eq_zero_of_s_nil.2, apply eq_zero_lem, apply_instance,
-
-    apply @list.sorted_nodup_ext _ dlo.r (is_antisymm_has_dec_linear_order dlo), simp [s_support], 
-    apply list.sorted_tail, simp [s_support],
-    apply finset.sort_sorted, simp [s_support],
-    apply @list.nodup_of_nodup_cons _ (s_support f).head,
-    rw list.cons_head_tail hf, all_goals {simp [s_support, hd, tl, -mem_support_iff]},
-    intro a, unfold s_support at hf,
-    rw [←finset.mem_sort dlo.r, ←list.cons_head_tail hf],
-    simp [and_or_distrib_left],
-    split; intro h,
-    exact h.right,
-    split,
-    have nh := finset.sort_nodup dlo.r f.support, rw ←list.cons_head_tail hf at nh,
-    simp at nh, intro ha, rw ha at h, exact nh.left h,
-    assumption,
+    {
+        simp [hf, tl, support_empty_of_s_nil.1 hf], 
+        apply eq_zero_of_s_nil.2, apply eq_zero_lem, apply_instance,
+    },
+    {
+        apply @list.sorted_nodup_ext α (≥) _,
+        {simp [s_support]},
+        {apply list.sorted_tail, simp [s_support]},
+        {simp [s_support],},
+        {apply @list.nodup_of_nodup_cons _ (s_support f).head, rw list.cons_head_tail hf, simp [s_support],},
+        {
+            intro a, unfold s_support at hf, simp [s_support, hd, tl, -mem_support_iff],
+            rw [←finset.mem_sort (≥), ←list.cons_head_tail hf],
+            simp [and_or_distrib_left],
+            refine ⟨λ h, h.right, λ h, ⟨_, by assumption⟩⟩,
+            have nh := finset.sort_nodup (≥) f.support, rw [←list.cons_head_tail hf, list.nodup_cons] at nh,
+            intro ha, apply nh.left, rwa ha at h, 
+        }
+    },
 end 
 
 lemma cons_hd_tl [decidable_eq α] [decidable_eq β] {f : α →₀ β} (hf : f ≠ 0) : list.cons (hd f) (s_support (tl f)) = s_support f := 
     by simp [tl_eq_s_tl, hd]; apply list.cons_head_tail; rwa ne_zero_of_s_ne_nil
 
 lemma hd_val_nez [decidable_eq β] (f : α →₀ β) (h : f ≠ 0) : hd_val f ≠ 0 := begin
-    unfold hd_val, rw ←mem_support_iff, apply hd_mem_support f h,
+    unfold hd_val, rw ←mem_support_iff, apply hd_mem_support h,
 end
 
-lemma hd_rel [decidable_eq α] [decidable_eq β] (f : α →₀ β) : ∀ a, a ∈ (tl f).support → R (hd f) a := λ a, 
+lemma hd_rel [decidable_eq α] [decidable_eq β] (f : α →₀ β) : ∀ a, a ∈ (tl f).support → (hd f) ≥ a := λ a, 
     by rw [←mem_s_support, tl_eq_s_tl, hd]; apply finset.sort_hd_rel
+
+lemma hd_rel' [decidable_eq α] [decidable_eq β] {f : α →₀ β} : ∀ a, a ∈ f.support → (hd f) ≥ a := λ a, 
+begin
+    by_cases hf : f = 0, simp [hf],
+    have h :  insert f.hd f.tl.support = f.support,
+        simp [tl, -finset.union_comm], apply finset.insert_erase (hd_mem_support hf),
+    simp [h.symm, -mem_support_iff], rintro (h' | h'),
+    rw h', apply le_refl,
+    apply hd_rel _ a h',
+end
+
+lemma gt_hd_not_mem [decidable_eq β] {f : α →₀ β} : ∀ {x}, x > f.hd → x ∉ f.support := 
+λ x hx h_mem, begin
+    apply lt_iff_not_ge'.1 hx,
+    apply hd_rel' _ h_mem,
+end
+
+lemma gt_hd_apply [decidable_eq β] {f : α →₀ β} : ∀ {x}, x > f.hd → f x = 0 := 
+λ x, by rw ←not_mem_support_iff; apply gt_hd_not_mem
 
 end basic
 section add_monoid
@@ -150,7 +174,7 @@ lemma induction_on [inhabited α] [decidable_eq α] [decidable_eq β] {C : (α �
 @[elab_as_eliminator]
 lemma induction_on' [inhabited α] [decidable_eq α] [decidable_eq β] {C : (α →₀ β) → Prop} (f : α →₀ β) 
     (C₀ : C 0)
-    (Cₙ : ∀ (f : α →₀ β) a b, a ∉ f.support → (∀ x ∈ f.support, R a x) → C f → C (single a b + f)) : C f := 
+    (Cₙ : ∀ (f : α →₀ β) a b, a ∉ f.support → (∀ x ∈ f.support, a ≥ x) → C f → C (single a b + f)) : C f := 
     suffices ∀ l (f : α →₀ β), f.s_support = l → C f, from this _ _ rfl,
     λ l, @list.rec_on _ (λ l, (∀ (f : α →₀ β), s_support f = l → C f)) l
     (λ f hf, by rw eq_zero_of_s_nil at hf; rwa hf) 
