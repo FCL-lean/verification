@@ -154,6 +154,9 @@ lemma le_zero_iff {a : fin n →₀ α} : a ≤ 0 ↔ a = 0 := ⟨λ ha, begin
     apply zero_le,
 end, λ h, by simp [h]⟩
 
+lemma zero_lt_iff_ne_zero {a : fin n →₀ α} : 0 < a ↔ a ≠ 0 := 
+    by finish [lt_iff_le_and_ne, zero_le]
+
 lemma lt_wf : well_founded ((<) : (fin n →₀ ℕ) → (fin n →₀ ℕ) → Prop) := sorry
 
 end finsupp.fin

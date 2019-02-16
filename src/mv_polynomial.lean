@@ -75,7 +75,7 @@ variables [decidable_linear_order (σ →₀ ℕ)]
     generalize h : hd 0 = x, simp [inhabited.default] at h, exact h.symm,
 end
 @[simp] lemma zero_hd : (0 : mv_polynomial σ α).hd = 0 := by finish
-@[simp] lemma zero_hd_val : (0 : mv_polynomial σ α).hd_val = 0 := by finish
+@[simp] lemma zero_hd_val : (0 : mv_polynomial σ α).hd_val = 0 := by finish 
 
 lemma lc_nez_of_not_const {p : mv_polynomial σ α} : ¬is_const p → p.hd_val ≠ 0 := 
 λ h h', begin rw ←hd_val_eqz_iff at h', apply h, left, assumption, end
@@ -158,27 +158,6 @@ begin
         apply (not_lt_of_le (finsupp.fin.zero_le q.hd)) hpq,
     },
 end
-
-/-lemma hd_of_add_left' {p q : mv_polynomial (fin n) α} (hpq : p.hd = q.hd ∧ p.hd_val + q.hd_val ≠ 0) :
-    (p + q).hd = p.hd := 
-begin
-    rcases hpq with ⟨hpq₁, hpq₂⟩,
-    have hp_hd := mem_support_add_le_hd (le_of_eq hpq₁.symm),
-    apply antisymm (hd_rel' _ _) (hp_hd _ _),
-    apply_instance,
-    simpa [hd_val, hpq₁] using hpq₂, 
-    apply hd_mem_support,
-    intro h,
-    apply hpq₂,
-    simpa [hd_val, hpq₁] using (eq_zero_apply _).2 h q.hd,
-end
-
-lemma hd_of_add_right {p q : mv_polynomial (fin n) α} (hpq : q.hd > p.hd) :
-    (p + q).hd = q.hd := 
-begin
-    rw add_comm,
-    apply hd_of_add_left hpq,
-end-/
 
 lemma hd_val_of_add_left {p q : mv_polynomial (fin n) α} (hpq : p.hd > q.hd) :
     (p + q).hd_val = p.hd_val := 
