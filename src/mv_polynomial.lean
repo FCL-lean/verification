@@ -15,18 +15,6 @@ end discrete_field
 
 section comm_semiring
 variables [comm_semiring α]
-def is_const (p : mv_polynomial σ α) := p = 0 ∨ p.support = {0} 
-
-instance decidable_is_const : @decidable_pred (mv_polynomial σ α) is_const := λ p, by unfold is_const; apply_instance
-
-lemma zero_is_const : is_const (0 : mv_polynomial σ α) := by simp [is_const]
-lemma nez_of_not_const {p : mv_polynomial σ α} (h : ¬is_const p) : p ≠ 0 := by simp [is_const, not_or_distrib] at h; exact h.left
-
-lemma const_hd_dvd [decidable_linear_order (σ →₀ ℕ)] {p : mv_polynomial σ α} (h : is_const p) : ∀ q : σ →₀ ℕ, p.hd ∣ q := begin
-    cases h; intro q, simp [eq_zero_hd h, inhabited.default, has_dvd.dvd, dvd],
-    simp [singleton_hd h, has_dvd.dvd, dvd],
-end
-
 @[simp] lemma zero_monomial {a : σ →₀ ℕ} : monomial a 0 = 0 := by simp [monomial]; refl
 lemma monomial_eq_zero_iff {a : σ →₀ ℕ} {b : α} : monomial a b = 0 ↔ b = 0 := by simp [monomial]; apply single_eq_zero_iff
 
@@ -71,23 +59,40 @@ end
 section decidable_linear_order
 
 variables [decidable_linear_order (σ →₀ ℕ)]
+def is_const (p : mv_polynomial σ α) := p.hd = 0
+
+instance decidable_is_const : @decidable_pred (mv_polynomial σ α) is_const := λ p, by unfold is_const; apply_instance
+
 @[simp] lemma zero_lm : (0 : mv_polynomial σ α).hd = 0 := begin
     generalize h : hd 0 = x, simp [inhabited.default] at h, exact h.symm,
 end
 @[simp] lemma zero_hd : (0 : mv_polynomial σ α).hd = 0 := by finish
 @[simp] lemma zero_hd_val : (0 : mv_polynomial σ α).hd_val = 0 := by finish 
 
+lemma zero_is_const : is_const (0 : mv_polynomial σ α) := by simp [is_const]
+lemma nez_of_not_const {p : mv_polynomial σ α} (h : ¬is_const p) : p ≠ 0 := by simp [is_const, not_or_distrib] at h; exact h.left
+
+lemma const_hd_dvd {p : mv_polynomial σ α} (h : is_const p) : ∀ q : σ →₀ ℕ, p.hd ∣ q := λ q, begin
+    unfold is_const at h, simp [h],
+end
+
 lemma lc_nez_of_not_const {p : mv_polynomial σ α} : ¬is_const p → p.hd_val ≠ 0 := 
-λ h h', begin rw ←hd_val_eqz_iff at h', apply h, left, assumption, end
+λ h h', begin apply h, rw ←hd_val_eqz_iff at h', simp [is_const, h'], end
 
 @[simp] lemma hd_of_monomial {a : σ →₀ ℕ} {b : α} (hb : b ≠ 0) : (monomial a b).hd = a := by unfold monomial; apply hd_of_single hb
 @[simp] lemma hd_val_of_monomial {a : σ →₀ ℕ} {b : α} : (monomial a b).hd_val = b := by unfold monomial; apply hd_val_of_single
 
-lemma is_const_lm {p : mv_polynomial σ α} (hp : is_const p) : p.hd = 0 := 
-    by cases hp; finish [hd, s_support, hp]
+lemma hd_is_const_iff {p : mv_polynomial σ α} : is_const p ↔ p.hd = 0 := by simp [is_const]
+lemma not_const_iff {p : mv_polynomial σ α} : ¬is_const p ↔ p.hd ≠ 0:= by finish [hd_is_const_iff]
 
 lemma eq_zero_of_div_zero : ∀ p : mv_polynomial σ α, (p.hd ∣ (0 : σ →₀ ℕ)) ↔ p.hd = 0 := 
 λ p, by simp [has_dvd.dvd, dvd, eq_zero_apply]
+
+lemma not_const_of_div {p q : mv_polynomial σ α} : ¬is_const q → q.hd ∣ p.hd → ¬ is_const p := 
+λ hq hqp hp, begin
+    rw [hd_is_const_iff.1 hp, eq_zero_of_div_zero] at hqp,
+    apply hq, rwa hd_is_const_iff,
+end
 
 lemma mem_support_add_le_hd {p q : mv_polynomial σ α} (hpq : p.hd ≥ q.hd) : ∀ (x : σ →₀ ℕ), (x ∈ (p + q).support) → p.hd ≥ x :=
 λ x hx, begin
@@ -109,42 +114,11 @@ begin apply finsupp.induction_on p; assumption, end
 
 end decidable_linear_order
 
-section fin
-variables {n : ℕ}
-
-lemma is_const_of_lm_eqz {p : mv_polynomial (fin n) α} : is_const p ↔ p.hd = 0:= 
-⟨is_const_lm, 
-λ hp, begin
-    by_cases h : p = 0, left, assumption,
-    right,
-    have h_rel := hd_rel p,
-    have h_cons := cons_hd_tl h,
-    ext x, simp [-mem_support_iff, mem_s_support.symm, h_cons.symm, hp] at ⊢ h_rel,
-    split, rintros (hx | hx), assumption,
-    rw ←fin.le_zero_iff, apply h_rel x hx,
-    finish,
-end⟩
-
-lemma not_const_iff_lm_nez {p : mv_polynomial (fin n) α} : ¬is_const p ↔ p.hd ≠ 0:= by finish [is_const_of_lm_eqz]
-
-lemma not_const_of_div {p q : mv_polynomial (fin n) α} : ¬is_const q → q.hd ∣ p.hd → ¬ is_const p := 
-λ hq hqp hp, begin
-    rw [is_const_lm hp, eq_zero_of_div_zero] at hqp,
-    apply hq, rwa is_const_of_lm_eqz,
-end
-end fin
-
 end comm_semiring
 
 section comm_ring
-variables [comm_ring α]
-section decidable_linear_order
-variables [decidable_linear_order (σ →₀ ℕ)]
+variables {n : ℕ} [comm_ring α]
 
-end decidable_linear_order
-
-section fin
-variables {n : ℕ}
 lemma hd_of_add_left {p q : mv_polynomial (fin n) α} (hpq : p.hd > q.hd) :
     (p + q).hd = p.hd := 
 begin
@@ -154,7 +128,7 @@ begin
     all_goals {
         simp [gt_hd_apply hpq], rw [←not_mem_support_iff, hd_not_mem],
         intros h,
-        simp [h, inhabited.default] at hpq,
+        simp [h] at hpq,
         apply (not_lt_of_le (finsupp.fin.zero_le q.hd)) hpq,
     },
 end
@@ -178,8 +152,6 @@ begin
     apply finset.ne_of_mem_and_not_mem (hd_mem_support hpq),
     simp [hd_val, h₁] at h₂, simp [h₁, h₂],
 end
-
-end fin
 
 end comm_ring
 

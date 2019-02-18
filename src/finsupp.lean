@@ -47,9 +47,11 @@ notation a ` ∤ ` b := ¬ a ∣ b
 
 instance decidable_has_div [fintype σ] (a b : σ →₀ ℕ) : decidable (a ∣ b) := by simp [has_dvd.dvd, dvd]; apply_instance
 
-lemma dvd_of_add {a b c : σ →₀ ℕ} (h : a = b + c) : b ∣ a := begin
-    rw h, intro x, simp,
-end
+@[simp] lemma zero_dvd {a : σ →₀ ℕ} : 0 ∣ a := 
+    by simp [has_dvd.dvd, dvd]
+
+lemma dvd_of_add {a b c : σ →₀ ℕ} (h : a = b + c) : b ∣ a := 
+begin rw h, intro x, simp, end
 
 def m_div (a b : σ →₀ ℕ) : σ →₀ ℕ := 
     zip_with (nat.sub) (by finish) a b

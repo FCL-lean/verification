@@ -69,7 +69,7 @@ lemma red_list_aux_hd_lt : ∀ (l : list (mv_polynomial (fin n) α)) {p q : mv_p
     simp [red_list_aux, h_dvd],
     {
         by_cases h_r : (reduction p q).hd = 0,
-        rw [h_r, eq_zero_of_div_zero, ←is_const_of_lm_eqz] at h_dvd,
+        rw [h_r, eq_zero_of_div_zero, ←hd_is_const_iff] at h_dvd,
         simpa [reduction, h_dvd, zero_red_list_aux, finsupp.fin.zero_lt_iff_ne_zero] using hp,
         apply lt_trans (red_list_aux_hd_lt l' h_dvd h_r) (reduction_hd_lt hqp hp),
     },
@@ -141,7 +141,7 @@ lemma red_list_aux_not_div : ∀ (l : list (mv_polynomial (fin n) α)) (p : mv_p
     simp_intros [red_list_aux], cases hq₁;
     by_cases hrp : hd r ∣ hd p; simp [hrp] at h,
     {
-        have h_r := red_list_aux_hd_lt l' hrp (not_const_iff_lm_nez.1 (not_const_of_div hq₂ a)),
+        have h_r := red_list_aux_hd_lt l' hrp (not_const_iff.1 (not_const_of_div hq₂ a)),
         simp [red_list_aux, h, hq₁, hrp] at h_r,
         apply lt_irrefl _ h_r,
     },
@@ -151,7 +151,7 @@ lemma red_list_aux_not_div : ∀ (l : list (mv_polynomial (fin n) α)) (p : mv_p
         simp [reduction, hr, zero_red_list_aux] at h,
         apply not_const_of_div hq₂ a,
         left, exact h.symm,
-        have h_r := red_list_aux_hd_lt l' hrp (not_const_iff_lm_nez.1 (not_const_of_div hr hrp)),
+        have h_r := red_list_aux_hd_lt l' hrp (not_const_iff.1 (not_const_of_div hr hrp)),
         simp [red_list_aux, h, hrp] at h_r,
         apply lt_irrefl _ h_r,
     },
@@ -167,7 +167,7 @@ lemma red_list_not_div : ∀ (p : mv_polynomial (fin n) α) (l : list (mv_polyno
     by_cases hp₁ : red_list_aux p l = p; simp [hp₁],
     apply red_list_aux_not_div; assumption,
     by_cases hp₂ : p.hd = 0; simp [hp₂],
-    intro hq₃, apply hq₂, rwa [eq_zero_of_div_zero, ←is_const_of_lm_eqz] at hq₃,
+    intro hq₃, apply hq₂, rwa [eq_zero_of_div_zero, ←hd_is_const_iff] at hq₃,
     let : (red_list_aux p l).hd < p.hd, from red_list_aux_hd_lt' l p hp₂ hp₁,
     apply red_list_not_div, unfold red_list at h, simp [hp₁, hp₂] at h,
     assumption',
