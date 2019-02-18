@@ -1,4 +1,4 @@
-import mv_polynomial order_finsupp lex_order util
+import order_mv_polynomial discrete_field
 
 open mv_polynomial
 open finsupp
@@ -37,16 +37,7 @@ lemma zero_red_list_aux : ∀ (l : list (mv_polynomial (fin n) α)), red_list_au
 | [] := by simp [red_list_aux]
 | (q :: l') := begin
     by_cases q.hd ∣ (0 : mv_polynomial (fin n) α).hd;
-    simp [red_list_aux, h, reduction], 
-    {
-        by_cases hq : is_const q;
-        simp [hq],
-        exact zero_red_list_aux l',
-        simp [monomial], 
-        generalize hq : -(q * 0) = q', simp at hq,
-        simp [hq.symm],
-        exact zero_red_list_aux l',
-    },
+    simp [red_list_aux, h, reduction];
     exact zero_red_list_aux l',
 end
 
@@ -54,9 +45,9 @@ lemma reduction_hd_lt {a b : mv_polynomial (fin n) α} (hba : b.hd ∣ a.hd) (ha
     by_cases is_const b; simp [reduction, h],
     apply lt_of_le_of_ne (finsupp.fin.zero_le a.hd) (ne.symm ha),
     apply sub_hd_lt,
-    rw [hd_of_mul (nez_of_not_const h) (div_ne_zero _ (lc_nez_of_not_const h)), add_sub_cancel' hba],
-    apply lc_nez_of_not_const (not_const_of_div h hba),
-    simp [hd_val_of_mul (nez_of_not_const h), mul_div_cancel' _ (lc_nez_of_not_const h)],
+    rw [hd_of_mul (nez_of_not_const h) (div_ne_zero _ (hd_val_nez_of_not_const h)), add_sub_cancel' hba],
+    apply hd_val_nez_of_not_const (not_const_of_div h hba),
+    simp [hd_val_of_mul (nez_of_not_const h), mul_div_cancel' _ (hd_val_nez_of_not_const h)],
     assumption,
 end
 
@@ -150,7 +141,7 @@ lemma red_list_aux_not_div : ∀ (l : list (mv_polynomial (fin n) α)) (p : mv_p
         by_cases hr : is_const r,
         simp [reduction, hr, zero_red_list_aux] at h,
         apply not_const_of_div hq₂ a,
-        left, exact h.symm,
+        simp [h.symm],
         have h_r := red_list_aux_hd_lt l' hrp (not_const_iff.1 (not_const_of_div hr hrp)),
         simp [red_list_aux, h, hrp] at h_r,
         apply lt_irrefl _ h_r,

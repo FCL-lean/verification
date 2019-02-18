@@ -9,7 +9,7 @@ lemma support_ne_empty [decidable_eq β] (f : α →₀ β) : f.support ≠ ∅ 
 lemma coe_f : Π (f : α →₀ β) (a : α), f a = f.to_fun a := λ f a, rfl
 lemma coe_f' : Π (f : α →₀ β) (a : α), f.to_fun a = f a := λ f a, rfl
 
-lemma eq_zero_lem [decidable_eq β] : ∀ {f : α → β} {l}, ({support := ∅, to_fun := f, mem_support_to_fun := l} : α →₀ β) = 0 :=
+@[simp] lemma eq_zero_lem [decidable_eq β] : ∀ {f : α → β} {l}, ({support := ∅, to_fun := f, mem_support_to_fun := l} : α →₀ β) = 0 :=
 begin
     intros,
     rw support_eq_empty.1 (rfl : ({support := ∅, to_fun := f, mem_support_to_fun := l} : α →₀ β).support = ∅),
@@ -25,9 +25,6 @@ lemma single_eq_zero_iff [decidable_eq α] [decidable_eq β] {a : α} {b : β} :
     simpa using @a_1 a,
     by_cases a = a_2; simp [h], assumption,
 end
-
-lemma support_single_eq [decidable_eq α] [decidable_eq β] {a : α} {b : β} (hb : b ≠ 0) : (single a b).support = {a} :=
-    by simp [single, hb]
 
 lemma single_sum' [decidable_eq α] [decidable_eq β] {γ : Type*} [add_comm_monoid γ] (a : α) {b : β} (hb : b ≠ 0) (f : α → β → γ) : 
 (single a b).sum f = f a b := by simp [sum, single, hb, coe_f]
@@ -72,9 +69,6 @@ lemma add_sub_cancel' {n m : σ →₀ ℕ} (h : m ∣ n) : m + (n - m) = n := b
     ext a, simp [sub_apply_dvd h], apply nat.add_sub_cancel',
     simpa [has_dvd.dvd, dvd] using h a,
 end
-
-lemma m_lcm_has_div_left (a b : σ →₀ ℕ) : a ∣ (m_lcm a b) := sorry
-lemma m_lcm_has_div_right (a b : σ →₀ ℕ) : b ∣ (m_lcm a b) := sorry
 
 end monomial
 
