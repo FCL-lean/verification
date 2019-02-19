@@ -54,7 +54,7 @@ def m_div (a b : σ →₀ ℕ) : σ →₀ ℕ :=
     zip_with (nat.sub) (by finish) a b
 instance : has_sub (σ →₀ ℕ) := ⟨m_div⟩
 
-lemma sub_zero (f : σ →₀ ℕ) : f - 0 = f := begin
+@[simp] lemma sub_zero (f : σ →₀ ℕ) : f - 0 = f := begin
     simp [has_sub.sub, m_div],
     ext a, simp, apply nat.sub_zero,
 end
