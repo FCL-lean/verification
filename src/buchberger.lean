@@ -12,19 +12,6 @@ section reduction
 def reduction (a b : mv_polynomial σ α) := 
     a - b * (monomial (a.lm - b.lm) (a.lc / b.lc))
 
-def red_one_step (S : finset (mv_polynomial σ α)) : mv_polynomial σ α → mv_polynomial σ α → Prop :=
-    λ p q, ∃ (r : mv_polynomial σ α) (h₁ : r ∈ S) (h₂ : r.lm ∣ p.lm ), reduction p r = q
-
-def red_plus (S : finset (mv_polynomial σ α)) : mv_polynomial σ α → mv_polynomial σ α → Prop := tc (red_one_step S)
-
-def red_star (S : finset (mv_polynomial σ α)) : mv_polynomial σ α → mv_polynomial σ α → Prop := rtc (red_one_step S)
-
-notation a `→[` S `]` b := red_one_step S a b
-
-notation a `→[` S `]⁺` b := red_plus S a b
-
-notation a `→[` S `]⋆` b := red_star S a b
-
 def red_list_aux : mv_polynomial σ α → list (mv_polynomial σ α) → mv_polynomial σ α
 | a [] := a
 | a (hd :: tl) := if h : hd.lm ∣ a.lm  then red_list_aux (reduction a hd) tl else red_list_aux a tl

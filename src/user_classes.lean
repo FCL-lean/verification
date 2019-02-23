@@ -4,6 +4,9 @@ set_option old_structure_cmd true
 
 class decidable_canonically_ordered_monoid (α : Type*) extends canonically_ordered_monoid α, decidable_linear_ordered_cancel_comm_monoid α
 
+class is_monomial_order (α : Type*) [has_add α] [has_le α] :=
+(monomial_order : ∀ a b : α, a ≤ b → ∀ c : α, c + a ≤ c + b)
+
 end old_structure_cmd
 
 instance : decidable_canonically_ordered_monoid ℕ := {

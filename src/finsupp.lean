@@ -34,6 +34,7 @@ end basic
 section monomial
 variables {σ : Type*} [decidable_eq σ] 
 
+
 def m_lcm (a b : σ →₀ ℕ) : σ →₀ ℕ :=
     if a = 0 ∨ b = 0 then 0
     else zip_with max (max_self 0) a b
@@ -83,14 +84,25 @@ end
 
 end comm_ring
 
+section canonically_ordered_monoid
+variables {α : Type*} {β : Type*} [canonically_ordered_monoid β] [decidable_eq α] [decidable_eq β]
+lemma add_eqz (a b : α →₀ β) : a + b = 0 ↔ a = 0 ∧ b = 0 := 
+⟨λ h, begin
+    simp [ext_lem, forall_and_distrib] at h,
+    simpa [eq_zero_apply] using h,
+end,
+λ h, by simp [h.left, h.right]⟩
+
+end canonically_ordered_monoid
+
 section decidable_linear_ordered_cancel_comm_monoid
 variables {α : Type*} {β : Type*} [decidable_eq α] [decidable_linear_ordered_cancel_comm_monoid β]
 
-lemma add_left_cancel (a b c : α →₀ β) : a + b = a + c ↔ b = c := 
+lemma add_left_cancel_iff_eq (a b c : α →₀ β) : a + b = a + c ↔ b = c := 
 ⟨λ h, by simpa [ext_lem] using h, 
 λ h, by  simpa [ext_lem] using h⟩
 
-lemma add_right_cancel (a b c : α →₀ β) : a + b = c + b ↔ a = c := 
+lemma add_right_cancel_iff_eq (a b c : α →₀ β) : a + b = c + b ↔ a = c := 
 ⟨λ h, by simpa [ext_lem, -add_comm] using h, 
 λ h, by simpa [ext_lem, -add_comm] using h⟩
 

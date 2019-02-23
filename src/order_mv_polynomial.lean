@@ -1,4 +1,4 @@
-import mv_polynomial sorted_list lex_order classes
+import mv_polynomial sorted_list lex_order user_classes
 
 open finsupp
 namespace mv_polynomial
@@ -218,10 +218,10 @@ lemma mem_mul_support {a a': σ →₀ ℕ} {b b': α} (hb : b ≠ 0) (hb' : b' 
     simp [has_mul.mul, monomial, single_sum' a' hb'] at h_sub,
     simp [finsupp.sum, finset.sum_eq_fold] at h_sub,
     rcases finset.mem_fold_union (finset.subset.trans h_sub (add_support_subset_union c a' hb')) with ⟨d, ⟨lm, h⟩⟩,
-    have h_mul_nez : mul_zero_class.mul (c.to_fun d) b' ≠ 0,
+    have h_mul_nez : (c d) * b' ≠ 0,
         apply mul_ne_zero _ hb',
         simpa using lm,
-    simp [single, h_mul_nez, finset.subset_iff] at h,
+    simp [monomial, single, h_mul_nez, finset.subset_iff] at h,
     apply dvd_of_add h,
 end
 

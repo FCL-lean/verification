@@ -36,29 +36,38 @@ lemma support_monomial_eq {a : σ →₀ ℕ} {b : α} (hb : b ≠ 0) : (monomia
 
 @[simp] lemma add_zero {p : mv_polynomial σ α} : p + 0 = p := by simp
 
+@[elab_as_eliminator]
+theorem induction_f {C : (mv_polynomial σ α) → Prop} (p : mv_polynomial σ α)
+  (C0 : C (0 : mv_polynomial σ α)) (Ca : ∀a b (p : mv_polynomial σ α), a ∉ p.support → b ≠ 0 → C p → C (monomial a b + p)) :
+  C p :=
+  begin
+    apply finsupp.induction, assumption,
+    intros a b f haf hb hf,
+    simpa [monomial] using Ca a b f haf hb hf,
+  end
+
 lemma add_support_subset_union (c : mv_polynomial σ α) (as : σ →₀ ℕ) {aa : α} (haa : aa ≠ 0) :
- (finset.fold (+) 0 (λ (a : σ →₀ ℕ), single (as + a) (mul_zero_class.mul (c.to_fun a) aa)) (c.support)).support 
-  ⊆ finset.fold (∪) (∅) (λ (a : σ →₀ ℕ), (single (as + a) (mul_zero_class.mul (c.to_fun a) aa)).support) (c.support) :=
+ (finset.fold (+) 0 (λ (a : σ →₀ ℕ), monomial (as + a) ((c a) * aa)) (c.support)).support 
+  ⊆ finset.fold (∪) (∅) (λ (a : σ →₀ ℕ), (monomial (as + a) ((c a) * aa)).support) (c.support) :=
 begin
-    apply finsupp.induction c, simp,
-    intros a b f haf hb ih,
-    have h : (single a b + f).support = insert a f.support,
-        have h' : (single a b).support = {a}, simp [single, hb],
-        rw [finset.insert_eq, ←h'],
+    apply induction_f c, rw support_zero, simp,
+    intros a b p hap hb ih,
+    have h : (monomial a b + p).support = insert a p.support,
+        rw [finset.insert_eq, ←support_monomial_eq hb],
         apply support_add_eq,
-        simp [single, hb, not_mem_support_iff.1 haf],
-    rw [h, finset.fold_insert haf], simp, 
+        simp [support_monomial_eq hb, not_mem_support_iff.1 hap],
+    rw [h, finset.fold_insert hap], simp, 
     apply finset.subset.trans support_add,
-    have h_to_fun_eq : ∀ (x : σ →₀ ℕ) (hx : x ∈ f.support), f.to_fun x = (f + single a b).to_fun x,
-            intros x hx,
-            have hax : a ≠ x, intro hax', rw hax' at haf, exact haf hx,
-            repeat {rw ←coe_f}, simp, simp [coe_f, single], simp [hax],
-    have h_congr : ∀ (x : σ →₀ ℕ) (hx : x ∈ f.support), (λ x, single (as + x) (mul_zero_class.mul (f.to_fun x) aa)) x =
-        (λ x, single (as + x) (mul_zero_class.mul ((f + single a b).to_fun x) aa)) x,
-        intros x hx, simp [h_to_fun_eq x hx],
-    have h_congr' : ∀ (x : σ →₀ ℕ) (hx : x ∈ f.support), (λ x, (single (as + x) (mul_zero_class.mul (f.to_fun x) aa)).support) x =
-        (λ x, (single (as + x) (mul_zero_class.mul ((f + single a b).to_fun x) aa)).support) x,
-        intros x hx, simp [h_to_fun_eq x hx],
+    have h_to_fun_eq : ∀ (x : σ →₀ ℕ) (hx : x ∈ p.support), p x = (p + monomial a b) x,
+        intros,
+        have hax : a ≠ x := ne.symm (finset.ne_of_mem_and_not_mem hx hap),
+        simp [monomial_apply, hax],
+    have h_congr : ∀ (x : σ →₀ ℕ) (hx : x ∈ p.support), (λ x, monomial (as + x) ((p x) * aa)) x =
+        (λ x, monomial (as + x) (((p + monomial a b) x) * aa)) x,
+        intros, simp [(h_to_fun_eq x hx).symm], 
+    have h_congr' : ∀ (x : σ →₀ ℕ) (hx : x ∈ p.support), (λ x, (monomial (as + x) ((p x) * aa)).support) x =
+        (λ x, (monomial (as + x) (((p + monomial a b) x) * aa)).support) x,
+        intros, simp [(h_to_fun_eq x hx).symm], 
     rw [finset.fold_congr h_congr, finset.fold_congr h_congr'] at ih,
     apply finset.union_subset' (finset.subset.refl _) ih,
 end

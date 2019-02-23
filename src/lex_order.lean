@@ -1,4 +1,4 @@
-import data.finsupp data.fin finsupp classes util
+import data.finsupp data.fin finsupp user_classes util
 
 namespace finsupp.fin
 variables {n : ℕ} {α : Type*} [decidable_canonically_ordered_monoid α]
@@ -124,14 +124,14 @@ instance : decidable_linear_order (fin n →₀ α) := {
 }
 
 instance : decidable_linear_ordered_cancel_comm_monoid (fin n →₀ α) := {
-    add_left_cancel := λ a b c, (finsupp.add_left_cancel a b c).1,
-    add_right_cancel := λ a b c, (finsupp.add_right_cancel a b c).1,
+    add_left_cancel := λ a b c, (finsupp.add_left_cancel_iff_eq a b c).1,
+    add_right_cancel := λ a b c, (finsupp.add_right_cancel_iff_eq a b c).1,
     add_le_add_left := λ a b h c, le_mono_order' a b c h,
     le_of_add_le_add_left := λ a b c h, begin
         by_cases hbc : b ≤ c, assumption,
         rw [←lt_iff_not_ge, lt_iff_le_and_ne] at hbc,
         have h' : a + c ≤ a + b, apply le_mono_order', exact hbc.left,
-        have h_eq := (finsupp.add_left_cancel a c b).1 (antisymm h' h),
+        have h_eq := (finsupp.add_left_cancel_iff_eq a c b).1 (antisymm h' h),
         apply absurd h_eq hbc.right,
     end,
     ..finsupp.fin.decidable_linear_order,
