@@ -1,4 +1,4 @@
-import mv_polynomial sorted_list lex_order user_classes
+import mv_polynomial sorted_list finsupp_pos user_classes
 
 open finsupp
 namespace mv_polynomial
@@ -246,27 +246,27 @@ end integral_domain
 
 end decidable_linear_order
 
-section fin
-variables {n : ℕ}
+section well_order
+variables [decidable_linear_order (σ →₀ ℕ)] [is_well_founded (σ →₀ ℕ) (<)] [is_monomial_order (σ →₀ ℕ) (≤)] 
 section comm_semiring
 variables [comm_semiring α]
 
-lemma singleton_of_lm_eqz {p : mv_polynomial (fin n) α} : p ≠ 0 ∧ p.lm = 0 ↔ p.support = {0} := 
+lemma singleton_of_lm_eqz {p : mv_polynomial σ α} : p ≠ 0 ∧ p.lm = 0 ↔ p.support = {0} := 
 ⟨λ h, begin
     have h' := cons_lm_tl h.left,
     ext a, simp [mem_s_support.symm, h'.symm, h.right],
     split; intro ha,
     {
         cases ha, exact ha,
-        apply absurd (finsupp.fin.zero_le a),
+        apply absurd (finsupp.zero_le' a),
         rw ←h.right,
         apply not_le_of_lt,
         apply lm_rel_gt p a (by rwa mem_s_support at ha),
     },
     left, exact ha,
-end, λ h, ⟨λ h', @finset.ne_empty_of_mem ((fin n) →₀ ℕ) 0 p.support (by simp [h]) (by simp [h']), singleton_lm h⟩⟩
+end, λ h, ⟨λ h', @finset.ne_empty_of_mem (σ →₀ ℕ) 0 p.support (by simp [h]) (by simp [h']), singleton_lm h⟩⟩
 
-lemma eqC_of_lm_eqz {p : mv_polynomial (fin n) α} : p.lm = 0 ↔ p = C (p 0) := 
+lemma eqC_of_lm_eqz {p : mv_polynomial σ α} : p.lm = 0 ↔ p = C (p 0) := 
 ⟨λ h, begin
     by_cases hp : p = 0, rw hp, simp,
     simp [C],
@@ -274,7 +274,7 @@ lemma eqC_of_lm_eqz {p : mv_polynomial (fin n) α} : p.lm = 0 ↔ p = C (p 0) :=
 end,
 λ h, by rw [h, C]; simp⟩
 
-lemma lm_is_const_iff {p : mv_polynomial (fin n) α} : p = 0 ∨ p.support = {0} ↔ p.lm = 0 := 
+lemma lm_is_const_iff {p : mv_polynomial σ α} : p = 0 ∨ p.support = {0} ↔ p.lm = 0 := 
 ⟨λ h, begin 
     cases h, simp [h],
     apply singleton_lm h,
@@ -284,16 +284,16 @@ end, λ h, begin
     right, apply singleton_of_lm_eqz.1 ⟨hp, h⟩,
 end⟩
 
-lemma not_const_iff {p : mv_polynomial (fin n) α} : p ≠ 0 ∧ p.support ≠ {0} ↔ p.lm ≠ 0:= 
-⟨λ h, by rwa [←not_or_distrib, lm_is_const_iff] at h, λ h, by rwa [←not_or_distrib, lm_is_const_iff]⟩
-
+lemma not_const_iff {p : mv_polynomial σ α} : p ≠ 0 ∧ p.support ≠ {0} ↔ p.lm ≠ 0:= 
+⟨λ h, by rwa [←not_or_distrib, @lm_is_const_iff σ α _ _ _ _ _ _ p] at h, 
+λ h, by rwa [←not_or_distrib, @lm_is_const_iff σ α _ _ _ _ _ _ p]⟩
 
 end comm_semiring
 
 section comm_ring
 variables [comm_ring α]
 
-lemma lm_of_add_left {p q : mv_polynomial (fin n) α} (hpq : p.lm > q.lm) :
+lemma lm_of_add_left {p q : mv_polynomial σ α} (hpq : p.lm > q.lm) :
     (p + q).lm = p.lm := 
 begin
     have hp_lm := mem_support_add_le_lm (le_of_lt hpq),
@@ -303,20 +303,20 @@ begin
         simp [gt_lm_apply hpq], rw [←not_mem_support_iff, lm_not_mem],
         intros h,
         simp [h] at hpq,
-        apply (not_lt_of_le (finsupp.fin.zero_le q.lm)) hpq,
+        apply (not_lt_of_le (finsupp.zero_le' q.lm)) hpq,
     },
 end
 
-lemma lc_of_add_left {p q : mv_polynomial (fin n) α} (hpq : p.lm > q.lm) :
+lemma lc_of_add_left {p q : mv_polynomial σ α} (hpq : p.lm > q.lm) :
     (p + q).lc = p.lc := 
 by simp [lc, lm_of_add_left hpq, gt_lm_apply hpq]
 
-lemma sub_lm_lt {p q : mv_polynomial (fin n) α} (h₁ : p.lm = q.lm) (h₂ : p.lc = q.lc) (hp : p.lm ≠ 0) : 
+lemma sub_lm_lt {p q : mv_polynomial σ α} (h₁ : p.lm = q.lm) (h₂ : p.lc = q.lc) (hp : p.lm ≠ 0) : 
     (p - q).lm < p.lm := 
 begin
     by_cases hpq : p - q = 0,
-        simp [hpq], apply lt_of_le_of_ne (finsupp.fin.zero_le p.lm) (ne.symm hp),
-    have hab_lm : ∀ (x : (fin n) →₀ ℕ), (x ∈ (p - q).support) → p.lm ≥ x,
+        simp [hpq], apply lt_of_le_of_ne (finsupp.zero_le' p.lm) (ne.symm hp),
+    have hab_lm : ∀ (x : σ →₀ ℕ), (x ∈ (p - q).support) → p.lm ≥ x,
         intros x hx, 
         have hx' := mem_sub_support x hx,
         rw [finset.mem_union] at hx', cases hx',
@@ -331,7 +331,7 @@ end comm_ring
 
 section integral_domain
 variables [integral_domain α]
-lemma lm_of_mul {p : mv_polynomial (fin n) α} : p ≠ 0 → ∀ {a b}, b ≠ 0 → (p * (monomial a b)).lm = p.lm + a := begin
+lemma lm_of_mul {p : mv_polynomial σ α} : p ≠ 0 → ∀ {a b}, b ≠ 0 → (p * (monomial a b)).lm = p.lm + a := begin
     apply induction p, finish,
     intros q ih hq a b hb,
     have hq' := lc_nez_iff.1 hq,
@@ -350,7 +350,7 @@ lemma lm_of_mul {p : mv_polynomial (fin n) α} : p ≠ 0 → ∀ {a b}, b ≠ 0 
     rw [add_mul, lm_of_add_left h', lm_of_add_left h, monomial_mul_monomial, lm_of_monomial hmq, lm_of_monomial hq'],
 end
 
-lemma lc_of_mul {p : mv_polynomial (fin n) α} : p ≠ 0 → ∀ {a b}, (p * (monomial a b)).lc = p.lc * b := begin
+lemma lc_of_mul {p : mv_polynomial σ α} : p ≠ 0 → ∀ {a b}, (p * (monomial a b)).lc = p.lc * b := begin
     apply induction p, finish,
     intros q ih hq a b,
     by_cases hb : b = 0,
@@ -374,6 +374,6 @@ lemma lc_of_mul {p : mv_polynomial (fin n) α} : p ≠ 0 → ∀ {a b}, (p * (mo
 end
 
 end integral_domain
-end fin
+end well_order
 
 end mv_polynomial
