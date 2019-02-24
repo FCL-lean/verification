@@ -104,9 +104,7 @@ lemma le_zero_iff' (x : α →₀ β) : x ≤ 0 ↔ x = 0 := ⟨λ ha, begin
 end, λ h, by simp [h]⟩
 
 lemma zero_lt_iff_ne_zero' {x : α →₀ β} : 0 < x ↔ x ≠ 0 := 
-⟨λ h h', begin
-    rw h' at h, apply (lt_irrefl _) h,
-end,
+⟨λ h h', begin rw h' at h, apply (lt_irrefl _) h, end,
 λ h, lt_of_le_of_ne (zero_le' _ x) (ne.symm h)⟩
 
 end finsupp
