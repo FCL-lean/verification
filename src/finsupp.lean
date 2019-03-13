@@ -48,8 +48,14 @@ instance decidable_has_div [fintype σ] (a b : σ →₀ ℕ) : decidable (a ∣
 @[simp] lemma zero_dvd {a : σ →₀ ℕ} : 0 ∣ a := 
     by simp [has_dvd.dvd, dvd]
 
+@[simp] lemma dvd_add_right {a b : σ →₀ ℕ} : a ∣ a + b :=
+λ x, by simp
+
 lemma dvd_of_add {a b c : σ →₀ ℕ} (h : a = b + c) : b ∣ a := 
-begin rw h, intro x, simp, end
+by simp [h]
+
+lemma dvd_trans' {a b c : σ →₀ ℕ} : a ∣ b → b ∣ c → a ∣ c :=
+λ hab hbc x, trans (hab x) (hbc x)
 
 def m_div (a b : σ →₀ ℕ) : σ →₀ ℕ := 
     zip_with (nat.sub) (by finish) a b
@@ -76,7 +82,7 @@ end monomial
 section comm_ring
 variables {α : Type*} {β : Type*} [comm_ring β] [decidable_eq α] [decidable_eq β]
 
-lemma mem_sub_support {f g : α →₀ β} : ∀ x ∈ (f - g).support, x ∈ f.support ∪ g.support := 
+lemma support_sub {f g : α →₀ β} : (f - g).support ⊆ f.support ∪ g.support := 
 λ x hx, begin
     simp [-mem_support_iff] at hx, rw ←@support_neg _ _ _ _ _ g,
     apply support_add hx,

@@ -37,9 +37,9 @@ end
 lemma reduction_lm_lt {a b : mv_polynomial σ α} (hba : b.lm ∣ a.lm) (ha : a.lm ≠ 0) (hb : b ≠ 0) : (reduction a b).lm < a.lm := begin
     simp [reduction],
     apply sub_lm_lt,
-    rw [lm_of_mul hb (div_ne_zero _ (lc_nez_iff.1 hb)), add_sub_cancel' hba],
+    rw [lm_of_mul_m hb (div_ne_zero _ (lc_nez_iff.1 hb)), add_sub_cancel' hba],
     apply lc_nez_of_lm_nez ha,
-    simp [lc_of_mul hb, mul_div_cancel' _ (lc_nez_iff.1 hb)],
+    simp [lc_of_mul_m hb, mul_div_cancel' _ (lc_nez_iff.1 hb)],
     assumption,
 end
 
@@ -57,7 +57,7 @@ lemma red_list_aux_lm_lt : ∀ (l : list (mv_polynomial σ α)) {p q : mv_polyno
         simp [h_r] at h_dvd,
         {
             rw [reduction_of_lm_eqz h_r h_dvd hr, zero_red_list_aux],
-            simpa [finsupp.zero_lt_iff_ne_zero'] using hp,
+            simpa [finsupp.zero_lt_iff_ne_zero] using hp,
         },
         {apply lt_trans (red_list_aux_lm_lt l' h_dvd h_r hr) (reduction_lm_lt hqp hp hq)},
     },

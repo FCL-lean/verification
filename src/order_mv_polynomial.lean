@@ -51,7 +51,7 @@ end, λ h, by simp [h]⟩
 lemma lm_not_mem_tl {p : mv_polynomial σ α} : p.lm ∉ p.tl.support := by simp [tl]
 
 @[simp] lemma eq_zero_of_div_zero : ∀ p : mv_polynomial σ α, (p.lm ∣ (0 : σ →₀ ℕ)) ↔ p.lm = 0 := 
-λ p, by simp [has_dvd.dvd, dvd, eq_zero_apply]
+λ p, by simp [has_dvd.dvd, dvd, eq_zero_apply]; apply finsupp.eq_zero_apply
 
 lemma lc_eqz_iff {p : mv_polynomial σ α} : p = 0 ↔ p.lc = 0 := begin
     split; intro h, 
@@ -64,6 +64,7 @@ lemma lc_nez_iff {p : mv_polynomial σ α} : p ≠ 0 ↔ p.lc ≠ 0 :=
     by simp [lc_eqz_iff]
 
 lemma lc_nez_of_lm_nez {p : mv_polynomial σ α} : p.lm ≠ 0 → p.lc ≠ 0 := λ h h', h (eq_zero_lm (lc_eqz_iff.2 h'))
+lemma nez_of_lm_nez {p : mv_polynomial σ α} : p.lm ≠ 0 → p ≠ 0 := λ h, lc_nez_iff.2 (lc_nez_of_lm_nez h)
 
 lemma singleton_lm {p : mv_polynomial σ α} {a} (h : p.support = {a}) : p.lm = a := by finish [lm, s_support, h]
 lemma singleton_eq_monomial {p : mv_polynomial σ α} {a} (h : p.support = {a}) : p = monomial a (p a) := begin
@@ -91,6 +92,21 @@ lemma tl_apply (p : mv_polynomial σ α) : ∀ a ≠ p.lm, p.tl a = p a :=
 
 lemma tl_apply_lm (p : mv_polynomial σ α) : p.tl p.lm = 0 := 
     by rw ←not_mem_support_iff; simp [tl]
+
+@[simp] lemma tl_of_monomial {a : σ →₀ ℕ} {b : α}: (monomial a b).tl = 0 :=
+begin
+    by_cases hb : b = 0,
+    simp [hb, tl],
+    ext x,
+    by_cases x = a;
+    rw ←@lm_of_monomial _ _ _ _ _ _ a _ hb at h,
+    {simp [h, tl_apply_lm]},
+    {
+        simp [tl_apply _ _ h, monomial_apply],
+        simp [hb] at h, 
+        simp [ne.symm h],
+    }
+end
 
 lemma tl_eq_s_tl {p : mv_polynomial σ α} : p.tl.s_support = p.s_support.tail := begin
     by_cases hp : s_support p = [], 
@@ -164,12 +180,13 @@ lemma induction {C : (mv_polynomial σ α) → Prop} (p : mv_polynomial σ α)
         rw [←ne_zero_of_s_ne_nil, hp], simp,
     end
 
-lemma mem_support_add_le_lm {p q : mv_polynomial σ α} (hpq : p.lm ≥ q.lm) : ∀ (x : σ →₀ ℕ), (x ∈ (p + q).support) → p.lm ≥ x :=
+lemma mem_support_union_le_lm {p q : mv_polynomial σ α} (hpq : p.lm ≥ q.lm) : 
+∀ {x}, (x ∈ p.support ∪ q.support) → p.lm ≥ x :=
 λ x hx, begin
-    have hx' := support_add hx, rw [finset.mem_union] at hx', 
-    cases hx',
-    apply lm_rel' _ hx',
-    apply le_trans (lm_rel' _ hx') hpq,
+    rw [finset.mem_union] at hx, 
+    cases hx,
+    apply lm_rel' _ hx,
+    apply le_trans (lm_rel' _ hx) hpq,
 end
 
 end sort_support
@@ -178,6 +195,14 @@ end comm_semiring
 
 section comm_ring
 variables [comm_ring α] 
+@[simp] lemma lm_neg {p : mv_polynomial σ α} : (-p).lm = p.lm := by simp [lm, s_support]
+@[simp] lemma lc_neg {p : mv_polynomial σ α} : (-p).lc = -(p.lc) := by simp [lc]
+@[simp] lemma monomial_neg {a : σ →₀ ℕ} {b : α} : monomial a (-b) = -(monomial a b) := 
+begin
+    ext x,
+    by_cases a = x;
+    simp [h, monomial_apply],
+end
 
 def monomial_ideal (l : list (mv_polynomial σ α)) : ideal (mv_polynomial σ α) := 
     ideal.span ↑(l.map (λ f : mv_polynomial σ α, monomial f.lm f.lc)).to_finset
@@ -258,7 +283,7 @@ lemma singleton_of_lm_eqz {p : mv_polynomial σ α} : p ≠ 0 ∧ p.lm = 0 ↔ p
     split; intro ha,
     {
         cases ha, exact ha,
-        apply absurd (finsupp.zero_le' a),
+        apply absurd (finsupp.zero_le a),
         rw ←h.right,
         apply not_le_of_lt,
         apply lm_rel_gt p a (by rwa mem_s_support at ha),
@@ -285,8 +310,7 @@ end, λ h, begin
 end⟩
 
 lemma not_const_iff {p : mv_polynomial σ α} : p ≠ 0 ∧ p.support ≠ {0} ↔ p.lm ≠ 0:= 
-⟨λ h, by rwa [←not_or_distrib, @lm_is_const_iff σ α _ _ _ _ _ _ p] at h, 
-λ h, by rwa [←not_or_distrib, @lm_is_const_iff σ α _ _ _ _ _ _ p]⟩
+by rw [←not_or_distrib, @lm_is_const_iff σ α _ _ _]
 
 end comm_semiring
 
@@ -296,29 +320,67 @@ variables [comm_ring α]
 lemma lm_of_add_left {p q : mv_polynomial σ α} (hpq : p.lm > q.lm) :
     (p + q).lm = p.lm := 
 begin
-    have hp_lm := mem_support_add_le_lm (le_of_lt hpq),
-    apply (antisymm (hp_lm _ (lm_mem_support (λ h, _))) (lm_rel' _ _)).symm,
+    have hp_lm := mem_support_union_le_lm (le_of_lt hpq),
+    apply (antisymm (hp_lm $ support_add $ lm_mem_support (λ h, _)) (lm_rel' _ _)).symm,
     have h' := (eq_zero_apply _).2 h p.lm, revert h',
     all_goals {
         simp [gt_lm_apply hpq], rw [←not_mem_support_iff, lm_not_mem],
         intros h,
         simp [h] at hpq,
-        apply (not_lt_of_le (finsupp.zero_le' q.lm)) hpq,
+        apply (not_lt_of_le (finsupp.zero_le q.lm)) hpq,
     },
+end
+
+lemma lm_of_add_right {p q : mv_polynomial σ α} (hpq : q.lm > p.lm) :
+    (p + q).lm = q.lm := 
+by rw [add_comm, lm_of_add_left hpq]
+
+lemma lm_of_sub_left {p q : mv_polynomial σ α} (hpq : p.lm > q.lm) :
+    (p - q).lm = p.lm := 
+begin
+    --rw ←@lm_neg _ _ _ _ _ _ q at hpq,
+    --simp [lm_of_add_left hpq],
+    conv at hpq {to_rhs, rw ←lm_neg,},
+    simp [lm_of_add_left hpq],
+end
+
+lemma lm_of_sub_right {p q : mv_polynomial σ α} (hpq : q.lm > p.lm) :
+    (p - q).lm = q.lm := 
+begin
+    rw ←@lm_neg _ _ _ _ _ _ q at hpq,
+    simp [lm_of_add_right hpq],
 end
 
 lemma lc_of_add_left {p q : mv_polynomial σ α} (hpq : p.lm > q.lm) :
     (p + q).lc = p.lc := 
 by simp [lc, lm_of_add_left hpq, gt_lm_apply hpq]
 
+lemma lc_of_add_right {p q : mv_polynomial σ α} (hpq : q.lm > p.lm) :
+    (p + q).lc = q.lc := 
+by rw [add_comm, lc_of_add_left hpq]
+
+lemma lc_of_sub_left {p q : mv_polynomial σ α} (hpq : p.lm > q.lm) :
+    (p - q).lc = p.lc := 
+begin
+    rw [lc, lm_of_sub_left hpq],
+    simp [lc, gt_lm_apply hpq],
+end
+
+lemma lc_of_sub_right {p q : mv_polynomial σ α} (hpq : q.lm > p.lm) :
+    (p - q).lc = -q.lc := 
+begin
+    rw [lc, lm_of_sub_right hpq],
+    simp [lc, gt_lm_apply hpq],
+end
+
 lemma sub_lm_lt {p q : mv_polynomial σ α} (h₁ : p.lm = q.lm) (h₂ : p.lc = q.lc) (hp : p.lm ≠ 0) : 
     (p - q).lm < p.lm := 
 begin
     by_cases hpq : p - q = 0,
-        simp [hpq], apply lt_of_le_of_ne (finsupp.zero_le' p.lm) (ne.symm hp),
+        simp [hpq], apply lt_of_le_of_ne (finsupp.zero_le p.lm) (ne.symm hp),
     have hab_lm : ∀ (x : σ →₀ ℕ), (x ∈ (p - q).support) → p.lm ≥ x,
         intros x hx, 
-        have hx' := mem_sub_support x hx,
+        have hx' := support_sub hx,
         rw [finset.mem_union] at hx', cases hx',
         apply lm_rel' _ hx',
         rw h₁, apply lm_rel' _ hx',
@@ -327,21 +389,40 @@ begin
     simp [lc, h₁] at h₂, simp [h₁, h₂],
 end
 
+lemma lm_of_add_gt_lm {p : mv_polynomial σ α} {a : σ →₀ ℕ} (ha : a > p.lm) 
+{b : α} (hb : b ≠ 0) : (monomial a b + p).lm = a := 
+begin
+    rw ←@lm_of_monomial _ _ _ _ _ _ a _ hb at ha,
+    rw [lm_of_add_left ha, lm_of_monomial hb],
+end
+
+lemma lc_of_add_gt_lm {p : mv_polynomial σ α} {a : σ →₀ ℕ} (ha : a > p.lm) 
+{b : α} (hb : b ≠ 0) : (monomial a b + p).lc = b := 
+begin
+    rw ←@lm_of_monomial _ _ _ _ _ _ a _ hb at ha,
+    rw [lc_of_add_left ha, lc_of_monomial],
+end
+
+lemma tl_of_add_gt_lm {p : mv_polynomial σ α} {a : σ →₀ ℕ} (ha : a > p.lm)
+{b : α} (hb : b ≠ 0) : (monomial a b + p).tl = p :=
+begin
+    have h := lm_tl_eq (monomial a b + p),
+    rw [lm_of_add_gt_lm ha hb, lc_of_add_gt_lm ha hb] at h,
+    apply add_left_cancel h,
+end
+
 end comm_ring
 
 section integral_domain
 variables [integral_domain α]
-lemma lm_of_mul {p : mv_polynomial σ α} : p ≠ 0 → ∀ {a b}, b ≠ 0 → (p * (monomial a b)).lm = p.lm + a := begin
+lemma lm_of_mul_m {p : mv_polynomial σ α} : p ≠ 0 → ∀ {a b}, b ≠ 0 → (p * (monomial a b)).lm = p.lm + a := begin
     apply induction p, finish,
     intros q ih hq a b hb,
     have hq' := lc_nez_iff.1 hq,
     have hmq := mul_ne_zero hq' hb,
     rw ←lm_tl_eq q,
     by_cases h_tl : q.tl = 0,
-    {
-        simp [h_tl, -add_comm], generalize hx : (monomial (lm q) (lc q) + 0) = x,
-        simp at hx, simp [hx.symm, monomial_mul_monomial, hq', hmq],
-    },
+    { simp [h_tl, -add_comm, monomial_mul_monomial, hq', hmq],},
     have h : q.tl.lm < (monomial (lm q) (lc q)).lm,
         simp [hq', lt_iff_le_and_ne], 
         refine ⟨(lm_rel _ _ (lm_mem_support h_tl)), finset.ne_of_mem_and_not_mem (lm_mem_support h_tl) lm_not_mem_tl⟩,
@@ -350,7 +431,7 @@ lemma lm_of_mul {p : mv_polynomial σ α} : p ≠ 0 → ∀ {a b}, b ≠ 0 → (
     rw [add_mul, lm_of_add_left h', lm_of_add_left h, monomial_mul_monomial, lm_of_monomial hmq, lm_of_monomial hq'],
 end
 
-lemma lc_of_mul {p : mv_polynomial σ α} : p ≠ 0 → ∀ {a b}, (p * (monomial a b)).lc = p.lc * b := begin
+lemma lc_of_mul_m {p : mv_polynomial σ α} : p ≠ 0 → ∀ {a b}, (p * (monomial a b)).lc = p.lc * b := begin
     apply induction p, finish,
     intros q ih hq a b,
     by_cases hb : b = 0,
@@ -368,9 +449,13 @@ lemma lc_of_mul {p : mv_polynomial σ α} : p ≠ 0 → ∀ {a b}, (p * (monomia
         simp [hq', lt_iff_le_and_ne], 
         refine ⟨(lm_rel _ _ (lm_mem_support h_tl)), finset.ne_of_mem_and_not_mem (lm_mem_support h_tl) lm_not_mem_tl⟩,
     have h' : (q.tl * monomial a b).lm < ((monomial q.lm q.lc) * monomial a b).lm,
-        simpa [lm_of_mul h_tl hb, monomial_mul_monomial, hmq, hq'] using h,
+        simpa [lm_of_mul_m h_tl hb, monomial_mul_monomial, hmq, hq'] using h,
     rw [add_mul, lc_of_add_left h, lc_of_add_left h', monomial_mul_monomial],
     simp,
+end
+
+lemma lm_of_mul {p q : mv_polynomial σ α} : p ≠ 0 → q ≠ 0 → (p * q).lm = p.lm + q.lm := begin
+    sorry
 end
 
 end integral_domain

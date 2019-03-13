@@ -1,6 +1,8 @@
 import order.order_iso finsupp user_classes
 
 namespace finsupp
+
+section linear_order
 variables {α : Type*} {β : Type*} [decidable_eq α] [decidable_canonically_ordered_monoid β]
 variables [linear_order (α →₀ β)] [is_well_founded (α →₀ β) (<)] [is_monomial_order (α →₀ β) (≤)] 
 
@@ -86,16 +88,19 @@ lemma not_lt_zero (x : α →₀ β) : ¬ x < 0 :=
     apply f_descend_seq hx a b,
 end 
 
-lemma zero_le' (x : α →₀ β) : 0 ≤ x := le_of_not_lt (not_lt_zero x)
+lemma zero_le (x : α →₀ β) : 0 ≤ x := le_of_not_lt (not_lt_zero x)
 
-lemma le_zero_iff' (x : α →₀ β) : x ≤ 0 ↔ x = 0 := 
+lemma le_zero_iff (x : α →₀ β) : x ≤ 0 ↔ x = 0 := 
 ⟨λ ha, begin
     apply antisymm ha,
-    exact zero_le' x,
+    exact zero_le x,
 end, λ h, by simp [h]⟩
 
-lemma zero_lt_iff_ne_zero' {x : α →₀ β} : 0 < x ↔ x ≠ 0 := 
-    by finish [lt_iff_le_and_ne, zero_le' x]
+lemma zero_lt_iff_ne_zero {x : α →₀ β} : 0 < x ↔ x ≠ 0 := 
+    by finish [lt_iff_le_and_ne, zero_le x]
 
+lemma ne_zero_of_gt {x y : α →₀ β} : y < x → x ≠ 0 := 
+λ h, zero_lt_iff_ne_zero.1 (lt_of_le_of_lt (zero_le y) h)
 
+end linear_order
 end finsupp

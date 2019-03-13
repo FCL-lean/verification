@@ -23,6 +23,7 @@ instance : has_coe_to_fun (mv_polynomial σ α) := ⟨λ _, (σ →₀ ℕ) → 
 @[simp] lemma support_eq_empty {p : mv_polynomial σ α} : p.support = ∅ ↔ p = 0 := finsupp.support_eq_empty
 lemma support_ne_empty (p : mv_polynomial σ α) : p.support ≠ ∅ ↔ p ≠ 0 := by finish
 @[simp] lemma eq_zero_lem : ∀ {f : (σ →₀ ℕ) → α} {l}, ({support := ∅, to_fun := f, mem_support_to_fun := l} : mv_polynomial σ α) = (0 : mv_polynomial σ α) := by apply finsupp.eq_zero_lem 
+lemma eq_zero_apply (p : mv_polynomial σ α) : (∀ a, p a = 0) ↔ p = 0 := eq_zero_apply p
 
 @[simp] lemma zero_monomial {a : σ →₀ ℕ} : ((monomial a 0) : mv_polynomial σ α) = 0 := by simp [monomial]; refl
 lemma monomial_eq_zero_iff {a : σ →₀ ℕ} {b : α} : monomial a b = 0 ↔ b = 0 := by simp [monomial]; apply single_eq_zero_iff
@@ -34,7 +35,17 @@ lemma monomial_apply {a a' : σ →₀ ℕ} {b : α} : ((monomial a b) : mv_poly
 lemma support_monomial_eq {a : σ →₀ ℕ} {b : α} (hb : b ≠ 0) : (monomial a b).support = {a} :=
     by simp [monomial, single, hb]
 
+lemma not_mem_disjoint {p : mv_polynomial σ α} {a : σ →₀ ℕ} (ha : a ∉ p.support) 
+{b : α} (hb : b ≠ 0) : disjoint (monomial a b).support p.support :=
+by simpa [support_monomial_eq hb, finset.disjoint_singleton] using ha
+
 @[simp] lemma add_zero {p : mv_polynomial σ α} : p + 0 = p := by simp
+
+lemma add_monomial_nez {p : mv_polynomial σ α} {a} (ha : a ∉ p.support) {b : α} (hb : b ≠ 0) : monomial a b + p ≠ 0 := 
+λ h, hb begin
+    rw ←eq_zero_apply (monomial a b + p) at h,
+    simpa [monomial_apply, not_mem_support_iff.1 ha] using h a,
+end
 
 @[elab_as_eliminator]
 theorem induction_f {C : (mv_polynomial σ α) → Prop} (p : mv_polynomial σ α)
