@@ -1,6 +1,6 @@
-import seq order_mv_polynomial
+import order_mv_polynomial
 
-open mv_polynomial finsupp seq
+open mv_polynomial finsupp
 
 namespace mv_polynomial
 variables {σ : Type*} {α : Type*} [decidable_eq σ] [decidable_eq α] [fintype σ] [decidable_linear_order (σ →₀ ℕ)] 
