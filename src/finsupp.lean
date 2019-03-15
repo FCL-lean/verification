@@ -35,9 +35,21 @@ section monomial
 variables {σ : Type*} [decidable_eq σ] 
 
 
-def m_lcm (a b : σ →₀ ℕ) : σ →₀ ℕ :=
-    if a = 0 ∨ b = 0 then 0
-    else zip_with max (max_self 0) a b
+def m_lcm (a b : σ →₀ ℕ) : σ →₀ ℕ := zip_with max (max_self 0) a b
+
+lemma m_lcm_apply_eq_left {a b : σ →₀ ℕ} {x} (h : b x ≤ a x) 
+: (m_lcm a b) x = a x := by rw [m_lcm]; simp [max_eq_left h]
+
+lemma m_lcm_apply_eq_right {a b : σ →₀ ℕ} {x} (h : a x ≤ b x) 
+: (m_lcm a b) x = b x := by rw [m_lcm]; simp [max_eq_right h]
+
+lemma m_lcm_comm (a b : σ →₀ ℕ) : m_lcm a b = m_lcm b a :=
+begin
+    ext x,
+    by_cases a x ≤ b x,
+    {simp [m_lcm_apply_eq_left h, m_lcm_apply_eq_right h]},
+    {simp [m_lcm_apply_eq_left (le_of_not_le h), m_lcm_apply_eq_right (le_of_not_le h)]}
+end
 
 def dvd (a b : σ →₀ ℕ) : Prop := ∀ x, a x ≤ b x
 instance : has_dvd (σ →₀ ℕ) := ⟨dvd⟩
@@ -48,6 +60,8 @@ instance decidable_has_div [fintype σ] (a b : σ →₀ ℕ) : decidable (a ∣
 @[simp] lemma zero_dvd {a : σ →₀ ℕ} : 0 ∣ a := 
     by simp [has_dvd.dvd, dvd]
 
+@[simp] lemma dvd_self {a : σ →₀ ℕ} : a ∣ a := λ x, le_refl _
+
 @[simp] lemma dvd_add_right {a b : σ →₀ ℕ} : a ∣ a + b :=
 λ x, by simp
 
@@ -57,6 +71,25 @@ by simp [h]
 lemma dvd_trans' {a b c : σ →₀ ℕ} : a ∣ b → b ∣ c → a ∣ c :=
 λ hab hbc x, trans (hab x) (hbc x)
 
+lemma dvd_of_dvd_of_add {a b : σ →₀ ℕ} : a ∣ b → ∀ c, a ∣ b + c :=
+λ hab c, dvd_trans' hab (by simp)
+
+lemma dvd_of_dvd_of_add' {a b : σ →₀ ℕ} : a ∣ b → ∀ c, a ∣ c + b :=
+λ hab c, dvd_trans' hab (by simp)
+
+lemma dvd_lcm_left {a b : σ →₀ ℕ} : a ∣ m_lcm a b := 
+λ x, by rw m_lcm; finish
+
+lemma dvd_lcm_right {a b : σ →₀ ℕ} : b ∣ m_lcm a b := 
+λ x, by rw m_lcm; finish
+
+lemma lcm_dvd {a b c : σ →₀ ℕ} : a ∣ c → b ∣ c → m_lcm a b ∣ c :=
+λ ha hb x, begin
+    by_cases hab : a x ≤ b x,
+    {simp [m_lcm_apply_eq_right hab, hb x]},
+    {simp [m_lcm_apply_eq_left (le_of_not_le hab), ha x]}
+end
+
 def m_div (a b : σ →₀ ℕ) : σ →₀ ℕ := 
     zip_with (nat.sub) (by finish) a b
 instance : has_sub (σ →₀ ℕ) := ⟨m_div⟩
@@ -64,6 +97,12 @@ instance : has_sub (σ →₀ ℕ) := ⟨m_div⟩
 @[simp] lemma sub_zero (f : σ →₀ ℕ) : f - 0 = f := begin
     simp [has_sub.sub, m_div],
     ext a, simp, apply nat.sub_zero,
+end
+
+@[simp] lemma sub_self {f : σ →₀ ℕ} : f - f = 0 :=
+begin
+    simp [has_sub.sub, m_div],
+    ext a, simp, apply nat.sub_self,
 end
 
 lemma sub_apply_dvd {f g : σ →₀ ℕ} (h : g ∣ f) : ∀ x, (f - g) x = f x - g x := 
@@ -76,6 +115,20 @@ lemma add_sub_cancel' {n m : σ →₀ ℕ} (h : m ∣ n) : m + (n - m) = n := b
     ext a, simp [sub_apply_dvd h], apply nat.add_sub_cancel',
     simpa [has_dvd.dvd, dvd] using h a,
 end
+
+lemma add_sub_assoc' {n m k : σ →₀ ℕ} (h : k ∣ m) : n + m - k = n + (m - k) :=
+begin
+    ext x,
+    simp [sub_apply_dvd h, sub_apply_dvd (dvd_of_dvd_of_add' h n), nat.add_sub_assoc (h x)],
+end
+
+lemma sub_add_comm {n m k : σ →₀ ℕ} (h₁ : k ∣ n) (h₂ : k ∣ m) : (n - k) + m = (m - k) + n :=
+by rw [add_comm _ m, add_comm _ n, ←add_sub_assoc' h₁, ←add_sub_assoc' h₂, add_comm]
+
+lemma exists_eq_mul_left_of_dvd {a b : σ →₀ ℕ} (h : a ∣ b) : ∃ c, b = c + a := ⟨b - a, by simp [add_sub_cancel' h]⟩
+
+lemma exists_eq_mul_right_of_dvd {a b : σ →₀ ℕ} (h : a ∣ b) : ∃ c, b = a + c := ⟨b - a, by simp [add_sub_cancel' h]⟩
+
 
 end monomial
 

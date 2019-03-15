@@ -23,9 +23,9 @@ begin
 end
 
 inductive lt : (mv_polynomial σ α) → (mv_polynomial σ α) → Prop
-| zero : ∀ p : mv_polynomial σ α, p ≠ 0 → lt 0 p
-| lm_eq : ∀ p q : mv_polynomial σ α, q ≠ 0 → p.lm = q.lm → p.lc = q.lc → lt p.tl q.tl → lt p q
-| lm_lt : ∀ p q : mv_polynomial σ α, p.lm < q.lm → lt p q
+| zero : ∀ {p : mv_polynomial σ α}, p ≠ 0 → lt 0 p
+| lm_eq : ∀ {p q : mv_polynomial σ α}, q ≠ 0 → p.lm = q.lm → p.lc = q.lc → lt p.tl q.tl → lt p q
+| lm_lt : ∀ {p q : mv_polynomial σ α}, p.lm < q.lm → lt p q
 
 instance : has_lt (mv_polynomial σ α) := ⟨lt⟩
 
@@ -99,7 +99,7 @@ begin
                 change y.lm < (monomial a b + x).lm, 
                 rw [lm_of_add_gt_lm ha hb, ←@lm_of_monomial _ _ _ _ _ _ a _ hb]
             },
-            apply acc.inv h (lt.lm_lt _ _ hy),
+            apply acc.inv h (lt.lm_lt hy),
         }
     }
 end
@@ -153,6 +153,47 @@ well_founded.intro (λ p, begin
         }
     }
 end)
+
+instance : has_well_founded (mv_polynomial σ α) := 
+{r := (<), wf := lt_wf}
+
+lemma tl_lt {p : mv_polynomial σ α} (h : p ≠ 0) : p.tl < p :=
+begin
+    by_cases hp : p.lm = 0,
+    {simp [tl_eqz_of_lm_eqz hp], exact lt.zero h},
+    {
+        apply lt.lm_lt,
+        apply gt_tl_lm_of_lm_nez hp,
+    }
+end
+
+lemma nez_of_gt {p q : mv_polynomial σ α} (h : p < q) : q ≠ 0 :=
+λ h', begin
+    rw h' at h,
+    exact not_lt_zero h,
+end
+
+lemma gt_zero_of_gt {p q : mv_polynomial σ α} (h : p < q) : 0 < q := lt.zero _ (nez_of_gt h)
+
+instance : is_trans (mv_polynomial σ α) (<) :=
+⟨λ p q r hpq, begin 
+    revert r,
+    induction hpq with _ _ p q hq hpq₁ hpq₂ hpq₃ ih p q hpq;
+    intros r hqr,
+    {exact gt_zero_of_gt hqr},
+    {
+        cases hqr with _ _ _ _ hr hqr₁ hqr₂ hqr₃ _ _ hqr,
+        {finish},
+        {exact lt.lm_eq hr (by rwa hpq₁) (by rwa hpq₂) (ih hqr₃)},
+        {exact lt.lm_lt (lt_of_le_of_lt (le_of_eq hpq₁) hqr)}
+    },
+    {
+        cases hqr with _ _ _ _ hr hqr₁ hqr₂ hqr₃ _ _ hqr,
+        {exact absurd hpq (finsupp.not_lt_zero _)},
+        {exact lt.lm_lt (lt_of_lt_of_le hpq (le_of_eq hqr₁))},
+        {exact lt.lm_lt (lt_trans hpq hqr)}
+    }
+end⟩
 
 end lt
 end mv_polynomial

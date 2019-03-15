@@ -32,6 +32,7 @@ end⟩
 
 @[simp] lemma zero_lm : (0 : mv_polynomial σ α).lm = 0 := by finish
 @[simp] lemma zero_lc : (0 : mv_polynomial σ α).lc = 0 := by finish
+@[simp] lemma zero_tl : (0 : mv_polynomial σ α).tl = 0 := by simp [tl]
 lemma eq_zero_lm {p : mv_polynomial σ α} : p = 0 → p.lm = 0 := by finish
 
 lemma lm_mem_s_support (p : mv_polynomial σ α) (h : p ≠ 0) : p.lm ∈ p.s_support:= begin
@@ -87,11 +88,21 @@ end
     simp [lc, monomial_apply, singleton_lm (support_monomial_eq hb)], 
 end
 
+lemma tl_support_subset {p : mv_polynomial σ α} : p.tl.support ⊆ p.support :=
+by simp [tl]; apply finset.erase_subset
+
 lemma tl_apply (p : mv_polynomial σ α) : ∀ a ≠ p.lm, p.tl a = p a := 
 λ a h, by rw coe_f; finish [tl]
 
 lemma tl_apply_lm (p : mv_polynomial σ α) : p.tl p.lm = 0 := 
     by rw ←not_mem_support_iff; simp [tl]
+
+lemma mem_tl_support {p : mv_polynomial σ α} {a} : a ≠ p.lm → a ∈ p.support → a ∈ p.tl.support :=
+λ h₁ h₂, by simp [tl]; use [h₁, by simpa using h₂]
+
+
+lemma tl_apply_mem {p : mv_polynomial σ α} : ∀ {a}, a ∈ p.tl.support → p.tl a = p a :=
+λ a h, tl_apply p a (λ h', by simp [h'] at h; apply h (tl_apply_lm _))
 
 @[simp] lemma tl_of_monomial {a : σ →₀ ℕ} {b : α}: (monomial a b).tl = 0 :=
 begin
@@ -155,6 +166,8 @@ end
 
 lemma gt_lm_apply {p : mv_polynomial σ α} : ∀ {x}, x > p.lm → p x = 0 := 
 λ x, by rw ←not_mem_support_iff; apply gt_lm_not_mem
+
+lemma lm_gt_tl_lm {p : mv_polynomial σ α} (h : p.tl ≠ 0) : p.lm > p.tl.lm := lm_rel_gt _ _ (lm_mem_support h)
 
 lemma cons_lm_tl {p : mv_polynomial σ α} (hp : p ≠ 0) : list.cons p.lm p.tl.s_support = p.s_support := 
     by simp [tl_eq_s_tl, lm]; apply list.cons_head_tail; rwa ne_zero_of_s_ne_nil
@@ -415,6 +428,46 @@ end comm_ring
 
 section integral_domain
 variables [integral_domain α]
+
+lemma mul_mem_mul_support {p : mv_polynomial σ α} : 
+∀ a ∈ p.support, ∀ a' b', b' ≠ 0 → a' + a ∈ (monomial a' b' * p).support :=
+λ a ha a' b' hb', begin
+    simp [has_mul.mul, monomial, single_sum' a' hb'],
+    simp [finsupp.sum, single_apply],
+    conv in (ite _ _ _) {
+        congr,
+        rw [add_comm, add_right_cancel_iff], skip,
+        change b' * p x,
+    },
+    rw finset.sum_eq_single a,
+    {simp [not_or_distrib] at ha ⊢, use [hb', ha]},
+    {intros _ _ h, simp [h]},
+    {finish}
+end
+
+lemma mul_apply {p : mv_polynomial σ α} :
+∀ {a₁ a₂ b₁}, a₂ ∈ p.support → (monomial a₁ b₁ * p) (a₁ + a₂) = b₁ * p a₂ :=
+λ a₁ a₂ b₁ ha₂, begin
+    by_cases hb₁ : b₁ = 0,
+    {simp [coe_f, hb₁], simp [coe_f']},
+    {
+        conv {
+            to_lhs,
+            simp [coe_f, has_mul.mul, monomial, single_sum' a₁ hb₁], 
+            simp [coe_f', finsupp.sum_apply, single_apply],
+            simp [finsupp.sum],
+        },
+        rw finset.sum_eq_single a₂,
+        {simp, refl},
+        {intros b hb h, simp [h]},
+        {
+            simp_intros h,
+            change b₁ * (p a₂) = 0,
+            simp [h],
+        }
+    }
+end
+
 lemma lm_of_mul_m {p : mv_polynomial σ α} : p ≠ 0 → ∀ {a b}, b ≠ 0 → (p * (monomial a b)).lm = p.lm + a := begin
     apply induction p, finish,
     intros q ih hq a b hb,

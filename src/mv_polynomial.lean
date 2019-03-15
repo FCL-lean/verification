@@ -27,7 +27,9 @@ lemma eq_zero_apply (p : mv_polynomial σ α) : (∀ a, p a = 0) ↔ p = 0 := eq
 
 @[simp] lemma zero_monomial {a : σ →₀ ℕ} : ((monomial a 0) : mv_polynomial σ α) = 0 := by simp [monomial]; refl
 lemma monomial_eq_zero_iff {a : σ →₀ ℕ} {b : α} : monomial a b = 0 ↔ b = 0 := by simp [monomial]; apply single_eq_zero_iff
-lemma monomial_mul_monomial {a₁ a₂ : σ →₀ ℕ} {b₁ b₂ : α}:
+lemma monomial_add_monomial {a : σ →₀ ℕ} {b₁ b₂ : α} :
+    monomial a (b₁ + b₂) = monomial a b₁ + monomial a b₂ := by simp [monomial]
+lemma monomial_mul_monomial {a₁ a₂ : σ →₀ ℕ} {b₁ b₂ : α} :
   monomial a₁ b₁ * monomial a₂ b₂ = monomial (a₁ + a₂) (b₁ * b₂) := by simp [monomial]; apply single_mul_single
 
 lemma monomial_apply {a a' : σ →₀ ℕ} {b : α} : ((monomial a b) : mv_polynomial σ α) a' = if a = a' then b else 0 := rfl
@@ -46,6 +48,9 @@ lemma add_monomial_nez {p : mv_polynomial σ α} {a} (ha : a ∉ p.support) {b :
     rw ←eq_zero_apply (monomial a b + p) at h,
     simpa [monomial_apply, not_mem_support_iff.1 ha] using h a,
 end
+
+@[simp] lemma nez_of_mem_support {p : mv_polynomial σ α} {a} (ha : a ∈ p.support) : p ≠ 0 :=
+λ h', by finish
 
 @[elab_as_eliminator]
 theorem induction_f {C : (mv_polynomial σ α) → Prop} (p : mv_polynomial σ α)

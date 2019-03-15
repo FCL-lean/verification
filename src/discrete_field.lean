@@ -16,8 +16,9 @@ instance discrete_field_is_gcd_domain : gcd_domain α := {
         simp [ha, hb, has_mul.mul, units.mul],
         split,
         change (a * b)⁻¹ = a⁻¹ * b⁻¹, finish [mul_inv'],
-        change (a * b)⁻¹⁻¹ = b⁻¹⁻¹ * a⁻¹⁻¹, 
-        finish [division_ring.inv_inv (mul_ne_zero ha hb), division_ring.inv_inv ha, division_ring.inv_inv hb],
+        finish,
+        --change (a * b)⁻¹⁻¹ = b⁻¹⁻¹ * a⁻¹⁻¹, 
+        --finish [division_ring.inv_inv (mul_ne_zero ha hb), division_ring.inv_inv ha, division_ring.inv_inv hb],
     end,
     norm_unit_coe_units := λ u, begin 
         simp [units.ext_iff, units.val_coe], 
@@ -41,6 +42,13 @@ instance discrete_field_is_gcd_domain : gcd_domain α := {
     end,
     gcd_mul_lcm := λ a b, if h : a = 0 ∧ b = 0 then by simp [h] else begin 
         simp [h], by_cases h' : a = 0 ∨ b = 0; simp [h', units.val_coe],
+        {cases h'; simp [h']},
+        {
+            simp [not_or_distrib] at h', 
+            have h'' : a * b ≠ 0 := mul_ne_zero h'.left h'.right,
+            simp [normalize, h''],
+            change 1 = (a * b) * (a * b)⁻¹, simp [mul_inv_cancel h''],
+        }
     end,
     lcm_zero_left := λ a, by simp,
     lcm_zero_right := λ a, by simp,
