@@ -15,6 +15,9 @@ lemma rtc.trans' (h₁ : rtc r a b) (h₂ : rtc r b c) : rtc r a c := rtc.trans 
 
 lemma rtc.base_trans (h₁ : r a b) (h₂ : rtc r b c) : rtc r a c :=
 rtc.trans _ _ _ (rtc.base _ _ h₁) h₂
+
+lemma rtc.trans_base (h₁ : rtc r a b) (h₂ : r b c) : rtc r a c :=
+rtc.trans _ _ _ h₁ (rtc.base _ _ h₂)
 end
 
 end relation

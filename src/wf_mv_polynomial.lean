@@ -173,7 +173,7 @@ lemma nez_of_gt {p q : mv_polynomial σ α} (h : p < q) : q ≠ 0 :=
     exact not_lt_zero h,
 end
 
-lemma gt_zero_of_gt {p q : mv_polynomial σ α} (h : p < q) : 0 < q := lt.zero _ (nez_of_gt h)
+lemma gt_zero_of_gt {p q : mv_polynomial σ α} (h : p < q) : 0 < q := lt.zero (nez_of_gt h)
 
 instance : is_trans (mv_polynomial σ α) (<) :=
 ⟨λ p q r hpq, begin 
@@ -184,7 +184,7 @@ instance : is_trans (mv_polynomial σ α) (<) :=
     {
         cases hqr with _ _ _ _ hr hqr₁ hqr₂ hqr₃ _ _ hqr,
         {finish},
-        {exact lt.lm_eq hr (by rwa hpq₁) (by rwa hpq₂) (ih hqr₃)},
+        {exact lt.lm_eq hr (by rwa hpq₁) (by rwa hpq₂) (ih _ hqr₃)},
         {exact lt.lm_lt (lt_of_le_of_lt (le_of_eq hpq₁) hqr)}
     },
     {
@@ -192,6 +192,19 @@ instance : is_trans (mv_polynomial σ α) (<) :=
         {exact absurd hpq (finsupp.not_lt_zero _)},
         {exact lt.lm_lt (lt_of_lt_of_le hpq (le_of_eq hqr₁))},
         {exact lt.lm_lt (lt_trans hpq hqr)}
+    }
+end⟩
+
+instance : is_irrefl (mv_polynomial σ α) (<) :=
+⟨λ p, begin
+    apply induction p,
+    {exact not_lt_zero},
+    {
+        intros p ih hp,
+        cases hp with _ _ _ _ hp h₁ h₂ h₃ _ _ h,
+        {finish},
+        {exact ih h₃},
+        {exact (lt_irrefl _) h}
     }
 end⟩
 

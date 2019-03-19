@@ -228,19 +228,27 @@ def s_poly (p q : mv_polynomial σ α) : mv_polynomial σ α :=
     let Xc := lcm (lc p) (lc q) in
     monomial (X - p.lm) (Xc / (lc p)) * p - monomial (X - q.lm) (Xc / (lc q)) * q
 
-/-
-def s_polys (S : list (mv_polynomial σ α)) : list (mv_polynomial σ α) :=
-do
-    a ← S, 
-    b ← S, 
-        if a = b 
-        then []
-        else [s_poly a b]
--/
-def s_polyL : mv_polynomial σ α → list (mv_polynomial σ α) → list (mv_polynomial σ α) → list (mv_polynomial σ α)
-| p l₁ [] := l₁
-| p l₁ (q :: l₂) := s_poly p q :: s_polyL p l₁ l₂
-        
+def s_polyL : mv_polynomial σ α → list (mv_polynomial σ α) → list (mv_polynomial σ α)
+| p [] := []
+| p (q :: l₁) := s_poly p q :: s_polyL p l₁
+
+def s_polys : list (mv_polynomial σ α) → list (mv_polynomial σ α)
+| [] := []
+| (a :: l) := s_polyL a l ++ (s_polys l)
+
+lemma mem_s_polyL {p q : mv_polynomial σ α} : ∀ {l : list (mv_polynomial σ α)},
+q ∈ l → s_poly p q ∈ s_polyL p l
+| [] := by simp
+| (hd :: tl) := begin
+    simp_intros hq [s_polyL],
+    cases hq,
+    {simp [hq]},
+    {simp [mem_s_polyL hq]}
+end
+
+lemma s_poly_comm {p q : mv_polynomial σ α} : s_poly p q = -(s_poly q p) :=
+by simp [s_poly, m_lcm_comm, lcm_comm]
+
 def nfL (S : list (mv_polynomial σ α)) : list (mv_polynomial σ α) := 
     list.filter (λ a, a ≠ 0) S
 
@@ -263,7 +271,6 @@ begin
     refine ⟨1, ⟨0, ⟨by simp, by simp⟩⟩⟩, 
 end
 
-set_option trace.simplify.rewrite true
 def buchberger : (list (mv_polynomial σ α) × list (mv_polynomial σ α)) → list (mv_polynomial σ α)
 | ⟨l₁, []⟩ := l₁
 | ⟨l₁, (p :: l₂)⟩ :=
@@ -275,9 +282,9 @@ def buchberger : (list (mv_polynomial σ α) × list (mv_polynomial σ α)) → 
             by right; rw [list.length_cons]; apply nat.lt_succ_self,
         buchberger ⟨l₁, l₂⟩
     else 
-        have lex ⟨monomial_ideal (list.cons a l₁), (s_polyL a l₂ l₁).length⟩ ⟨monomial_ideal l₁, (list.cons p l₂).length⟩ := 
+        have lex ⟨monomial_ideal (list.cons a l₁), (s_polyL a l₁ ++ l₂).length⟩ ⟨monomial_ideal l₁, (list.cons p l₂).length⟩ := 
             by left; exact ideal_increase l₁ p h,
-        buchberger ⟨a :: l₁, s_polyL a l₂ l₁⟩
+        buchberger ⟨a :: l₁, s_polyL a l₁ ++ l₂⟩
 using_well_founded 
 { rel_tac := λ _ _, 
 `[exact ⟨_, inv_image.wf (λ ⟨l₁, l₂⟩, prod.mk (monomial_ideal l₁) l₂.length) (prod.lex_wf ideal_wf nat.lt_wf)⟩ ] 
