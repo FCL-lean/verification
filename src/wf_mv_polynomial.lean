@@ -8,20 +8,6 @@ variables {σ : Type*} {α : Type*} [decidable_eq σ] [decidable_eq α] [fintype
 section lt
 variables [comm_ring α]
 
-lemma tl_eqz_of_lm_eqz {p : mv_polynomial σ α} (h : p.lm = 0) : p.tl = 0 :=
-begin
-    by_contradiction,
-    apply (not_lt_of_le (finsupp.zero_le p.tl.lm)),
-    simpa [h] using lm_rel_gt _ _ (lm_mem_support a),
-end
-
-lemma gt_tl_lm_of_lm_nez {p : mv_polynomial σ α} (h : p.lm ≠ 0) : p.lm > p.tl.lm :=
-begin
-    by_cases htl : p.tl = 0,
-    {simp [htl], apply finsupp.zero_lt_iff_ne_zero.2 h},
-    {apply lm_rel_gt _ _ (lm_mem_support htl)},
-end
-
 inductive lt : (mv_polynomial σ α) → (mv_polynomial σ α) → Prop
 | zero : ∀ {p : mv_polynomial σ α}, p ≠ 0 → lt 0 p
 | lm_eq : ∀ {p q : mv_polynomial σ α}, q ≠ 0 → p.lm = q.lm → p.lc = q.lc → lt p.tl q.tl → lt p q
@@ -73,12 +59,11 @@ lemma acc_C : ∀ a, acc ((<) : mv_polynomial σ α → mv_polynomial σ α → 
     }
 end
 
-lemma acc_monomial_add (p : mv_polynomial σ α)
-(h : acc ((<) : mv_polynomial σ α → mv_polynomial σ α → Prop) p)
-: ∀ a b, a > p.lm → b ≠ 0 → acc (<) (monomial a b) → acc (<) (monomial a b + p) :=
-begin
-    apply acc.rec_on h,
-    intros _ ih₁ ih₂ a b ha hb h,
+lemma acc_monomial_add {a b} (h : acc (<) (monomial a b))
+: ∀ p : mv_polynomial σ α, a > p.lm → b ≠ 0 → acc (<) (monomial a b + p) :=
+λ p ha hb, begin
+    have : acc (<) p := acc.inv h (lt.lm_lt (by simpa [hb] using ha)),
+    induction this with x ih₁ ih₂,
     by_cases hx : x = 0,
     {simpa [hx] using h},
     {
@@ -92,7 +77,7 @@ begin
             conv at hy₃ {change y.lc = (monomial a b + x).lc, rw lc_of_add_gt_lm ha hb},
             conv at hy₄ {change lt y.tl (monomial a b + x).tl, rw tl_of_add_gt_lm ha hb},
             rw [←lm_tl_eq y, hy₂, hy₃],
-            apply ih₂ _ hy₄ _ _ (lt_of_le_of_lt (lm_le_of_lt hy₄) ha) hb h,
+            apply ih₂ _ hy₄ (lt_of_le_of_lt (lm_le_of_lt hy₄) ha),
         },
         {
             conv at hy {
@@ -123,15 +108,8 @@ lemma acc_monomial : ∀ a b, acc ((<) : mv_polynomial σ α → mv_polynomial �
             {rw [eqC_of_lm_eqz.1 hy'], apply acc_C},
             {
                 conv at hy {change y.lm < (monomial x b).lm, simp [hb]},
-                have h := ih y.lm hy y.lc,
                 rw ←lm_tl_eq y,
-                apply acc_monomial_add _ _ _ _ (gt_tl_lm_of_lm_nez hy') (lc_nez_of_lm_nez hy') h,
-                {
-                    apply acc.inv h,
-                    apply lt.lm_lt, 
-                    simp [lc_nez_of_lm_nez hy'],
-                    apply gt_tl_lm_of_lm_nez hy',
-                },
+                apply acc_monomial_add (ih y.lm hy y.lc) _ (gt_tl_lm_of_lm_nez hy') (lc_nez_of_lm_nez hy'),
             }
         }
     }
@@ -143,14 +121,7 @@ well_founded.intro (λ p, begin
     {rw eqC_of_lm_eqz.1 hp, apply acc_C},
     {
         rw ←lm_tl_eq p,
-        have h := acc_monomial p.lm p.lc,
-        apply acc_monomial_add _ _ _ _ (gt_tl_lm_of_lm_nez hp) (lc_nez_of_lm_nez hp) h,
-        {
-            apply acc.inv h,
-            apply lt.lm_lt, 
-            simp [lc_nez_of_lm_nez hp],
-            apply gt_tl_lm_of_lm_nez hp,
-        }
+        apply acc_monomial_add (acc_monomial p.lm p.lc) _ (gt_tl_lm_of_lm_nez hp) (lc_nez_of_lm_nez hp),
     }
 end)
 

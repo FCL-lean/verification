@@ -7,7 +7,7 @@ variables {σ : Type*} {α : Type*} [decidable_eq σ] [decidable_eq α]
 section discrete_field
 variables [discrete_field α]
 
-def HBT : is_noetherian (mv_polynomial σ α) (mv_polynomial σ α) := sorry
+theorem HBT : is_noetherian (mv_polynomial σ α) (mv_polynomial σ α) := sorry
 
 lemma ideal_wf : well_founded ((>) : ideal (mv_polynomial σ α) → ideal (mv_polynomial σ α) → Prop) := 
     by rw ←is_noetherian_iff_well_founded; exact HBT

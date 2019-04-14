@@ -79,10 +79,7 @@ end,
 f_descend_seq₂ hx a b⟩
 
 lemma not_lt_zero (x : α →₀ β) : ¬ x < 0 := 
-λ hx, begin
-    letI h := _inst_4.wf,
-    rw order_embedding.well_founded_iff_no_descending_seq at h,
-    apply h,
+λ hx, order_embedding.well_founded_iff_no_descending_seq.1 _inst_4.wf begin
     constructor, apply order_embedding.mk ⟨f x, f_inj (ne_of_lt hx)⟩,
     simp_intros, 
     apply f_descend_seq hx a b,

@@ -42,19 +42,6 @@ lemma zero_irreducible : irreducible S 0 := by simp [irreducible]
 lemma zero_not_reducible : ¬ reducible S 0 := by rw ←irred_not_red; exact zero_irreducible
 lemma zero_not_reducible' : ∀ {r}, ¬ reducible' S 0 r := by simp [reducible']
 
-lemma red_one_step_reducible {p r : mv_polynomial σ α} (h : p →[S] r) : reducible S p :=
-begin
-    induction h with p r hp hpr₁ hpr₂ hpr₃ ih p r hp h,
-    {
-        rcases ih with ⟨q, hq₁, hq₂, pₜ, hp, hpq⟩,
-        refine ⟨q, hq₁, hq₂, pₜ, tl_support_subset hp, hpq⟩,
-    },
-    {
-        rcases h with ⟨q, hq₁, hq₂, hpq, _⟩,
-        use [q, hq₁, hq₂, p.lm, lm_mem_support hp, hpq],
-    }
-end
-
 lemma red_one_step_reducible' {p r : mv_polynomial σ α} : (p →[S] r) ↔ reducible' S p r :=
 ⟨λ h, begin
     induction h with p r hp hpr₁ hpr₂ hpr₃ ih p r hp h,
@@ -84,7 +71,7 @@ end, begin
             have h₁ : p pₜ / q.lc ≠ 0 := div_ne_zero (by simpa using hpₜ) (lc_nez_iff.1 hq₂),
             have hp_lm : p.lm > (q * monomial (pₜ - lm q) (p pₜ / lc q)).lm,
                 simp [lm_of_mul_m hq₂ h₁, finsupp.add_sub_cancel' hqpₜ],
-                apply lt_of_le_of_ne (lm_rel' _ hpₜ) hpₜp,
+                apply lt_of_le_of_ne (lm_rel' hpₜ) hpₜp,
             have hr₁ : p.lm = r.lm := by rw [h, lm_of_sub_left hp_lm],
             have hr₂ : p.lc = r.lc := by rw [h, lc_of_sub_left hp_lm],
             apply red_one_step.cons (nez_of_mem_support hpₜ) _ hr₁ hr₂,
@@ -97,25 +84,20 @@ end, begin
     }
 end⟩
 
-lemma zero_red {r : mv_polynomial σ α} : (0 : mv_polynomial σ α) ↛[s] r  :=
-λ h, zero_not_reducible (red_one_step_reducible h)
-
-lemma zero_red_plus {r : mv_polynomial σ α} (h : (0 : mv_polynomial σ α) →[S]+ r) : r = 0 :=
+lemma reducible'_reducible {p r : mv_polynomial σ α} (h : reducible' S p r) : reducible S p :=
 begin
-    generalize hp : (0 : mv_polynomial σ α) = p, rw hp at h,
-    revert hp,
-    induction h with _ _ _ h p q r hpq hqr ih₁ ih₂,
-    {simp},
-    {
-        intro hp, rw ←hp at h,
-        apply absurd h (zero_red _),
-    },
-    {
-        intro hp,
-        rw [ih₁ hp] at ih₂, 
-        exact ih₂ hp,
-    }
+    rcases h with ⟨q, hq₁, hq₂, pₜ, hpₜ, hqpₜ, _⟩,
+    refine ⟨q, hq₁, hq₂, pₜ, hpₜ, hqpₜ⟩,
 end
+
+lemma reducible_reducible' {p : mv_polynomial σ α} (h : reducible S p) : ∃ r, reducible' S p r :=
+begin
+    rcases h with ⟨q, hq₁, hq₂, pₜ, hpₜ, hqpₜ⟩,
+    refine ⟨p - q * monomial (pₜ - q.lm) (p pₜ / q.lc), q, hq₁, hq₂, pₜ, hpₜ, hqpₜ, rfl⟩,
+end
+
+lemma zero_red {r : mv_polynomial σ α} : (0 : mv_polynomial σ α) ↛[s] r  :=
+λ h, zero_not_reducible (reducible'_reducible (by rwa red_one_step_reducible' at h))
 
 lemma red_mem_S {q : mv_polynomial σ α} (hq₁ : q ∈ S) (hq₂ : q ≠ 0) : q →[S] 0 :=
 begin
@@ -141,7 +123,7 @@ begin
             apply rtc.base',
             rw red_one_step_reducible' at h ⊢,
             rcases h with ⟨q, hq₁, hq₂, pₜ, hp, hpq, h⟩,
-            refine ⟨q, hq₁, hq₂, a + pₜ, mul_mem_mul_support _ hp a b hb, dvd_of_dvd_of_add' hpq _, _⟩,
+            refine ⟨q, hq₁, hq₂, a + pₜ, mul_mem_mul_support hb _ hp, dvd_of_dvd_of_add' hpq _, _⟩,
             rw [mul_apply hp, finsupp.add_sub_assoc' hpq, mul_div_assoc, 
             ←monomial_mul_monomial, mul_left_comm, ←mul_sub, h],
         },
@@ -149,11 +131,11 @@ begin
     }
 end
 
-lemma red_plus_zero {p : mv_polynomial σ α} (h : p →[S]+ 0) : 
+lemma red_plus_zero_of_mul {p : mv_polynomial σ α} (h : p →[S]+ 0) : 
     ∀ a b, (monomial a b * p) →[S]+ 0 := by simpa using red_plus_mul h
 
-lemma red_star_zero {p : mv_polynomial σ α} (h : p →[S]* 0) : 
-    ∀ a b, (monomial a b * p) →[S]* 0 := λ a b, ⟨red_plus_zero h.left a b, zero_irreducible⟩
+lemma red_star_zero_of_mul {p : mv_polynomial σ α} (h : p →[S]* 0) : 
+    ∀ a b, (monomial a b * p) →[S]* 0 := λ a b, ⟨red_plus_zero_of_mul h.left a b, zero_irreducible⟩
 
 lemma lt_of_red_one_step {p r : mv_polynomial σ α} (h : p →[S] r) : r < p :=
 begin
@@ -165,13 +147,7 @@ begin
         by_cases hp' : p.lm = 0,
         {
             simp [hp'] at h₃,
-            have hq : q 0 ≠ 0,
-                rw [←h₃, ←mem_support_iff],
-                exact lm_mem_support h₂,
-            conv {
-                to_lhs,
-                rw [eqC_of_lm_eqz.1 hp', eqC_of_lm_eqz.1 h₃, reduction_C_C hq],
-            },
+            rw reduction_of_lm_eqz hp' h₃ h₂,
             apply lt.zero hp,
         },
         {
@@ -217,43 +193,11 @@ begin
     {exact ge_trans ih₁ ih₂},
 end
 
-lemma red_star_lm_ge {p r : mv_polynomial σ α} (h : p →[S]* r) : p.lm ≥ r.lm :=
-begin
-    cases h with h _,
-    exact red_plus_lm_ge h,
-end
-
-lemma reducible_red_one_step {p : mv_polynomial σ α} : reducible S p → ∃ r, p →[S] r :=
-begin
-    apply induction p,
-    {intro h, apply absurd h zero_not_reducible},
-    {
-        intros p ih hp,
-        rcases hp with ⟨q, ⟨hq₁,⟨hq₂, ⟨pₜ, ⟨hp, hpq⟩⟩⟩⟩⟩,
-        by_cases h : pₜ = p.lm,
-        {use [reduction p q, red_one_step.red_lm (nez_of_mem_support hp) ⟨q, hq₁, hq₂, by rwa ←h, rfl⟩]},
-        {
-            have hm_tl : pₜ ∈ p.tl.support := mem_tl_support h hp,
-            have h_tl : reducible S p.tl,
-                use [q, hq₁, hq₂, pₜ, hm_tl, hpq],
-            rcases ih h_tl with ⟨r, h_tl'⟩,    
-            refine ⟨monomial p.lm p.lc + r, _⟩,
-            have hp' := lc_nez_iff.1 (nez_of_mem_support hp),
-            have hr : p.lm > r.lm,
-                apply lt_of_le_of_lt (red_one_step_lm_ge h_tl') (lm_gt_tl_lm (nez_of_mem_support hm_tl)),
-            apply red_one_step.cons (nez_of_mem_support hp),
-            {rwa tl_of_add_gt_lm hr hp'},
-            {rw lm_of_add_gt_lm hr hp'},
-            {rw lc_of_add_gt_lm hr hp'},
-        }
-    } 
-end
-
 lemma red_plus_irreducible {p q : mv_polynomial σ α} (hp : irreducible S p) (h : p →[S]+ q) : q = p :=
 begin
     induction h with _ p q h p q r hpq hpr ih₁ ih₂, 
     {refl},
-    {apply absurd (red_one_step_reducible h) (by simpa using hp)},
+    {apply absurd (reducible'_reducible (by rwa red_one_step_reducible' at h)) (by simpa using hp)},
     {simpa [ih₁ hp, hp] using ih₂},
 end
 
@@ -270,10 +214,8 @@ begin
     {
         rcases h with ⟨q, h₁, h₂, h₃, h₄⟩,
         simp [hp] at h₃, 
-        have hq : q 0 ≠ 0,
-            rw [←h₃, ←mem_support_iff],
-            exact lm_mem_support h₂,
-        rw [←h₄, eqC_of_lm_eqz.1 hp, eqC_of_lm_eqz.1 h₃, reduction_C_C hq],
+        rw ←h₄,
+        exact reduction_of_lm_eqz hp h₃ h₂,
     }
 end
 
@@ -349,8 +291,8 @@ lemma exists_red_star (p : mv_polynomial σ α) : ∃ r, p →[s]* r :=
     by_cases hp : irreducible s p,
     {use [p, rtc.refl', hp]},
     {
-        simp at hp,
-        cases reducible_red_one_step hp with q hq,
+        cases reducible_reducible' (by rwa ←red_not_irred) with q hq,
+        rw ←red_one_step_reducible' at hq,
         rcases ih q (lt_of_red_one_step hq) with ⟨r, hr₁, hr₂⟩,
         refine ⟨r, rtc.base_trans hq hr₁, hr₂⟩,
     }
@@ -502,20 +444,6 @@ lemma red_cons {p r : mv_polynomial σ α} (h : p →[S] r) :
     {rw [lc_of_add_gt_lm ha hb, lc_of_add_gt_lm har hb]},
 end
 
-lemma red_plus_cons' {p r : mv_polynomial σ α} (h : p →[S]+ r) : 
-∀ {a} {b : α}, a > p.lm → b ≠ 0
-→ ((monomial a b + p) →[S]+ (monomial a b + r)) :=
-begin
-    induction h with _ p r h p q r hpq hqr ih₁ ih₂;
-    intros a b ha hb,
-    {exact rtc.refl'},
-    {
-        apply rtc.base,
-        apply red_cons h, assumption',
-    },
-    {exact rtc.trans' (ih₁ ha hb) (ih₂ (lt_of_le_of_lt (red_plus_lm_ge hpq) ha) hb)}
-end
-
 lemma red_of_tl_red {p r : mv_polynomial σ α} (h : p.tl →[S] r) :
 p →[S] monomial p.lm p.lc + r :=
 begin
@@ -536,10 +464,22 @@ begin
     by_cases hp : p.lm = 0,
     {
         rw [tl_eqz_of_lm_eqz hp] at h ⊢,
-        simp [zero_red_plus h],
+        rw red_plus_irreducible zero_irreducible h,
         exact rtc.refl',
     },
-    {exact red_plus_cons' h (gt_tl_lm_of_lm_nez hp) (lc_nez_of_lm_nez hp)}
+    {
+        clear h_right,
+        have := gt_tl_lm_of_lm_nez hp,
+        revert this,
+        induction h with _ p' r' h p' q' r' hpq hqr ih₁ ih₂;
+        intro hp',
+        {exact rtc.refl'},
+        {
+            apply rtc.base',
+            apply red_cons h hp' (lc_nez_of_lm_nez hp),
+        },
+        {exact rtc.trans' (ih₁ hp') (ih₂ (lt_of_le_of_lt (red_plus_lm_ge hpq) hp'))}
+    }
 end
 
 lemma lm_eq_lt_of_lt_tl {p q : mv_polynomial σ α} (h : q < p.tl) :  monomial p.lm p.lc + q < p :=
@@ -654,7 +594,7 @@ well_founded.recursion lt_wf p begin
                     div_eq_mul_one_div p.lc, monomial_mul_monomial.symm,
                     mul_left_comm _ (monomial m p.lc)],
                     rw [neg_mul_eq_mul_neg, ←mul_add, ←h_s],
-                    refine ⟨red_plus_zero (h hq₂₁ hq₁₁).left _ _, zero_not_reducible⟩,
+                    refine ⟨red_plus_zero_of_mul (h hq₂₁ hq₁₁).left _ _, zero_not_reducible⟩,
                 },
                 rcases sub_red_star_zero hq with ⟨u, hq₁u, hq₂u⟩,
                 simp [ih _ hpq₁_lt hq₁r hq₁u, ih _ hpq₂_lt hq₂t hq₂u],
@@ -687,19 +627,15 @@ inductive buchstep : ((list (mv_polynomial σ α) × list (mv_polynomial σ α))
     buchstep ⟨⟨l₁, p :: l₂⟩, l₃⟩ 
         ⟨⟨(red_list p l₁) :: l₁, s_polyL (red_list p l₁) l₁ ++ l₂⟩, s_polyL (red_list p l₁) l₁ ++ l₃⟩
 
-notation `‘` l₁ `,` l₂ `,` l₃ `’→‘` l₁' `,` l₂' `,` l₃' `’` := buchstep ⟨⟨l₁, l₂⟩, l₃⟩ ⟨⟨l₁', l₂'⟩, l₃'⟩
-
 def buchstep_plus : ((list (mv_polynomial σ α) × list (mv_polynomial σ α)) × list (mv_polynomial σ α)) 
 → ((list (mv_polynomial σ α) × list (mv_polynomial σ α)) × list (mv_polynomial σ α)) → Prop := rtc buchstep
 
-notation `‘` l₁ `,` l₂ `,` l₃ `’→+‘` l₁' `,` l₂' `,` l₃' `’` := buchstep_plus ⟨⟨l₁, l₂⟩, l₃⟩ ⟨⟨l₁', l₂'⟩, l₃'⟩
-
 lemma buchstep.zero' {p : mv_polynomial σ α} {l₁ l₂ l₃} (h : red_list p l₁ = 0) :
-‘l₁, p :: l₂, l₃’→‘l₁, l₂, l₃’ := buchstep.zero l₁ l₂ l₃ h
+buchstep ⟨⟨l₁, p :: l₂⟩, l₃⟩ ⟨⟨l₁, l₂⟩, l₃⟩ := buchstep.zero l₁ l₂ l₃ h
 
 lemma buchstep.non_zero' {p : mv_polynomial σ α} {l₁ l₂ l₃} (h : red_list p l₁ ≠ 0) :
-‘l₁, p :: l₂, l₃’→‘(red_list p l₁) :: l₁, 
-    s_polyL (red_list p l₁) l₁ ++ l₂, s_polyL (red_list p l₁) l₁ ++ l₃’ := buchstep.non_zero l₁ l₂ l₃ h
+buchstep ⟨⟨l₁, p :: l₂⟩, l₃⟩ ⟨⟨(red_list p l₁) :: l₁, 
+    s_polyL (red_list p l₁) l₁ ++ l₂⟩, s_polyL (red_list p l₁) l₁ ++ l₃⟩ := buchstep.non_zero l₁ l₂ l₃ h
 
 lemma reduction_red_one_step : ∀ {p q : mv_polynomial σ α} {l : list (mv_polynomial σ α)},
 p ≠ 0 → q ∈ l → q ≠ 0 → q.lm ∣ p.lm → (p →[l.to_finset] reduction p q) :=
@@ -739,7 +675,7 @@ end
 lemma red_list_aux_red_plus (p : mv_polynomial σ α) (l : list (mv_polynomial σ α)) :
 (p →[l.to_finset]+ red_list_aux p l) := red_list_aux_red_plus_aux p (by simp)
 
-lemma exists_red_of_red_list_aux_neq : ∀ (p : mv_polynomial σ α) (l₁ l₂ : list (mv_polynomial σ α)),
+lemma red_zero_of_red_list_aux_neq : ∀ (p : mv_polynomial σ α) (l₁ l₂ : list (mv_polynomial σ α)),
 l₂ ⊆ l₁ → red_list_aux p l₂ ≠ p → p.lm = 0 → (p →[l₁.to_finset] 0) 
 | p l₁ [] := by simp [red_list_aux]
 | p l₁ (q :: l₂) := λ h hp₂ hp₃, begin
@@ -753,25 +689,25 @@ l₂ ⊆ l₁ → red_list_aux p l₂ ≠ p → p.lm = 0 → (p →[l₁.to_fins
         by_cases hq : q = 0,
         {
             simp [hq, red_list_aux, reduction] at hp₂,
-            apply exists_red_of_red_list_aux_neq p l₁ l₂ h.right hp₂ hp₃,
+            apply red_zero_of_red_list_aux_neq p l₁ l₂ h.right hp₂ hp₃,
         },
         {
             by_cases hq' : q.lm = 0,
             {
                 rw red_one_step_reducible',
                 refine ⟨q, by simp [h.left], hq, p.lm, lm_mem_support hp₁, by simp [hp₃, hq'], _⟩,
+                conv in (p.lm - q.lm) {simp [hp₃, hq']},
                 conv {
                     to_rhs, 
                     congr, rw [eqC_of_lm_eqz.1 hp₃], skip,
                     congr, rw [eqC_of_lm_eqz.1 hq'],
                 },
-                have : q 0 ≠ 0,
-                    rw ←hq', simpa [mv_polynomial.lc] using lc_nez_iff.1 hq,
-                simp [C, monomial_mul_monomial, hp₃, hq', mv_polynomial.lc, mul_div_cancel' _ this],
+                rw [C_mul_monomial, mul_div_cancel' _ (lc_nez_iff.1 hq), C, mv_polynomial.lc],
+                simp,
             },
             {
                 simp [red_list_aux, hp₃, hq'] at hp₂,
-                apply exists_red_of_red_list_aux_neq p l₁ l₂ h.right hp₂ hp₃,
+                apply red_zero_of_red_list_aux_neq p l₁ l₂ h.right hp₂ hp₃,
             }
         }
     }
@@ -785,7 +721,7 @@ lemma red_list_red_plus : ∀ (p : mv_polynomial σ α) (l : list (mv_polynomial
     {exact rtc.refl'},
     {
         by_cases hp₂ : p.lm = 0; simp [hp₂],
-        {apply rtc.base' (exists_red_of_red_list_aux_neq p l l (by simp) hp₁ hp₂)},
+        {apply rtc.base' (red_zero_of_red_list_aux_neq p l l (by simp) hp₁ hp₂)},
         {
             let : (red_list_aux p l).lm < p.lm, from red_list_aux_lm_lt' l p hp₂ hp₁,
             apply rtc.trans' (red_list_aux_red_plus p l)
@@ -798,7 +734,7 @@ using_well_founded
 , dec_tac := tactic.assumption }
 
 lemma buchberger_buchplus : ∀ L : list (mv_polynomial σ α) × list (mv_polynomial σ α),
-‘ L.1, L.2, s_polys L.1’→+‘buchberger ⟨L.1, L.2⟩, [], s_polys (buchberger ⟨L.1, L.2⟩)’
+buchstep_plus ⟨⟨L.1, L.2⟩, s_polys L.1⟩ ⟨⟨buchberger ⟨L.1, L.2⟩, []⟩, s_polys (buchberger ⟨L.1, L.2⟩)⟩
 | ⟨l₁, []⟩ := by unfold buchberger; simp; apply rtc.refl'
 | ⟨l₁, (p :: l₂)⟩ := 
 let lex := prod.lex ((>) : ideal (mv_polynomial σ α) → ideal (mv_polynomial σ α) → Prop) nat.lt in
@@ -881,7 +817,7 @@ lemma s_poly_mem_s_polys : ∀ (l₁ l₂ : list (mv_polynomial σ α)),
         rw s_poly_comm,
         have H : (monomial 0 1 : mv_polynomial σ α) = C 1 := by simp [C],
         simpa [H] using 
-            red_star_zero (h (s_poly q p) (by simp [s_polys, hq, mem_s_polyL hp])) 0 (-1),
+            red_star_zero_of_mul (h (s_poly q p) (by simp [s_polys, hq, mem_s_polyL hp])) 0 (-1),
     },
     {
         apply s_poly_mem_s_polys tl _  
