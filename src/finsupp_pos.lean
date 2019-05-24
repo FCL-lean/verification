@@ -85,7 +85,7 @@ lemma not_lt_zero (x : α →₀ β) : ¬ x < 0 :=
     apply f_descend_seq hx a b,
 end 
 
-lemma zero_le (x : α →₀ β) : 0 ≤ x := le_of_not_lt (not_lt_zero x)
+theorem zero_le (x : α →₀ β) : 0 ≤ x := le_of_not_lt (not_lt_zero x)
 
 lemma le_zero_iff (x : α →₀ β) : x ≤ 0 ↔ x = 0 := 
 ⟨λ ha, begin

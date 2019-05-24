@@ -41,6 +41,7 @@ lemma sorted_nodup_ext [is_antisymm _ r] :
     },
 end
 
+/-
 lemma sorted_filter (l : list α) (h : l.sorted r) (p : α → Prop) [decidable_pred p] : 
 (l.filter p).sorted r := begin 
     induction l, simp,
@@ -73,7 +74,7 @@ begin
     rw [erase_dup_cons_of_mem' hed], exact l_ih h.right,
     rw [erase_dup_cons_of_not_mem' hed], simp, exact ⟨h.left, l_ih h.right⟩,
 end
-
+-/
 end sorted
 
 end list

@@ -43,7 +43,7 @@ lemma m_lcm_apply_eq_left {a b : σ →₀ ℕ} {x} (h : b x ≤ a x)
 lemma m_lcm_apply_eq_right {a b : σ →₀ ℕ} {x} (h : a x ≤ b x) 
 : (m_lcm a b) x = b x := by rw [m_lcm]; simp [max_eq_right h]
 
-lemma m_lcm_comm (a b : σ →₀ ℕ) : m_lcm a b = m_lcm b a :=
+theorem m_lcm_comm (a b : σ →₀ ℕ) : m_lcm a b = m_lcm b a :=
 begin
     ext x,
     by_cases a x ≤ b x,
@@ -60,9 +60,9 @@ instance decidable_has_div [fintype σ] (a b : σ →₀ ℕ) : decidable (a ∣
 @[simp] lemma zero_dvd {a : σ →₀ ℕ} : 0 ∣ a := 
     by simp [has_dvd.dvd, dvd]
 
-@[simp] lemma dvd_self {a : σ →₀ ℕ} : a ∣ a := λ x, le_refl _
+@[simp] theorem dvd_refl {a : σ →₀ ℕ} : a ∣ a := λ x, le_refl _
 
-@[simp] lemma dvd_add_right {a b : σ →₀ ℕ} : a ∣ a + b :=
+@[simp] theorem dvd_add_right {a b : σ →₀ ℕ} : a ∣ a + b :=
 λ x, by simp
 
 lemma dvd_of_add {a b c : σ →₀ ℕ} (h : a = b + c) : b ∣ a := 
