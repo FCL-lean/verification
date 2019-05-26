@@ -250,6 +250,7 @@ lemma mem_mul_support {a a': σ →₀ ℕ} {b': α} (hb' : b' ≠ 0) (c : mv_po
     apply dvd_of_add (by simpa [monomial, single, h_mul_nez, finset.subset_iff] using h),
 end
 
+set_option class.instance_max_depth 50
 theorem monomial_mem_ideal {a : σ →₀ ℕ} {b : α} (hb : b ≠ 0) : ∀ l : list (mv_polynomial σ α), 
     monomial a b ∈ monomial_ideal l → ∃ (p  : mv_polynomial σ α) (hp : p ∈ l ∧ p ≠ 0), p.LM ∣ a
 | [] := by simpa [monomial_ideal, ideal.span, monomial_eq_zero_iff] using hb

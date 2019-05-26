@@ -1,4 +1,4 @@
-import order_mv_polynomial discrete_field
+import order_mv_polynomial discrete_field noetherian
 
 open mv_polynomial
 open finsupp
@@ -245,9 +245,10 @@ end
 lemma s_poly_comm {p q : mv_polynomial σ α} : s_poly p q = -(s_poly q p) :=
 by simp [s_poly, m_lcm_comm, lcm_comm]
 
-theorem red_list_not_mem_span : ∀ (l : list (mv_polynomial σ α)) (p : mv_polynomial σ α) (h : red_list p l ≠ 0),
+set_option class.instance_max_depth 50
+theorem red_list_not_mem_span (l : list (mv_polynomial σ α)) (p : mv_polynomial σ α) (h : red_list p l ≠ 0) :
     monomial (red_list p l).LM (red_list p l).LC ∉ monomial_ideal l :=
-λ l p h h_mem, begin
+λ h_mem, begin
     have h_nd := red_list_not_div p l h,
     rcases monomial_mem_ideal _ l h_mem with ⟨q, ⟨hq₁, hq₂⟩, hq₃⟩, 
     apply h_nd; assumption, rwa ←LC_nez_iff,

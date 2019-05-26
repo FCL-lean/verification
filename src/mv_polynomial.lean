@@ -1,18 +1,17 @@
-import linear_algebra.multivariate_polynomial ring_theory.noetherian finsupp finset
+import data.mv_polynomial ring_theory.noetherian finsupp finset
 
 open finsupp
 namespace mv_polynomial
 variables {σ : Type*} {α : Type*} [decidable_eq σ] [decidable_eq α] 
 
-section discrete_field
-variables [discrete_field α]
+/-section discrete_field
+variables [discrete_field α] 
 
 theorem HBT : is_noetherian (mv_polynomial σ α) (mv_polynomial σ α) := sorry
 
-lemma ideal_wf : well_founded ((>) : ideal (mv_polynomial σ α) → ideal (mv_polynomial σ α) → Prop) := 
-    by rw ←is_noetherian_iff_well_founded; exact HBT
+lemma ideal_wf : well_founded ((>) : ideal (mv_polynomial σ α) → ideal (mv_polynomial σ α) → Prop) := is_noetherian_iff_well_founded.1 HBT
 
-end discrete_field
+end discrete_field-/
 
 section basic
 variables [comm_semiring α]

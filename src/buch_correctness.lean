@@ -733,6 +733,7 @@ using_well_founded
 { rel_tac := λ _ _, `[exact ⟨_, inv_image.wf (λ a, a.1.LM) _inst_6.wf⟩] 
 , dec_tac := tactic.assumption }
 
+set_option class.instance_max_depth 50
 lemma buchberger_buchplus : ∀ L : list (mv_polynomial σ α) × list (mv_polynomial σ α),
 buchstep_plus ⟨⟨L.1, L.2⟩, s_polys L.1⟩ ⟨⟨buchberger ⟨L.1, L.2⟩, []⟩, s_polys (buchberger ⟨L.1, L.2⟩)⟩
 | ⟨l₁, []⟩ := by unfold buchberger; simp; apply rtc.refl'

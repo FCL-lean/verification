@@ -36,10 +36,7 @@ instance discrete_field_is_gcd_domain : gcd_domain α := {
             simp [h], apply dvd.intro a⁻¹, apply mul_inv_cancel, intro ha, rw [ha, zero_dvd_iff] at hac hab,
             apply absurd (and.intro hac hab) h,
         end,
-    norm_unit_gcd := λ a b, if h : a = 0 ∧ b = 0 then by simp [h] else begin 
-        simp [h, units.ext_iff, units.val_coe], 
-        unfold has_one.one, simp, apply one_inv_eq,
-    end,
+    normalize_gcd := λ a b, if h : a = 0 ∧ b = 0 then by simp [h] else by simp [h, units.ext_iff, units.val_coe], 
     gcd_mul_lcm := λ a b, if h : a = 0 ∧ b = 0 then by simp [h] else begin 
         simp [h], by_cases h' : a = 0 ∨ b = 0; simp [h', units.val_coe],
         {cases h'; simp [h']},
