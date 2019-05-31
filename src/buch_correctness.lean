@@ -588,7 +588,7 @@ well_founded.recursion lt_wf p begin
                         (q₂' * monomial (m_lcm q₁'.LM q₂'.LM - q₂'.LM) q₂'.LC⁻¹) + -(q₁' * monomial (m_lcm q₁'.LM q₂'.LM - q₁'.LM) q₁'.LC⁻¹),
                         have : ¬ (q₂'.LC = 0 ∨ q₁'.LC = 0),
                             simp [not_or_distrib], use [LC_nez_iff.1 hq₂₂, LC_nez_iff.1 hq₁₂],
-                        simp [s_poly, mul_comm, m_lcm_comm q₁'.LM q₂'.LM, lcm, this], 
+                        simp [s_poly, mul_comm, m_lcm_comm q₁'.LM q₂'.LM, this], 
                     simp [hq₁₄.symm, hq₂₄.symm, reduction, hq₃, 
                     add_sub_assoc', finsupp.dvd_lcm_right, finsupp.dvd_lcm_left,
                     div_eq_mul_one_div p.LC, monomial_mul_monomial.symm,
