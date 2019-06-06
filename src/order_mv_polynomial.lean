@@ -373,16 +373,18 @@ theorem sub_LM_lt {p q : mv_polynomial σ α} (h₁ : p.LM = q.LM) (h₂ : p.LC 
     (p - q).LM < p.LM := 
 begin
     by_cases hpq : p - q = 0,
-        simp [hpq], apply lt_of_le_of_ne (finsupp.zero_le p.LM) (ne.symm hp),
-    have hab_LM : ∀ (x : σ →₀ ℕ), (x ∈ (p - q).support) → p.LM ≥ x,
-        intros x hx, 
-        have hx' := support_sub hx,
-        rw [finset.mem_union] at hx', cases hx',
-        apply LM_rel' hx',
-        rw h₁, apply LM_rel' hx',
-    apply lt_of_le_of_ne (hab_LM (p - q).LM (LM_mem_support hpq)),
-    apply finset.ne_of_mem_and_not_mem (LM_mem_support hpq),
-    simp [LC, h₁] at h₂, simp [h₁, h₂],
+    {simp [hpq], apply lt_of_le_of_ne (finsupp.zero_le p.LM) (ne.symm hp)},
+    {
+        have hab_LM : ∀ (x : σ →₀ ℕ), (x ∈ (p - q).support) → p.LM ≥ x,
+            intros x hx, 
+            have hx' := support_sub hx,
+            rw [finset.mem_union] at hx', cases hx',
+            {apply LM_rel' hx'},
+            {rw h₁, apply LM_rel' hx'},
+        apply lt_of_le_of_ne (hab_LM (p - q).LM (LM_mem_support hpq)),
+        apply finset.ne_of_mem_and_not_mem (LM_mem_support hpq),
+        simpa [LC, h₁, add_neg_eq_zero] using h₂,
+    }
 end
 
 theorem LM_of_add_gt_LM {p : mv_polynomial σ α} {a : σ →₀ ℕ} (ha : a > p.LM) 
