@@ -10,7 +10,9 @@ lemma insert_to_set [decidable_eq α] (s : finset α) (a : α) : (insert a s).to
     by ext x; finish
 
 lemma ne_of_mem_and_not_mem {s : finset α} {a b : α} (ha : a ∈ s) (hb : b ∉ s) : a ≠ b :=
-    λ h, by rw h at ha; exact hb ha
+    λ h, hb (by rwa h at ha)
+
+lemma not_mem_subset_of_not_mem {s₁ s₂ : finset α} {a : α} (hs : s₁ ⊆ s₂) (ha : a ∉ s₂) : a ∉ s₁ := λ h, ha (hs h) 
 
 lemma subset_of_union_left [decidable_eq α] {s₁ s₂} (s₃ : finset α) (hs : s₁ ⊆ s₂) : 
 s₁ ⊆ s₂ ∪ s₃ := subset.trans hs (subset_union_left s₂ s₃)

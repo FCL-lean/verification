@@ -26,6 +26,7 @@ lemma eq_zero_apply (p : mv_polynomial σ α) : (∀ a, p a = 0) ↔ p = 0 := eq
 
 @[simp] lemma zero_monomial {a : σ →₀ ℕ} : ((monomial a 0) : mv_polynomial σ α) = 0 := by simp [monomial]; refl
 lemma monomial_eq_zero_iff {a : σ →₀ ℕ} {b : α} : monomial a b = 0 ↔ b = 0 := by simp [monomial]; apply single_eq_zero_iff
+
 lemma monomial_add_monomial {a : σ →₀ ℕ} {b₁ b₂ : α} :
     monomial a (b₁ + b₂) = monomial a b₁ + monomial a b₂ := by simp [monomial]
 lemma monomial_mul_monomial {a₁ a₂ : σ →₀ ℕ} {b₁ b₂ : α} :
@@ -60,32 +61,6 @@ theorem induction_f {C : (mv_polynomial σ α) → Prop} (p : mv_polynomial σ �
     intros a b f haf hb hf,
     simpa [monomial] using Ca a b f haf hb hf,
   end
-
-lemma add_support_subset_union (c : mv_polynomial σ α) (as : σ →₀ ℕ) {aa : α} (haa : aa ≠ 0) :
- (finset.fold (+) 0 (λ (a : σ →₀ ℕ), monomial (as + a) ((c a) * aa)) (c.support)).support 
-  ⊆ finset.fold (∪) (∅) (λ (a : σ →₀ ℕ), (monomial (as + a) ((c a) * aa)).support) (c.support) :=
-begin
-    apply induction_f c, rw support_zero, simp,
-    intros a b p hap hb ih,
-    have h : (monomial a b + p).support = insert a p.support,
-        rw [finset.insert_eq, ←support_monomial_eq hb],
-        apply support_add_eq,
-        simp [support_monomial_eq hb, not_mem_support_iff.1 hap],
-    rw [h, finset.fold_insert hap], simp, 
-    apply finset.subset.trans support_add,
-    have h_to_fun_eq : ∀ (x : σ →₀ ℕ) (hx : x ∈ p.support), p x = (p + monomial a b) x,
-        intros,
-        have hax : a ≠ x := ne.symm (finset.ne_of_mem_and_not_mem hx hap),
-        simp [monomial_apply, hax],
-    have h_congr : ∀ (x : σ →₀ ℕ) (hx : x ∈ p.support), (λ x, monomial (as + x) ((p x) * aa)) x =
-        (λ x, monomial (as + x) (((p + monomial a b) x) * aa)) x,
-        intros, simp [(h_to_fun_eq x hx).symm], 
-    have h_congr' : ∀ (x : σ →₀ ℕ) (hx : x ∈ p.support), (λ x, (monomial (as + x) ((p x) * aa)).support) x =
-        (λ x, (monomial (as + x) (((p + monomial a b) x) * aa)).support) x,
-        intros, simp [(h_to_fun_eq x hx).symm], 
-    rw [finset.fold_congr h_congr, finset.fold_congr h_congr'] at ih,
-    apply finset.union_subset' (finset.subset.refl _) ih,
-end
 
 end basic
 end mv_polynomial

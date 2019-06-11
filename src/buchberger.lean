@@ -1,4 +1,4 @@
-import order_mv_polynomial noetherian
+import order_mv_polynomial noetherian ideal
 
 open mv_polynomial
 open finsupp
@@ -16,12 +16,11 @@ def red_list_aux : mv_polynomial σ α → list (mv_polynomial σ α) → mv_pol
 | a [] := a
 | a (hd :: tl) := if h : hd.LM ∣ a.LM  then red_list_aux (reduction a hd) tl else red_list_aux a tl
 
-lemma reduction_C_C {a b : α} (hb : b ≠ 0) : reduction ((C a) : mv_polynomial σ α) (C b) = 0 := begin
-    simp [reduction, C, monomial_mul_monomial, hb, mul_div_cancel' _ hb],
-end
-
 lemma reduction_of_LM_eqz {p q : mv_polynomial σ α} (hp : p.LM = 0) (hq : q.LM = 0) (hq' : q ≠ 0) : reduction p q = 0 :=
-by rw [eqC_of_LM_eqz.1 hp, eqC_of_LM_eqz.1 hq, reduction_C_C (LC_nez_iff.1 hq')]
+begin
+    rw [reduction, eqC_of_LM_eqz.1 hp, eqC_of_LM_eqz.1 hq],
+    simp [C, monomial_mul_monomial, mul_div_cancel' _ (LC_nez_iff.1 hq')],
+end
 
 lemma zero_red_list_aux : ∀ (l : list (mv_polynomial σ α)), red_list_aux 0 l = 0
 | [] := by simp [red_list_aux]
@@ -33,11 +32,8 @@ end
 
 theorem reduction_LM_lt {a b : mv_polynomial σ α} (hba : b.LM ∣ a.LM) (ha : a.LM ≠ 0) (hb : b ≠ 0) : (reduction a b).LM < a.LM := begin
     simp [reduction],
-    apply sub_LM_lt,
-    rw [LM_of_mul_m hb (div_ne_zero _ (LC_nez_iff.1 hb)), add_sub_cancel' hba],
-    apply LC_nez_of_LM_nez ha,
-    simp [LC_of_mul_m hb, mul_div_cancel' _ (LC_nez_iff.1 hb)],
-    assumption,
+    apply sub_LM_lt _ ha,
+    rw [LT_of_mul_m, LT_mul_monomial, add_sub_cancel' hba, mul_div_cancel' _ (LC_nez_iff.1 hb), LT],
 end
 
 lemma red_list_aux_red_LM_lt : ∀ (l : list (mv_polynomial σ α)) {p q : mv_polynomial σ α} (hqp : q.LM ∣ p.LM) (hp : p.LM ≠ 0) (hq : q ≠ 0),
@@ -66,8 +62,7 @@ theorem red_list_aux_LM_lt : ∀ (l : list (mv_polynomial σ α)) (p : mv_polyno
 | [] := by simp [red_list_aux] 
 | (r :: l') := λ p hp h_red, begin
     by_cases hr : r = 0,
-    simp [red_list_aux , reduction, hr] at h_red ⊢,
-    apply red_list_aux_LM_lt, assumption',
+    {simp [red_list_aux, reduction, hr] at h_red ⊢, apply red_list_aux_LM_lt, assumption'},
     by_cases hrp : r.LM ∣ p.LM;
     simp [red_list_aux, hrp] at h_red ⊢, 
     apply red_list_aux_red_LM_lt l' hrp hp hr,
@@ -103,9 +98,9 @@ lemma eqz_of_red_list_aux_eq : ∀ (l : list (mv_polynomial σ α)) (p : mv_poly
         rw hq at hq'₁ hq'₂,
         simp [hq'₂] at hp₁,
         by_cases hp₂ : p.LM = 0,
-        {rw [reduction_of_LM_eqz hp₂ hq'₂ hq'₁, zero_red_list_aux] at hp₁, exact hp₁.symm},
+        {rwa [reduction_of_LM_eqz hp₂ hq'₂ hq'₁, zero_red_list_aux, eq_comm] at hp₁},
         {
-            have h := @red_list_aux_red_LM_lt _ _ _ _ _ _ _ _ _ l' p r (by simp [hq'₂]) hp₂ hq'₁,
+            have h := red_list_aux_red_LM_lt l' (by simp [hq'₂]) hp₂ hq'₁,
             rw hp₁ at h,
             apply absurd h (lt_irrefl _),
         },
@@ -114,16 +109,13 @@ lemma eqz_of_red_list_aux_eq : ∀ (l : list (mv_polynomial σ α)) (p : mv_poly
     simp [hrp] at hp₁,
     {
         by_cases hr : r = 0, 
+        {exact eqz_of_red_list_aux_eq l' _ (by simpa [hr, reduction] using hp₁) ⟨q, hq, hq'₁, hq'₂⟩},
         {
-            simp [hr, reduction] at hp₁,
-            apply eqz_of_red_list_aux_eq l' _ hp₁,
-            refine ⟨q, hq, hq'₁, hq'₂⟩,
-        },
-        {
+            
             by_cases hp₂ : p.LM = 0,
             {
                 simp [hp₂] at hrp,
-                rw [reduction_of_LM_eqz hp₂ hrp hr, zero_red_list_aux] at hp₁, exact hp₁.symm,
+                rwa [reduction_of_LM_eqz hp₂ hrp hr, zero_red_list_aux, eq_comm] at hp₁,
             },
             {
                 have h := red_list_aux_red_LM_lt l' hrp hp₂ hr,
@@ -246,23 +238,21 @@ lemma s_poly_comm {p q : mv_polynomial σ α} : s_poly p q = -(s_poly q p) :=
 by simp [s_poly, m_lcm_comm]
 
 set_option class.instance_max_depth 50
-theorem red_list_not_mem_span (l : list (mv_polynomial σ α)) (p : mv_polynomial σ α) (h : red_list p l ≠ 0) :
-    monomial (red_list p l).LM (red_list p l).LC ∉ monomial_ideal l :=
-λ h_mem, begin
-    have h_nd := red_list_not_div p l h,
-    rcases monomial_mem_ideal _ l h_mem with ⟨q, ⟨hq₁, hq₂⟩, hq₃⟩, 
-    apply h_nd; assumption, rwa ←LC_nez_iff,
-end
-
 theorem ideal_increase (l : list (mv_polynomial σ α)) (p : mv_polynomial σ α) (h : red_list p l ≠ 0) :
     monomial_ideal l < monomial_ideal (list.cons (red_list p l) l) := 
 begin
-    simp [lt_iff_le_and_ne], split,
-    apply ideal.span_mono, simp, 
-    intro H,
-    apply red_list_not_mem_span l p h, rw H,
-    simp [monomial_ideal, ideal.mem_span_insert], 
-    refine ⟨1, 0, by simp, by simp⟩, 
+    simp [lt_iff_le_and_ne], 
+    refine ⟨by apply ideal.span_mono; simp, _⟩,
+    apply ideal.ne_of_not_mem_mem (red_list p l).LT,
+    {
+        intro h_mem, 
+        rcases monomial_mem_ideal (by rwa ←LC_nez_iff) l h_mem with ⟨q, ⟨hq₁, hq₂⟩, hq₃⟩, 
+        apply red_list_not_div p l h, assumption',
+    },
+    {
+        simp [monomial_ideal, ideal.mem_span_insert], 
+        refine ⟨1, 0, by simp, by simp⟩, 
+    }
 end
 
 def buchberger : (list (mv_polynomial σ α) × list (mv_polynomial σ α)) → list (mv_polynomial σ α)
